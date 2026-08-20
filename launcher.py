@@ -148,6 +148,36 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
 
             raw_data = self._rows_to_dicts(columns, raw_rows)
             
+            # Catálogo de Empresas
+            EMPRESAS_MAP = {
+                1: 'SOCIEDAD AGRICOLA EL PORVENIR S.A.',
+                2: 'EL DURAZNO',
+                3: 'LOS PARRONES',
+                4: 'QUILAMUTA',
+                5: 'INVERSIONES RVD LIMITADA',
+                7: 'AGRICOLA PILARES VERDES SPA',
+                8: 'SOC. EXPORTADORA VERFRUT SPA',
+                9: 'SOCIEDAD AGRÍCOLA RAPEL S. A. C.',
+                11: 'INMOBILIARIA FARALEUFU LIMITADA',
+                12: 'ALGARROBOS PIURA SAC',
+                14: 'SOCIEDAD EXPORTADORA VERFRUT S. A. C.',
+                16: 'AGRICOLA PJM LIMITADA',
+                17: 'AGRICOLA VERCELING CHILE LIMITADA',
+                19: 'AGRICOLA EL PEÑASCO SPA',
+                20: 'SKY WINGS SPA',
+                21: 'AGRICOLA EL REMANSO LTDA',
+                22: 'BODEGAS LOS LIRIOS SPA',
+                23: 'AGRICOLA AVANTI S.A.C.',
+                31: 'BOMAREA S.R.L',
+                32: 'INVERSIONES MOSQUETA S.A.C.',
+                33: 'INVERSIONES PIRONA S.A.C.',
+                34: 'INVERSIONES LEFKADA S.A.C.',
+                35: 'INVERSIONES HEFEI S.A.C.'
+            }
+
+            if 'Empresa' not in columns:
+                columns.insert(0, 'Empresa')
+
             # Deduplicar y filtrar solo trabajadores ACTIVOS y NO FINIQUITADOS
             seen_ruts = set()
             data = []
@@ -155,6 +185,14 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                 rut = str(item.get('RutTrabajador', '')).strip()
                 if not rut or rut in seen_ruts:
                     continue
+
+                # Asignar Empresa
+                raw_id_emp = item.get('IdEmpresa')
+                try:
+                    id_emp_num = int(raw_id_emp) if raw_id_emp is not None else int(id_empresa)
+                except (ValueError, TypeError):
+                    id_emp_num = 14
+                item['Empresa'] = EMPRESAS_MAP.get(id_emp_num, f'EMPRESA {id_emp_num}')
 
                 # Filtrar finiquitados o no vigentes
                 fec_fin = item.get('FechaFiniquito')

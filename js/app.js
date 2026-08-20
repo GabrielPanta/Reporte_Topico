@@ -31,8 +31,9 @@
 (function () {
   'use strict';
 
-  // Schema de salida exacto solicitado (23 columnas)
+  // Schema de salida exacto solicitado (24 columnas)
   const TARGET_COLUMNS = [
+    'Empresa',
     'Regimen',
     'Tiene Digitacion (jornal)',
     'RutTrabajador',
@@ -131,8 +132,36 @@
     return false;
   }
 
+  // Catálogo de Empresas
+  const EMPRESAS_MAP = {
+    '1': 'SOCIEDAD AGRICOLA EL PORVENIR S.A.',
+    '2': 'EL DURAZNO',
+    '3': 'LOS PARRONES',
+    '4': 'QUILAMUTA',
+    '5': 'INVERSIONES RVD LIMITADA',
+    '7': 'AGRICOLA PILARES VERDES SPA',
+    '8': 'SOC. EXPORTADORA VERFRUT SPA',
+    '9': 'SOCIEDAD AGRÍCOLA RAPEL S. A. C.',
+    '11': 'INMOBILIARIA FARALEUFU LIMITADA',
+    '12': 'ALGARROBOS PIURA SAC',
+    '14': 'SOCIEDAD EXPORTADORA VERFRUT S. A. C.',
+    '16': 'AGRICOLA PJM LIMITADA',
+    '17': 'AGRICOLA VERCELING CHILE LIMITADA',
+    '19': 'AGRICOLA EL PEÑASCO SPA',
+    '20': 'SKY WINGS SPA',
+    '21': 'AGRICOLA EL REMANSO LTDA',
+    '22': 'BODEGAS LOS LIRIOS SPA',
+    '23': 'AGRICOLA AVANTI S.A.C.',
+    '31': 'BOMAREA S.R.L',
+    '32': 'INVERSIONES MOSQUETA S.A.C.',
+    '33': 'INVERSIONES PIRONA S.A.C.',
+    '34': 'INVERSIONES LEFKADA S.A.C.',
+    '35': 'INVERSIONES HEFEI S.A.C.'
+  };
+
   // Mapeo de alias normalizados
   const COLUMN_ALIASES = {
+    'Empresa': ['empresa', 'idempresa', 'nombreempresa', 'razonsocial', 'compania', 'cia', 'nomempresa', 'emp', 'nom_empresa', 'razon_social'],
     'Regimen': ['regimen', 'regimenlaboral', 'tiporegimen'],
     'Tiene Digitacion (jornal)': ['tienedigitacionjornal', 'tienedigitacion', 'digitacion', 'jornal', 'tienejornal', 'digitado', 'esjornal', 'tienedigitaciondejornal'],
     'RutTrabajador': ['ruttrabajador', 'rut', 'dni', 'documento', 'docidentidad', 'cedula', 'identificacion', 'numdoc', 'rutdeltrabajador', 'dnidrabajador'],
@@ -619,6 +648,17 @@
   }
 
   function extractValueForColumn(targetCol, row2, row1, keyCol1) {
+    if (targetCol === 'Empresa') {
+      let rawEmp = extractFromRow(row1, ['empresa', 'nombreempresa', 'razonsocial', 'compania', 'nom_empresa', 'idempresa']) ||
+                   (row2 ? extractFromRow(row2, ['empresa', 'nombreempresa', 'razonsocial', 'compania', 'idempresa']) : '');
+      if (rawEmp) {
+        const cleanEmp = String(rawEmp).trim();
+        if (EMPRESAS_MAP[cleanEmp]) return EMPRESAS_MAP[cleanEmp];
+        return cleanEmp;
+      }
+      return 'SOCIEDAD EXPORTADORA VERFRUT S. A. C.';
+    }
+
     if (targetCol === 'Apellidos y Nombres') {
       return getFullName(row1, row2);
     }
@@ -1406,11 +1446,11 @@
         if (preset === 'all') {
           state.visibleColumns = new Set(TARGET_COLUMNS);
         } else if (preset === 'summary') {
-          state.visibleColumns = new Set(['RutTrabajador', 'CodigoTrabajador', 'Apellidos y Nombres', 'Oficio', 'Zona Labores', 'ACTIVIDAD', 'LABOR', 'ESTADO']);
+          state.visibleColumns = new Set(['Empresa', 'RutTrabajador', 'CodigoTrabajador', 'Apellidos y Nombres', 'Oficio', 'Zona Labores', 'ACTIVIDAD', 'LABOR', 'ESTADO']);
         } else if (preset === 'attendance') {
-          state.visibleColumns = new Set(['RutTrabajador', 'Apellidos y Nombres', 'Tiene Digitacion (jornal)', 'PLACA', 'TURNO', 'ACTIVIDAD', 'ESTADO']);
+          state.visibleColumns = new Set(['Empresa', 'RutTrabajador', 'Apellidos y Nombres', 'Tiene Digitacion (jornal)', 'PLACA', 'TURNO', 'ACTIVIDAD', 'ESTADO']);
         } else if (preset === 'transport') {
-          state.visibleColumns = new Set(['RutTrabajador', 'Apellidos y Nombres', 'Zona Labores', 'ENCARGADO', 'PLACA', 'CODIGO BUS', 'RUTA', 'TURNO', 'ESTADO']);
+          state.visibleColumns = new Set(['Empresa', 'RutTrabajador', 'Apellidos y Nombres', 'Zona Labores', 'ENCARGADO', 'PLACA', 'CODIGO BUS', 'RUTA', 'TURNO', 'ESTADO']);
         }
 
         // Update checkboxes
@@ -2342,9 +2382,26 @@
         encargadoConsolidado = extractValueForColumn('ENCARGADO', row2, row1, keyCol1);
       }
 
+      // Empresa
+      let empresaConsolidada = '';
+      const rawEmpresa = extractFromRow(row1, ['empresa', 'nombreempresa', 'razonsocial', 'compania', 'nom_empresa', 'idempresa']) ||
+                         (row2 ? extractFromRow(row2, ['empresa', 'nombreempresa', 'razonsocial', 'compania', 'idempresa']) : '');
+      if (rawEmpresa) {
+        const cleanEmp = String(rawEmpresa).trim();
+        if (EMPRESAS_MAP[cleanEmp]) {
+          empresaConsolidada = EMPRESAS_MAP[cleanEmp];
+        } else {
+          empresaConsolidada = cleanEmp;
+        }
+      } else {
+        empresaConsolidada = 'SOCIEDAD EXPORTADORA VERFRUT S. A. C.';
+      }
+
       const consolidatedRow = {};
       TARGET_COLUMNS.forEach(colName => {
-        if (colName === 'ESTADO') {
+        if (colName === 'Empresa') {
+          consolidatedRow['Empresa'] = empresaConsolidada || '';
+        } else if (colName === 'ESTADO') {
           consolidatedRow['ESTADO'] = estadoVal;
         } else if (colName === 'ACTIVIDAD') {
           consolidatedRow['ACTIVIDAD'] = actividadVal || '';
@@ -2641,6 +2698,7 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
             Contrato & Cargo
           </div>
+          <div class="dossier-field-row"><span class="dossier-field-label">Empresa:</span><span class="dossier-field-value">${escapeHtml(row['Empresa'] || '-')}</span></div>
           <div class="dossier-field-row"><span class="dossier-field-label">Régimen:</span><span class="dossier-field-value">${escapeHtml(row['Regimen'] || '-')}</span></div>
           <div class="dossier-field-row"><span class="dossier-field-label">Oficio / Cargo:</span><span class="dossier-field-value">${escapeHtml(row['Oficio'] || '-')}</span></div>
           <div class="dossier-field-row"><span class="dossier-field-label">Inicio Periodo:</span><span class="dossier-field-value">${escapeHtml(row['FechaInicioPeriodo'] || '-')}</span></div>
