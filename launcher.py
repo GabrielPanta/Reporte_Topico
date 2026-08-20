@@ -124,7 +124,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         fechaini = params.get('fechaini', [default_fechaini])[0]
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=12)
+            conn = pyodbc.connect(get_connection_string(), timeout=40)
             cursor = conn.cursor()
             sql = """
             EXEC SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS 
@@ -241,7 +241,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         anio = int(params.get('anio', [now.year])[0])
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=15)
+            conn = pyodbc.connect(get_connection_string(), timeout=40)
             cursor = conn.cursor()
             sql = "EXEC SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR @IDEMPRESA = ?, @MES = ?, @ANO = ?"
             cursor.execute(sql, (id_empresa, mes, anio))

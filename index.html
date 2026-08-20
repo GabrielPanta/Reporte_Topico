@@ -45,8 +45,33 @@
       </div>
 
       <div class="header-actions">
+        <!-- Global Empresa Picker -->
+        <div class="empresa-picker" id="empresa-picker-container" title="Empresa seleccionada para todas las consultas SQL (Maestro, Labores, Marcaciones, Rutas, Cuadrillas)">
+          <div class="empresa-picker-label">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M3 21h18M3 7v14M21 7v14M6 7V3h12v4M9 11h.01M15 11h.01M9 15h.01M15 15h.01"></path>
+            </svg>
+            <span>Empresa:</span>
+          </div>
+          <select id="global-empresa-select" class="select-empresa-header" aria-label="Seleccionar Empresa SQL">
+            <option value="14" selected>14 - VERFRUT S.A.C.</option>
+            <option value="9">9 - RAPEL S.A.C.</option>
+            <option value="12">12 - ALGARROBOS PIURA</option>
+            <option value="1">1 - EL PORVENIR</option>
+            <option value="2">2 - EL DURAZNO</option>
+            <option value="3">3 - LOS PARRONES</option>
+            <option value="4">4 - QUILAMUTA</option>
+            <option value="7">7 - PILARES VERDES</option>
+            <option value="8">8 - VERFRUT CHILE</option>
+            <option value="23">23 - AVANTI S.A.C.</option>
+            <option value="31">31 - BOMAREA S.R.L.</option>
+            <option value="custom">✏️ Otra Empresa (ID)...</option>
+          </select>
+          <input type="number" id="global-empresa-custom" class="input-empresa-custom" placeholder="ID" style="display: none;" min="1" max="999" aria-label="ID Empresa personalizado">
+        </div>
+
         <!-- Direct SQL Load All Button in Header -->
-        <button id="btn-load-all-sql" class="btn btn-primary btn-sm" title="Sincronizar Trabajadores, Labores, Buses y Cuadrillas directamente desde SQL Server (vfstbd01)">
+        <button id="btn-load-all-sql" class="btn btn-primary btn-sm" title="Sincronizar Trabajadores, Labores, Marcaciones, Buses y Cuadrillas directamente desde SQL Server según la Empresa seleccionada">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
@@ -1059,8 +1084,20 @@
         <form id="form-sql-params" style="display: flex; flex-direction: column; gap: 0.85rem;">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div class="field-group">
-              <label for="sql-param-empresa">IdEmpresa:</label>
-              <input type="number" id="sql-param-empresa" class="select-input" value="14" required>
+              <label for="sql-param-empresa">Empresa (@IdEmpresa):</label>
+              <select id="sql-param-empresa" class="select-input">
+                <option value="14" selected>14 - VERFRUT S.A.C.</option>
+                <option value="9">9 - RAPEL S.A.C.</option>
+                <option value="12">12 - ALGARROBOS PIURA</option>
+                <option value="1">1 - EL PORVENIR</option>
+                <option value="2">2 - EL DURAZNO</option>
+                <option value="3">3 - LOS PARRONES</option>
+                <option value="4">4 - QUILAMUTA</option>
+                <option value="7">7 - PILARES VERDES</option>
+                <option value="8">8 - VERFRUT CHILE</option>
+                <option value="23">23 - AVANTI S.A.C.</option>
+                <option value="31">31 - BOMAREA S.R.L.</option>
+              </select>
             </div>
             <div class="field-group">
               <label for="sql-param-activo">Activo:</label>
@@ -1140,8 +1177,20 @@
 
         <form id="form-sql-params-2" style="display: flex; flex-direction: column; gap: 0.85rem;">
           <div class="field-group">
-            <label for="sql-param-2-empresa">IdEmpresa:</label>
-            <input type="number" id="sql-param-2-empresa" class="select-input" value="14" required>
+            <label for="sql-param-2-empresa">Empresa (@IDEMPRESA):</label>
+            <select id="sql-param-2-empresa" class="select-input">
+              <option value="14" selected>14 - VERFRUT S.A.C.</option>
+              <option value="9">9 - RAPEL S.A.C.</option>
+              <option value="12">12 - ALGARROBOS PIURA</option>
+              <option value="1">1 - EL PORVENIR</option>
+              <option value="2">2 - EL DURAZNO</option>
+              <option value="3">3 - LOS PARRONES</option>
+              <option value="4">4 - QUILAMUTA</option>
+              <option value="7">7 - PILARES VERDES</option>
+              <option value="8">8 - VERFRUT CHILE</option>
+              <option value="23">23 - AVANTI S.A.C.</option>
+              <option value="31">31 - BOMAREA S.R.L.</option>
+            </select>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
@@ -1218,8 +1267,20 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div class="field-group">
-              <label for="sql-param-3-empresa">IdEmpresa:</label>
-              <input type="number" id="sql-param-3-empresa" class="select-input" value="14" required>
+              <label for="sql-param-3-empresa">Empresa (@IdEmpresa):</label>
+              <select id="sql-param-3-empresa" class="select-input">
+                <option value="14" selected>14 - VERFRUT S.A.C.</option>
+                <option value="9">9 - RAPEL S.A.C.</option>
+                <option value="12">12 - ALGARROBOS PIURA</option>
+                <option value="1">1 - EL PORVENIR</option>
+                <option value="2">2 - EL DURAZNO</option>
+                <option value="3">3 - LOS PARRONES</option>
+                <option value="4">4 - QUILAMUTA</option>
+                <option value="7">7 - PILARES VERDES</option>
+                <option value="8">8 - VERFRUT CHILE</option>
+                <option value="23">23 - AVANTI S.A.C.</option>
+                <option value="31">31 - BOMAREA S.R.L.</option>
+              </select>
             </div>
             <div class="field-group">
               <label for="sql-param-3-sw">sw_contrato:</label>
@@ -1278,10 +1339,18 @@
             <div class="form-group">
               <label for="sql-param-4-empresa">Empresa (@IDEMPRESA):</label>
               <select id="sql-param-4-empresa" class="select-input">
-                <option value="0" selected>0 (Todas las empresas)</option>
-                <option value="14">14 - VERFRUT S.A.C.</option>
+                <option value="0">0 (Todas las empresas)</option>
+                <option value="14" selected>14 - VERFRUT S.A.C.</option>
                 <option value="9">9 - RAPEL S.A.C.</option>
-                <option value="12">12 - ALGARROBOS</option>
+                <option value="12">12 - ALGARROBOS PIURA</option>
+                <option value="1">1 - EL PORVENIR</option>
+                <option value="2">2 - EL DURAZNO</option>
+                <option value="3">3 - LOS PARRONES</option>
+                <option value="4">4 - QUILAMUTA</option>
+                <option value="7">7 - PILARES VERDES</option>
+                <option value="8">8 - VERFRUT CHILE</option>
+                <option value="23">23 - AVANTI S.A.C.</option>
+                <option value="31">31 - BOMAREA S.R.L.</option>
               </select>
             </div>
             <div class="form-group">

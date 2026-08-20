@@ -393,7 +393,10 @@
     dossierAvatar: document.getElementById('dossier-avatar'),
     dossierBody: document.getElementById('dossier-body'),
 
-    // Header Controls
+    // Header & Global Empresa Controls
+    globalEmpresaSelect: document.getElementById('global-empresa-select'),
+    globalEmpresaCustom: document.getElementById('global-empresa-custom'),
+    empresaPickerContainer: document.getElementById('empresa-picker-container'),
     btnThemeToggle: document.getElementById('btn-theme-toggle'),
     btnSoundToggle: document.getElementById('btn-sound-toggle'),
     btnLoadAllSql: document.getElementById('btn-load-all-sql'),
@@ -1033,6 +1036,40 @@
     }
   }
 
+  // Helper: Obtener ID de Empresa Activa
+  function getSelectedEmpresaId() {
+    if (elements.globalEmpresaSelect) {
+      const val = elements.globalEmpresaSelect.value;
+      if (val === 'custom') {
+        return (elements.globalEmpresaCustom && elements.globalEmpresaCustom.value.trim()) || '14';
+      }
+      return val || '14';
+    }
+    return '14';
+  }
+
+  // Helper: Sincronizar selectores de Empresa en todos los modales
+  function syncEmpresaSelectors(empresaId) {
+    const idStr = String(empresaId);
+    if (elements.globalEmpresaSelect) {
+      const hasOpt = Array.from(elements.globalEmpresaSelect.options).some(o => o.value === idStr);
+      if (hasOpt) {
+        elements.globalEmpresaSelect.value = idStr;
+        if (elements.globalEmpresaCustom) elements.globalEmpresaCustom.style.display = 'none';
+      } else {
+        elements.globalEmpresaSelect.value = 'custom';
+        if (elements.globalEmpresaCustom) {
+          elements.globalEmpresaCustom.style.display = 'inline-block';
+          elements.globalEmpresaCustom.value = idStr;
+        }
+      }
+    }
+    if (elements.sqlParamEmpresa) elements.sqlParamEmpresa.value = idStr;
+    if (elements.sqlParam2Empresa) elements.sqlParam2Empresa.value = idStr;
+    if (elements.sqlParam3Empresa) elements.sqlParam3Empresa.value = idStr;
+    if (elements.sqlParam4Empresa) elements.sqlParam4Empresa.value = idStr;
+  }
+
   // Load Workers Directly from SQL Server (Archivo 1)
   async function loadFromSqlServer(customParams = null) {
     const btn1 = elements.btnLoadSql;
@@ -1048,10 +1085,11 @@
         btnHeader.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Consultando...</span>';
       }
 
-      showToast('Conectando a base de datos vfstbd01 y consultando trabajadores...', 'info');
+      const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParamEmpresa ? elements.sqlParamEmpresa.value : getSelectedEmpresaId());
+      showToast(`Conectando a base de datos vfstbd01 y consultando trabajadores (Empresa ${activeEmp})...`, 'info');
 
       const p = customParams || {
-        idEmpresa: elements.sqlParamEmpresa ? elements.sqlParamEmpresa.value : '14',
+        idEmpresa: activeEmp,
         activo: elements.sqlParamActivo ? elements.sqlParamActivo.value : '1',
         mes: elements.sqlParamMes ? elements.sqlParamMes.value : '8',
         anio: elements.sqlParamAnio ? elements.sqlParamAnio.value : '2026',
@@ -1119,10 +1157,11 @@
         btn2.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Consultando Labores...</span>';
       }
 
-      showToast('Consultando último día y labores en vfstbd01...', 'info');
+      const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParam2Empresa ? elements.sqlParam2Empresa.value : getSelectedEmpresaId());
+      showToast(`Consultando último día y labores en vfstbd01 (Empresa ${activeEmp})...`, 'info');
 
       const p = customParams || {
-        idEmpresa: elements.sqlParam2Empresa ? elements.sqlParam2Empresa.value : '14',
+        idEmpresa: activeEmp,
         mes: elements.sqlParam2Mes ? elements.sqlParam2Mes.value : '8',
         anio: elements.sqlParam2Anio ? elements.sqlParam2Anio.value : '2026'
       };
@@ -1184,13 +1223,14 @@
         btn4.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Consultando Rutas...</span>';
       }
 
-      showToast('Consultando buses y rutas en vfstbd01 (SPC_REGISTRO_RUTA)...', 'info');
+      const activeEmp = (customParams && customParams.idEmpresa !== undefined) ? customParams.idEmpresa : ((elements.sqlParam4Empresa && elements.sqlParam4Empresa.value) || getSelectedEmpresaId());
+      showToast(`Consultando buses y rutas en vfstbd01 (SPC_REGISTRO_RUTA - Empresa ${activeEmp})...`, 'info');
 
       const p = customParams || {
         codPais: (elements.sqlParam4Codpais && elements.sqlParam4Codpais.value) || 'PE',
         desde: (elements.sqlParam4Desde && elements.sqlParam4Desde.value) || '16-08-2026',
         hasta: (elements.sqlParam4Hasta && elements.sqlParam4Hasta.value) || '31-08-2026',
-        idEmpresa: (elements.sqlParam4Empresa && elements.sqlParam4Empresa.value) || '0'
+        idEmpresa: activeEmp
       };
 
       const queryParams = new URLSearchParams(p);
@@ -1228,7 +1268,7 @@
   }
 
   // Load Cuadrillas from SQL Server (Archivo 5)
-  async function loadCuadrillasFromSqlServer() {
+  async function loadCuadrillasFromSqlServer(customParams = null) {
     const btn5 = elements.btnLoadSql5;
     try {
       if (btn5) {
@@ -1236,14 +1276,15 @@
         btn5.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Cargando...</span>';
       }
 
-      const response = await fetch('/api/cuadrillas?idEmpresa=14');
+      const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParam5Empresa ? elements.sqlParam5Empresa.value : getSelectedEmpresaId());
+      const response = await fetch(`/api/cuadrillas?idEmpresa=${activeEmp}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const result = await response.json();
       if (!result.success || !result.data) throw new Error(result.error || 'Error al obtener cuadrillas');
 
       state.file5 = {
         data: result.data,
-        name: `SQL Server (Cuadrillas) - ${result.count} cuadrillas`,
+        name: `SQL Server (Cuadrillas) - ${result.count} cuadrillas (Empresa ${activeEmp})`,
         headers: result.headers,
         idCuadrillaCol: 'IDCUADRILLA',
         descCol: 'Descripcion',
@@ -1254,7 +1295,7 @@
 
       autoDetectColumns(5);
       updateFileCardUI(5, { name: `SQL Server (Cuadrillas) - ${result.count} cuadrillas`, size: result.count * 80 }, result.count);
-      showToast(`¡${result.count} cuadrillas cargadas desde SQL Server!`, 'success');
+      showToast(`¡${result.count} cuadrillas cargadas desde SQL Server (Empresa ${activeEmp})!`, 'success');
       return result;
     } catch (err) {
       console.error(err);
@@ -1289,15 +1330,16 @@
         btn3.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Consultando Marcaciones...</span>';
       }
 
-      const defaultRange = getDefault3DaysRange();
+      const range = getDefault3DaysRange();
+      const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParam3Empresa ? elements.sqlParam3Empresa.value : getSelectedEmpresaId());
       const p = customParams || {
-        fechaDesde: elements.sqlParam3Desde ? elements.sqlParam3Desde.value : (elements.sqlParam3Fecha ? elements.sqlParam3Fecha.value : defaultRange.desde),
-        fechaHasta: elements.sqlParam3Hasta ? elements.sqlParam3Hasta.value : defaultRange.hasta,
-        idEmpresa: elements.sqlParam3Empresa ? elements.sqlParam3Empresa.value : '14',
-        sw_contrato: elements.sqlParam3Sw ? elements.sqlParam3Sw.value : '0'
+        fechaDesde: elements.sqlParam3Desde ? elements.sqlParam3Desde.value : range.desde,
+        fechaHasta: elements.sqlParam3Hasta ? elements.sqlParam3Hasta.value : range.hasta,
+        idEmpresa: activeEmp,
+        sw_contrato: (elements.sqlParam3Sw && elements.sqlParam3Sw.value) || '0'
       };
 
-      showToast(`Consultando marcaciones (${p.fechaDesde} al ${p.fechaHasta}) en vfstbd01...`, 'info');
+      showToast(`Consultando marcaciones (${p.fechaDesde} al ${p.fechaHasta}, Empresa ${activeEmp}) en vfstbd01...`, 'info');
 
       const queryParams = new URLSearchParams(p);
       const response = await fetch(`/api/marcaciones?${queryParams.toString()}`);
@@ -1414,7 +1456,42 @@
     elements.btnClosePreview.addEventListener('click', () => closeModal(elements.modalPreview));
     elements.btnCloseDossier.addEventListener('click', () => closeModal(elements.modalDossier));
 
-    // SQL Server Modal & Action Events
+    // Global Empresa Selector Events
+    if (elements.globalEmpresaSelect) {
+      elements.globalEmpresaSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val === 'custom') {
+          if (elements.globalEmpresaCustom) {
+            elements.globalEmpresaCustom.style.display = 'inline-block';
+            elements.globalEmpresaCustom.focus();
+          }
+        } else {
+          if (elements.globalEmpresaCustom) elements.globalEmpresaCustom.style.display = 'none';
+          syncEmpresaSelectors(val);
+          const selText = e.target.options[e.target.selectedIndex]?.text || val;
+          showToast(`🏢 Empresa activa: ${selText}`, 'info');
+        }
+      });
+    }
+    if (elements.globalEmpresaCustom) {
+      elements.globalEmpresaCustom.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val) {
+          syncEmpresaSelectors(val);
+        }
+      });
+    }
+
+    // Modal Empresa Selectors Sync Back
+    [elements.sqlParamEmpresa, elements.sqlParam2Empresa, elements.sqlParam3Empresa, elements.sqlParam4Empresa].forEach(sel => {
+      if (sel) {
+        sel.addEventListener('change', (e) => {
+          syncEmpresaSelectors(e.target.value);
+        });
+      }
+    });
+
+    // Card 1 SQL Events
     if (elements.btnLoadAllSql) {
       elements.btnLoadAllSql.addEventListener('click', () => loadAllFromSqlServer());
     }
@@ -1437,7 +1514,7 @@
       elements.formSqlParams.addEventListener('submit', (e) => {
         e.preventDefault();
         const customParams = {
-          idEmpresa: elements.sqlParamEmpresa ? elements.sqlParamEmpresa.value : '14',
+          idEmpresa: elements.sqlParamEmpresa ? elements.sqlParamEmpresa.value : getSelectedEmpresaId(),
           activo: elements.sqlParamActivo ? elements.sqlParamActivo.value : '1',
           mes: elements.sqlParamMes ? elements.sqlParamMes.value : '8',
           anio: elements.sqlParamAnio ? elements.sqlParamAnio.value : '2026',
@@ -1464,7 +1541,7 @@
       elements.formSqlParams2.addEventListener('submit', (e) => {
         e.preventDefault();
         const customParams = {
-          idEmpresa: elements.sqlParam2Empresa ? elements.sqlParam2Empresa.value : '14',
+          idEmpresa: elements.sqlParam2Empresa ? elements.sqlParam2Empresa.value : getSelectedEmpresaId(),
           mes: elements.sqlParam2Mes ? elements.sqlParam2Mes.value : '8',
           anio: elements.sqlParam2Anio ? elements.sqlParam2Anio.value : '2026'
         };
@@ -1499,7 +1576,7 @@
         const customParams = {
           fechaDesde: elements.sqlParam3Desde ? elements.sqlParam3Desde.value : '18/08/2026',
           fechaHasta: elements.sqlParam3Hasta ? elements.sqlParam3Hasta.value : '20/08/2026',
-          idEmpresa: elements.sqlParam3Empresa ? elements.sqlParam3Empresa.value : '14',
+          idEmpresa: elements.sqlParam3Empresa ? elements.sqlParam3Empresa.value : getSelectedEmpresaId(),
           sw_contrato: elements.sqlParam3Sw ? elements.sqlParam3Sw.value : '0'
         };
         loadMarcacionesFromSqlServer(customParams);
@@ -1526,7 +1603,7 @@
           codPais: elements.sqlParam4Codpais ? elements.sqlParam4Codpais.value.trim() : 'PE',
           desde: elements.sqlParam4Desde ? elements.sqlParam4Desde.value.trim() : '16-08-2026',
           hasta: elements.sqlParam4Hasta ? elements.sqlParam4Hasta.value.trim() : '31-08-2026',
-          idEmpresa: elements.sqlParam4Empresa ? elements.sqlParam4Empresa.value : '0'
+          idEmpresa: elements.sqlParam4Empresa ? elements.sqlParam4Empresa.value : getSelectedEmpresaId()
         };
         loadBusesFromSqlServer(customParams);
       });
