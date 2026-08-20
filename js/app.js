@@ -181,7 +181,7 @@
     'ENCARGADO': ['encargado', 'supervisor', 'jefe', 'responsable', 'capataz', 'lider', 'supervisorcampo'],
     'PLACA': ['nombreestacion', 'estacion', 'estaciontrabajo', 'nomestacion', 'placa', 'placavehiculo', 'vehiculo', 'placabus', 'movil'],
     'CODIGO BUS': ['codigobus', 'codbus', 'bus', 'transporte', 'nrobus'],
-    'RUTA': ['ruta', 'linea', 'recorrido', 'origendestino', 'rutatransporte'],
+    'RUTA': ['ruta', 'linea', 'recorrido', 'rutatransporte', 'nombreruta', 'descriptruta', 'descripcionruta'],
     'TURNO': ['horainicio', 'horaingreso', 'horarioinicio', 'turno', 'horario', 'jornada', 'tipoturno'],
     'HASTA': ['ultimodia', 'fechaultimodia', 'fecultdia', 'ultimodialaborado', 'hasta', 'fechahasta', 'fec_hasta', 'vigenciahasta']
   };
@@ -635,8 +635,8 @@
         if (cleanAlias.includes('zona') && (cleanKey === 'labor' || cleanKey === 'labores' || cleanKey.includes('oficio'))) continue;
         if ((cleanAlias === 'labor' || cleanAlias === 'labores') && cleanKey.includes('zona')) continue;
         if (cleanAlias.includes('zona') && (cleanKey.includes('cuadrilla') || cleanKey.includes('encargado'))) continue;
-        // NUNCA cruzar 'ruta' con 'vigente', 'periodo', 'contrato' o 'rut'
-        if (cleanAlias === 'ruta' && (cleanKey.includes('vigente') || cleanKey.includes('periodo') || cleanKey.includes('contrato') || cleanKey.includes('rut'))) continue;
+        // NUNCA cruzar 'ruta' con 'vigente', 'periodo', 'contrato', 'rut', 'origen', 'destino', 'motivo'
+        if (cleanAlias.includes('ruta') && (cleanKey.includes('vigente') || cleanKey.includes('periodo') || cleanKey.includes('contrato') || cleanKey.includes('rut') || cleanKey === 'origen' || cleanKey.includes('origen'))) continue;
 
         if (cleanKey.includes(cleanAlias) || (cleanKey.length >= 4 && cleanAlias.includes(cleanKey))) {
           const val = formatCellValue(row[key]);
@@ -670,6 +670,19 @@
 
       return extractFromRow(row2, ['placa', 'placavehiculo', 'vehiculo', 'placabus', 'movil']) ||
              extractFromRow(row1, ['placa', 'placavehiculo', 'vehiculo']);
+    }
+
+    if (targetCol === 'RUTA') {
+      let rawRuta = extractFromRow(row2, ['ruta', 'descripcionruta', 'nombreruta', 'linea', 'recorrido', 'rutatransporte']) ||
+                    extractFromRow(row1, ['ruta', 'descripcionruta', 'nombreruta', 'linea', 'recorrido', 'rutatransporte']);
+      if (rawRuta) {
+        const rLow = String(rawRuta).trim().toLowerCase();
+        if (rLow === 'true' || rLow === 'false' || rLow === '0' || rLow === '1' || rLow === 'vigente' || rLow === 'no vigente' || rLow.includes('periodo') || rLow.includes('vigente/periodo')) {
+          return '';
+        }
+        return rawRuta;
+      }
+      return '';
     }
 
     if (targetCol === 'TURNO') {
@@ -1892,11 +1905,11 @@
         elements.patenteSelect4.onchange = (e) => { state.file4.patenteCol = e.target.value; };
       }
       if (elements.codBusSelect4) {
-        populateSelect(elements.codBusSelect4, headers, state.file4.codBusCol);
+        populateSelect(elements.codBusSelect4, headers, state.file4.codBusCol, '(Auto-detectar)');
         elements.codBusSelect4.onchange = (e) => { state.file4.codBusCol = e.target.value; };
       }
       if (elements.rutaSelect4) {
-        populateSelect(elements.rutaSelect4, headers, state.file4.rutaCol);
+        populateSelect(elements.rutaSelect4, headers, state.file4.rutaCol, '(Opcional)');
         elements.rutaSelect4.onchange = (e) => { state.file4.rutaCol = e.target.value; };
       }
     } else if (fileIndex === 5) {
@@ -2313,6 +2326,13 @@
 
       if (!codigoBusConsolidado) codigoBusConsolidado = extractValueForColumn('CODIGO BUS', row2, row1, keyCol1);
       if (!rutaConsolidada) rutaConsolidada = extractValueForColumn('RUTA', row2, row1, keyCol1);
+
+      if (rutaConsolidada) {
+        const rLow = String(rutaConsolidada).trim().toLowerCase();
+        if (rLow === 'true' || rLow === 'false' || rLow === '0' || rLow === '1' || rLow === 'vigente' || rLow === 'no vigente' || rLow.includes('periodo') || rLow.includes('vigente/periodo')) {
+          rutaConsolidada = '';
+        }
+      }
 
       // TURNO (Hora de inicio del Archivo 2 / Último Día)
       let turnoConsolidado = '';
