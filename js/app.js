@@ -238,7 +238,7 @@
     'ENCARGADO': ['encargado', 'supervisor', 'jefe', 'responsable', 'capataz', 'lider', 'supervisorcampo'],
     'PLACA': ['nombreestacion', 'estacion', 'estaciontrabajo', 'nomestacion', 'placa', 'placavehiculo', 'vehiculo', 'placabus', 'movil'],
     'CODIGO BUS': ['codigobus', 'codbus', 'bus', 'transporte', 'nrobus'],
-    'RUTA': ['ruta', 'linea', 'recorrido', 'rutatransporte', 'nombreruta', 'descriptruta', 'descripcionruta'],
+    'RUTA': ['ruta', 'linea', 'recorrido', 'rutatransporte', 'rutabus', 'rutavehiculo'],
     'TURNO': ['horainicio', 'horaingreso', 'horarioinicio', 'turno', 'horario', 'jornada', 'tipoturno'],
     'HASTA': ['ultimodia', 'fechaultimodia', 'fecultdia', 'ultimodialaborado', 'hasta', 'fechahasta', 'fec_hasta', 'vigenciahasta']
   };
@@ -570,6 +570,9 @@
         if (cleanAlias.includes('zona') && (cleanKey === 'labor' || cleanKey === 'labores' || cleanKey.includes('oficio'))) continue;
         if ((cleanAlias === 'labor' || cleanAlias === 'labores') && cleanKey.includes('zona')) continue;
         if (cleanAlias.includes('zona') && (cleanKey.includes('cuadrilla') || cleanKey.includes('encargado'))) continue;
+        // NUNCA cruzar 'ruta' con nombres, apellidos, trabajadores, ruts, vigencias u orígenes
+        if (cleanAlias.includes('ruta') && (cleanKey.includes('vigente') || cleanKey.includes('periodo') || cleanKey.includes('contrato') || cleanKey.includes('rut') || cleanKey.includes('nombre') || cleanKey.includes('apell') || cleanKey.includes('trabajador') || cleanKey === 'origen' || cleanKey.includes('origen'))) continue;
+        if ((cleanKey.includes('nombre') || cleanKey.includes('apell') || cleanKey.includes('trabajador') || cleanKey.includes('rut')) && cleanAlias.includes('ruta')) continue;
 
         if (cleanKey.includes(cleanAlias) || (cleanKey.length >= 4 && cleanAlias.includes(cleanKey))) {
           const rawVal = row[key];
@@ -725,8 +728,9 @@
         if (cleanAlias.includes('zona') && (cleanKey === 'labor' || cleanKey === 'labores' || cleanKey.includes('oficio'))) continue;
         if ((cleanAlias === 'labor' || cleanAlias === 'labores') && cleanKey.includes('zona')) continue;
         if (cleanAlias.includes('zona') && (cleanKey.includes('cuadrilla') || cleanKey.includes('encargado'))) continue;
-        // NUNCA cruzar 'ruta' con 'vigente', 'periodo', 'contrato', 'rut', 'origen', 'destino', 'motivo'
-        if (cleanAlias.includes('ruta') && (cleanKey.includes('vigente') || cleanKey.includes('periodo') || cleanKey.includes('contrato') || cleanKey.includes('rut') || cleanKey === 'origen' || cleanKey.includes('origen'))) continue;
+        // NUNCA cruzar 'ruta' con nombres, apellidos, trabajadores, ruts, vigencias u orígenes
+        if (cleanAlias.includes('ruta') && (cleanKey.includes('vigente') || cleanKey.includes('periodo') || cleanKey.includes('contrato') || cleanKey.includes('rut') || cleanKey.includes('nombre') || cleanKey.includes('apell') || cleanKey.includes('trabajador') || cleanKey === 'origen' || cleanKey.includes('origen'))) continue;
+        if ((cleanKey.includes('nombre') || cleanKey.includes('apell') || cleanKey.includes('trabajador') || cleanKey.includes('rut')) && cleanAlias.includes('ruta')) continue;
 
         if (cleanKey.includes(cleanAlias) || (cleanKey.length >= 4 && cleanAlias.includes(cleanKey))) {
           const val = formatCellValue(row[key]);
@@ -763,11 +767,17 @@
     }
 
     if (targetCol === 'RUTA') {
-      let rawRuta = extractFromRow(row2, ['ruta', 'descripcionruta', 'nombreruta', 'linea', 'recorrido', 'rutatransporte']) ||
-                    extractFromRow(row1, ['ruta', 'descripcionruta', 'nombreruta', 'linea', 'recorrido', 'rutatransporte']);
+      let rawRuta = extractFromRow(row2, ['ruta', 'linea', 'recorrido', 'rutatransporte', 'rutabus']) ||
+                    extractFromRow(row1, ['ruta', 'linea', 'recorrido', 'rutatransporte', 'rutabus']);
       if (rawRuta) {
         const rLow = String(rawRuta).trim().toLowerCase();
         if (rLow === 'true' || rLow === 'false' || rLow === '0' || rLow === '1' || rLow === 'vigente' || rLow === 'no vigente' || rLow.includes('periodo') || rLow.includes('vigente/periodo')) {
+          return '';
+        }
+        const apePat = String(row1 ? row1['Ap.Paterno'] || '' : '').toLowerCase().trim();
+        const apeMat = String(row1 ? row1['Ap. Materno'] || '' : '').toLowerCase().trim();
+        const nom = String(row1 ? row1['Nombre'] || '' : '').toLowerCase().trim();
+        if ((apePat && rLow.includes(apePat)) || (apeMat && rLow.includes(apeMat)) || (nom && rLow.includes(nom))) {
           return '';
         }
         return rawRuta;
@@ -810,9 +820,9 @@
       let rawZ = '';
       if (hasRegularLabor && row2) {
         rawZ = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar', 'zonatrabajo']) ||
-               extractFromRow(row1, ['centrocostopredio', 'zonalabores', 'zonadelabores', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']);
+               extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']);
       } else {
-        rawZ = extractFromRow(row1, ['centrocostopredio', 'zonalabores', 'zonadelabores', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']) ||
+        rawZ = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
                (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar']) : '');
       }
       return formatZonaValue(rawZ);
@@ -2475,10 +2485,10 @@
       if (hasRegularLaborInFile2 && row2) {
         // En Archivo 2 buscar ZONA o Zona Labores (sin tomar Labor)
         const rawZ2 = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) ||
-                      extractFromRow(row1, ['centrocostopredio', 'zonalabores', 'zonadelabores', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']);
+                      extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']);
         zonaConsolidada = formatZonaValue(rawZ2);
       } else {
-        const rawZ1 = extractFromRow(row1, ['centrocostopredio', 'zonalabores', 'zonadelabores', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']) ||
+        const rawZ1 = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
                       (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) : '');
         zonaConsolidada = formatZonaValue(rawZ1);
       }
