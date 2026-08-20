@@ -80,6 +80,64 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         else:
             super().do_GET()
 
+    def do_POST(self):
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+
+        if path == '/api/save-excel':
+            self.handle_api_save_excel()
+        elif path == '/api/open-file':
+            self.handle_api_open_file()
+        else:
+            self.send_json_response(404, {'success': False, 'error': 'Endpoint no encontrado'})
+
+    def handle_api_save_excel(self):
+        try:
+            import base64
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_body = self.rfile.read(content_length)
+            payload = json.loads(post_body.decode('utf-8'))
+
+            filename = payload.get('filename') or f"Consolidado_Trabajadores_{datetime.date.today().isoformat()}.xlsx"
+            base64_data = payload.get('base64', '')
+
+            # Guardar en la carpeta Descargas del usuario de Windows
+            downloads_dir = os.path.join(os.path.expanduser('~'), 'Downloads')
+            os.makedirs(downloads_dir, exist_ok=True)
+            file_path = os.path.join(downloads_dir, filename)
+
+            # Escribir archivo binario
+            file_bytes = base64.b64decode(base64_data)
+            with open(file_path, 'wb') as f:
+                f.write(file_bytes)
+
+            self.send_json_response(200, {
+                'success': True,
+                'path': file_path,
+                'filename': filename,
+                'size': len(file_bytes),
+                'message': f"Archivo guardado exitosamente en: {file_path}"
+            })
+        except Exception as e:
+            self.send_json_response(500, {
+                'success': False,
+                'error': f"Error al guardar archivo Excel: {str(e)}"
+            })
+
+    def handle_api_open_file(self):
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_body = self.rfile.read(content_length)
+            payload = json.loads(post_body.decode('utf-8'))
+            file_path = payload.get('path', '')
+            if file_path and os.path.exists(file_path):
+                os.startfile(file_path)
+                self.send_json_response(200, {'success': True, 'message': 'Archivo abierto'})
+            else:
+                self.send_json_response(404, {'success': False, 'error': 'Archivo no encontrado'})
+        except Exception as e:
+            self.send_json_response(500, {'success': False, 'error': str(e)})
+
     def handle_api_test_sql(self):
         try:
             import pyodbc
@@ -657,6 +715,49 @@ def main():
 
     print(f"[OK] Motor interno activo en: {url}")
     print("[OK] Abriendo ventana nativa de escritorio...")
+
+    # Hilo para establecer el icono nativo de la ventana de Windows (Unifrutti)
+    def set_native_window_icon():
+        for _ in range(15):
+            time.sleep(0.5)
+            try:
+                import ctypes
+                icon_path = get_resource_path('icon.ico')
+                if not os.path.exists(icon_path):
+                    icon_path = os.path.abspath('icon.ico')
+                if os.path.exists(icon_path):
+                    IMAGE_ICON = 1
+                    LR_LOADFROMFILE = 0x00000010
+                    hicon_big = ctypes.windll.user32.LoadImageW(0, icon_path, IMAGE_ICON, 32, 32, LR_LOADFROMFILE)
+                    hicon_sm = ctypes.windll.user32.LoadImageW(0, icon_path, IMAGE_ICON, 16, 16, LR_LOADFROMFILE)
+                    WM_SETICON = 0x0080
+                    ICON_SMALL = 0
+                    ICON_BIG = 1
+
+                    found = False
+                    def enum_cb(hwnd, lparam):
+                        nonlocal found
+                        length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+                        if length > 0:
+                            buff = ctypes.create_unicode_buffer(length + 1)
+                            ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
+                            title = buff.value
+                            if 'Consolidador' in title or 'Unifrutti' in title:
+                                if hicon_sm:
+                                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_sm)
+                                if hicon_big:
+                                    ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
+                                found = True
+                        return True
+
+                    WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.c_int)
+                    ctypes.windll.user32.EnumWindows(WNDENUMPROC(enum_cb), 0)
+                    if found:
+                        break
+            except Exception:
+                pass
+
+    threading.Thread(target=set_native_window_icon, daemon=True).start()
 
     use_webview = True
     try:

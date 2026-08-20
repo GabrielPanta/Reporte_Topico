@@ -3419,17 +3419,52 @@
           colLetter.width = Math.min(Math.max(maxLen + 4, 13), 42);
         });
 
-        // 8. Generar buffer y descargar archivo
+        // 8. Generar buffer y enviar a backend /api/save-excel (guardado directo en Descargas de Windows)
         const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.setAttribute('download', fileName);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        playSuccessSound('step');
-        showToast(`Archivo Excel exportado con estilos: ${fileName}`, 'success');
+        
+        let binaryStr = '';
+        const byteArr = new Uint8Array(buffer);
+        const chunkSz = 8192;
+        for (let i = 0; i < byteArr.length; i += chunkSz) {
+          binaryStr += String.fromCharCode.apply(null, byteArr.subarray(i, i + chunkSz));
+        }
+        const base64Data = window.btoa(binaryStr);
+
+        let savedDirectly = false;
+        try {
+          const resp = await fetch('/api/save-excel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: fileName, base64: base64Data })
+          });
+          const resJson = await resp.json();
+          if (resJson && resJson.success) {
+            savedDirectly = true;
+            playSuccessSound('chime');
+            showToast(`✅ ¡Archivo Excel descargado con éxito!\nGuardado en: ${resJson.path || fileName}`, 'success');
+          }
+        } catch (postErr) {
+          console.warn('Fallo al guardar por API local, usando descarga del navegador:', postErr);
+        }
+
+        // Descarga estándar en navegador como respaldo
+        try {
+          const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.setAttribute('download', fileName);
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+          }, 300);
+        } catch (_) {}
+
+        if (!savedDirectly) {
+          playSuccessSound('step');
+          showToast(`Archivo Excel generado con estilos: ${fileName}`, 'success');
+        }
         return;
       } catch (excelErr) {
         console.error('Error generando Excel con ExcelJS, usando SheetJS de respaldo:', excelErr);
@@ -3450,18 +3485,47 @@
       ws['!cols'] = colWidths;
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Consolidado');
-      XLSX.writeFile(wb, fileName);
-      showToast(`Archivo Excel exportado con éxito: ${fileName}`, 'success');
+      
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+      let savedDirectly = false;
+      try {
+        const resp = await fetch('/api/save-excel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: fileName, base64: wbout })
+        });
+        const resJson = await resp.json();
+        if (resJson && resJson.success) {
+          savedDirectly = true;
+          playSuccessSound('chime');
+          showToast(`✅ ¡Archivo Excel descargado con éxito!\nGuardado en: ${resJson.path || fileName}`, 'success');
+        }
+      } catch (_) {}
+
+      if (!savedDirectly) {
+        XLSX.writeFile(wb, fileName);
+        showToast(`Archivo Excel exportado: ${fileName}`, 'success');
+      }
     } else if (format === 'csv') {
       const ws = XLSX.utils.json_to_sheet(formattedExportData, { header: TARGET_COLUMNS });
       const csvOutput = XLSX.utils.sheet_to_csv(ws);
+      const csvBase64 = window.btoa(unescape(encodeURIComponent("\uFEFF" + csvOutput)));
+      
+      try {
+        await fetch('/api/save-excel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: fileName, base64: csvBase64 })
+        });
+      } catch (_) {}
+
       const blob = new Blob(["\uFEFF" + csvOutput], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      setTimeout(() => document.body.removeChild(link), 300);
       showToast(`Archivo CSV exportado con éxito: ${fileName}`, 'success');
     }
   }
