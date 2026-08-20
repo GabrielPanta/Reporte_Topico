@@ -606,6 +606,8 @@
         if (cleanAlias.includes('zona') && (cleanKey === 'labor' || cleanKey === 'labores' || cleanKey.includes('oficio'))) continue;
         if ((cleanAlias === 'labor' || cleanAlias === 'labores') && cleanKey.includes('zona')) continue;
         if (cleanAlias.includes('zona') && (cleanKey.includes('cuadrilla') || cleanKey.includes('encargado'))) continue;
+        // NUNCA cruzar 'ruta' con 'vigente', 'periodo', 'contrato' o 'rut'
+        if (cleanAlias === 'ruta' && (cleanKey.includes('vigente') || cleanKey.includes('periodo') || cleanKey.includes('contrato') || cleanKey.includes('rut'))) continue;
 
         if (cleanKey.includes(cleanAlias) || (cleanKey.length >= 4 && cleanAlias.includes(cleanKey))) {
           const val = formatCellValue(row[key]);
@@ -1733,8 +1735,8 @@
         }
       }
       state.file4.patenteCol = detectedPatente || headers[0];
-      state.file4.codBusCol = detectedCodBus || (headers.length > 1 ? headers[1] : headers[0]);
-      state.file4.rutaCol = detectedRuta || (headers.length > 2 ? headers[2] : headers[0]);
+      state.file4.codBusCol = detectedCodBus || '';
+      state.file4.rutaCol = detectedRuta || '';
     }
 
     if (fileIndex === 5) {
@@ -2068,6 +2070,14 @@
             if (!patenteVal && (cleanCol === 'patente' || cleanCol.includes('patente') || cleanCol.includes('placa'))) patenteVal = formatCellValue(val);
             if (!codBusVal && (cleanCol === 'codigocampo' || cleanCol === 'codbus' || cleanCol.includes('codigocampo'))) codBusVal = formatCellValue(val);
             if (!rutaVal && (cleanCol === 'descripcionruta' || cleanCol === 'ruta' || cleanCol.includes('descripcionruta'))) rutaVal = formatCellValue(val);
+          }
+        }
+
+        // Filtrar falsos positivos de ruta como booleanos o vigencia
+        if (rutaVal) {
+          const rLow = String(rutaVal).trim().toLowerCase();
+          if (rLow === 'true' || rLow === 'false' || rLow === '0' || rLow === '1' || rLow === 'vigente' || rLow === 'no vigente' || rLow.includes('periodo')) {
+            rutaVal = '';
           }
         }
 
