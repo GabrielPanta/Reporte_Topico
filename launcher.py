@@ -71,6 +71,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             self.handle_api_buses(parsed_url.query)
         elif path == '/api/cuadrillas':
             self.handle_api_cuadrillas(parsed_url.query)
+        elif path == '/api/cuarteles':
+            self.handle_api_cuarteles(parsed_url.query)
         elif path == '/api/test-sql':
             self.handle_api_test_sql()
         else:
@@ -253,6 +255,27 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
 
             columns = [col[0] for col in cursor.description]
             raw_rows = cursor.fetchall()
+
+            # Consultar Catálogo de Cuarteles (SPC_CUADRO_PREDIO_CUARTEL) para enriquecer códigos con descripción
+            cuarteles_map = {}
+            try:
+                cursor.execute("EXEC SPC_CUADRO_PREDIO_CUARTEL @IDEMPRESA = ?", (str(id_empresa),))
+                while cursor.description is None:
+                    if not cursor.nextset():
+                        break
+                if cursor.description:
+                    c_cols = [c[0] for c in cursor.description]
+                    c_rows = cursor.fetchall()
+                    for cr in c_rows:
+                        cd = dict(zip(c_cols, cr))
+                        cod = str(cd.get('Cod.Cuartel') or '').strip().upper()
+                        cuartel_desc = str(cd.get('Cuartel') or '').strip()
+                        nombre_c = str(cd.get('Nombre Cuartel') or '').strip()
+                        if cod:
+                            cuarteles_map[cod] = cuartel_desc or f"{cod} {nombre_c}".strip()
+            except Exception as ce:
+                print(f"Warning: No se pudo cargar SPC_CUADRO_PREDIO_CUARTEL: {ce}")
+
             conn.close()
 
             raw_data = self._rows_to_dicts(columns, raw_rows)
@@ -286,6 +309,23 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                     raw_z = str(item['ZONA']).strip()
                     if raw_z in ZONAS_MAP and not raw_z.endswith(ZONAS_MAP[raw_z]):
                         item['ZONA'] = f"{raw_z} {ZONAS_MAP[raw_z]}"
+
+                # Enriquecer CUARTEL/SECTOR con descripción completa de SPC_CUADRO_PREDIO_CUARTEL
+                for k in ['CUARTEL/SECTOR', 'Cuartel', 'CUARTEL', 'SubCentroCosto / Cuartel', 'Sector']:
+                    if k in item and item[k]:
+                        val_raw = str(item[k]).strip()
+                        val_upper = val_raw.upper()
+                        if val_upper in cuarteles_map:
+                            item[k] = cuarteles_map[val_upper]
+                        elif cuarteles_map:
+                            import re
+                            m = re.match(r'^([A-Z]+)0*(\d+)([A-Z]*)$', val_upper)
+                            if m:
+                                prefix, num, suffix = m.groups()
+                                for cand in [f"{prefix}{int(num):04d}{suffix}", f"{prefix}{int(num):03d}{suffix}", f"{prefix}{int(num):02d}{suffix}", f"{prefix}{int(num)}{suffix}"]:
+                                    if cand in cuarteles_map:
+                                        item[k] = cuarteles_map[cand]
+                                        break
 
                 data.append(item)
 
@@ -454,6 +494,47 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             })
         except Exception as e:
             self.send_json_response(500, {'success': False, 'error': f"Error en SPC_DINAMICA_CUADRILLAS: {str(e)}"})
+
+    def handle_api_cuarteles(self, query_str):
+        """Consulta: SPC_CUADRO_PREDIO_CUARTEL"""
+        try:
+            import pyodbc
+        except ImportError:
+            self.send_json_response(500, {'success': False, 'error': 'pyodbc no está instalado.'})
+            return
+
+        params = urllib.parse.parse_qs(query_str)
+        id_empresa = str(params.get('idEmpresa', ['14'])[0])
+
+        try:
+            conn = pyodbc.connect(get_connection_string(), timeout=25)
+            cursor = conn.cursor()
+            sql = "EXEC SPC_CUADRO_PREDIO_CUARTEL @IDEMPRESA = ?"
+            cursor.execute(sql, (id_empresa,))
+
+            while cursor.description is None:
+                if not cursor.nextset():
+                    break
+
+            if not cursor.description:
+                self.send_json_response(200, {'success': True, 'count': 0, 'headers': [], 'data': []})
+                conn.close()
+                return
+
+            columns = [col[0] for col in cursor.description]
+            raw_rows = cursor.fetchall()
+            conn.close()
+
+            data = self._rows_to_dicts(columns, raw_rows)
+            self.send_json_response(200, {
+                'success': True,
+                'count': len(data),
+                'headers': columns,
+                'data': data,
+                'source': f"SQL Server ({SQL_CONFIG['server']}/{SQL_CONFIG['database']})"
+            })
+        except Exception as e:
+            self.send_json_response(500, {'success': False, 'error': f"Error en SPC_CUADRO_PREDIO_CUARTEL: {str(e)}"})
 
     def _rows_to_dicts(self, columns, raw_rows):
         data = []
