@@ -1163,23 +1163,32 @@
     }
   }
 
-  // Load Buses from SQL Server (Archivo 4)
-  async function loadBusesFromSqlServer() {
+  // Load Buses & Rutas from SQL Server (Archivo 4 - SPC_REGISTRO_RUTA)
+  async function loadBusesFromSqlServer(customParams = null) {
     const btn4 = elements.btnLoadSql4;
     try {
       if (btn4) {
         btn4.disabled = true;
-        btn4.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Cargando...</span>';
+        btn4.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Consultando Rutas...</span>';
       }
 
-      const response = await fetch('/api/buses?idEmpresa=14');
+      showToast('Consultando buses y rutas en vfstbd01 (SPC_REGISTRO_RUTA)...', 'info');
+
+      const p = customParams || {
+        codPais: 'PE',
+        desde: '16/08/2026',
+        hasta: '31/08/2026'
+      };
+
+      const queryParams = new URLSearchParams(p);
+      const response = await fetch(`/api/buses?${queryParams.toString()}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const result = await response.json();
-      if (!result.success || !result.data) throw new Error(result.error || 'Error al obtener buses');
+      if (!result.success || !result.data) throw new Error(result.error || 'Error al obtener buses y rutas');
 
       state.file4 = {
         data: result.data,
-        name: `SQL Server (Buses) - ${result.count} buses`,
+        name: `SQL Server (SPC_REGISTRO_RUTA) - ${result.count.toLocaleString()} registros`,
         headers: result.headers,
         patenteCol: 'Patente',
         codBusCol: 'Codigo Campo',
@@ -1189,12 +1198,12 @@
       };
 
       autoDetectColumns(4);
-      updateFileCardUI(4, { name: `SQL Server (Buses) - ${result.count} buses`, size: result.count * 80 }, result.count);
-      showToast(`¡${result.count} buses cargados desde SQL Server!`, 'success');
+      updateFileCardUI(4, { name: `SQL Server (Rutas) - ${result.count.toLocaleString()} registros`, size: result.count * 80 }, result.count);
+      showToast(`¡${result.count.toLocaleString()} registros de buses y rutas cargados (SPC_REGISTRO_RUTA)!`, 'success');
       return result;
     } catch (err) {
       console.error(err);
-      showToast(`Error al consultar Buses: ${err.message}`, 'error');
+      showToast(`Error al consultar Buses y Rutas: ${err.message}`, 'error');
     } finally {
       if (btn4) {
         btn4.disabled = false;

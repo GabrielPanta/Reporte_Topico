@@ -374,7 +374,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             self.send_json_response(500, {'success': False, 'error': f"Error en SPC_LOGIN_MARCACIONES: {str(e)}"})
 
     def handle_api_buses(self, query_str):
-        """Consulta: SPC_BUSES"""
+        """Consulta: SPC_REGISTRO_RUTA (Buses y Rutas)"""
         try:
             import pyodbc
         except ImportError:
@@ -382,13 +382,26 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             return
 
         params = urllib.parse.parse_qs(query_str)
-        id_empresa = int(params.get('idEmpresa', [14])[0])
+        cod_pais = params.get('codPais', ['PE'])[0] or params.get('cod_pais', ['PE'])[0]
+        desde = params.get('desde', ['16/08/2026'])[0]
+        hasta = params.get('hasta', ['31/08/2026'])[0]
+        id_empresa = int(params.get('idEmpresa', [0])[0]) if params.get('idEmpresa') and params.get('idEmpresa')[0] != '0' else None
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=10)
+            conn = pyodbc.connect(get_connection_string(), timeout=35)
             cursor = conn.cursor()
-            sql = "EXEC SPC_BUSES @IDEMPRESA = ?"
-            cursor.execute(sql, (id_empresa,))
+            
+            # Ejecutar SPC_REGISTRO_RUTA
+            if id_empresa:
+                sql = "EXEC SPC_REGISTRO_RUTA @COD_PAIS = ?, @DESDE = ?, @HASTA = ?, @IDEMPRESA = ?"
+                cursor.execute(sql, (cod_pais, desde, hasta, id_empresa))
+            else:
+                sql = "EXEC SPC_REGISTRO_RUTA @COD_PAIS = ?, @DESDE = ?, @HASTA = ?"
+                cursor.execute(sql, (cod_pais, desde, hasta))
+
+            while cursor.description is None:
+                if not cursor.nextset():
+                    break
 
             if not cursor.description:
                 self.send_json_response(200, {'success': True, 'count': 0, 'headers': [], 'data': []})
@@ -405,10 +418,25 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                 'count': len(data),
                 'headers': columns,
                 'data': data,
-                'source': f"SQL Server ({SQL_CONFIG['server']}/{SQL_CONFIG['database']})"
+                'source': f"SQL Server ({SQL_CONFIG['server']}/{SQL_CONFIG['database']}) - SPC_REGISTRO_RUTA",
+                'params': {'codPais': cod_pais, 'desde': desde, 'hasta': hasta, 'idEmpresa': id_empresa}
             })
         except Exception as e:
-            self.send_json_response(500, {'success': False, 'error': f"Error en SPC_BUSES: {str(e)}"})
+            # Fallback a SPC_BUSES si falla
+            try:
+                conn = pyodbc.connect(get_connection_string(), timeout=10)
+                cursor = conn.cursor()
+                cursor.execute("EXEC SPC_BUSES @IDEMPRESA = 14")
+                if cursor.description:
+                    columns = [col[0] for col in cursor.description]
+                    raw_rows = cursor.fetchall()
+                    conn.close()
+                    data = self._rows_to_dicts(columns, raw_rows)
+                    self.send_json_response(200, {'success': True, 'count': len(data), 'headers': columns, 'data': data, 'source': 'SPC_BUSES (Fallback)'})
+                    return
+            except Exception:
+                pass
+            self.send_json_response(500, {'success': False, 'error': f"Error en SPC_REGISTRO_RUTA: {str(e)}"})
 
     def handle_api_cuadrillas(self, query_str):
         """Consulta: SPC_DINAMICA_CUADRILLAS"""
