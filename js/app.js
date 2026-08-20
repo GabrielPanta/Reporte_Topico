@@ -396,6 +396,7 @@
     // Header Controls
     btnThemeToggle: document.getElementById('btn-theme-toggle'),
     btnSoundToggle: document.getElementById('btn-sound-toggle'),
+    btnLoadAllSql: document.getElementById('btn-load-all-sql'),
     btnLoadSql: document.getElementById('btn-load-sql'),
     btnLoadSqlHeader: document.getElementById('btn-load-sql-header'),
     btnOpenSqlParams: document.getElementById('btn-open-sql-params'),
@@ -1354,9 +1355,15 @@
     }
 
     const successful = results.filter(r => r.status === 'fulfilled').length;
+    checkProcessingReadiness();
     if (successful >= 3) {
       playSuccessSound('chime');
-      showToast('🎉 ¡Las fuentes de datos fueron sincronizadas desde SQL Server! Puedes hacer clic en "Procesar y Consolidar".', 'success');
+      showToast('🎉 ¡Las fuentes de datos fueron sincronizadas desde SQL Server! Procesando consolidación...', 'success');
+      setTimeout(() => {
+        if (state.file1.data && state.file2.data && state.file3.data) {
+          handleProcessData();
+        }
+      }, 350);
     }
   }
 
