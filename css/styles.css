@@ -273,19 +273,45 @@ button, input, select {
 .logo-group {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 0.75rem;
+}
+
+.logo-img-wrapper {
+  height: 42px;
+  background: #ffffff;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform var(--transition-bounce);
+}
+
+.logo-img-wrapper:hover {
+  transform: scale(1.05);
+}
+
+.app-logo-img {
+  height: 34px;
+  width: auto;
+  max-width: 44px;
+  object-fit: contain;
+  display: block;
 }
 
 .logo-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  box-shadow: 0 4px 14px var(--primary-glow);
+  box-shadow: 0 3px 10px var(--primary-glow);
   flex-shrink: 0;
   transition: transform var(--transition-bounce);
 }

@@ -9,6 +9,9 @@ a = Analysis(
         ('index.html', '.'),
         ('css', 'css'),
         ('js', 'js'),
+        ('img', 'img'),
+        ('logo.png', '.'),
+        ('icon.ico', '.'),
         ('xlsx.full.min.js', '.'),
         ('exceljs.min.js', '.'),
         ('ejemplo_1_trabajadores.xlsx', '.'),
@@ -46,4 +49,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='icon.ico',
 )

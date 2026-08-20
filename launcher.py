@@ -662,7 +662,7 @@ def main():
     try:
         import webview
         window = webview.create_window(
-            title='Consolidador de Personal, Labores y Marcaciones - RRHH PRO',
+            title='Consolidador de Personal, Labores y Marcaciones - Unifrutti',
             url=url,
             width=1360,
             height=880,
