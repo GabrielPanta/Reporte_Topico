@@ -2399,11 +2399,33 @@
       });
     }
 
-    // Step 3: Index File 2 (Último día laborado)
+    // Step 3: Index File 2 (Último día laborado con selección inteligente)
     const lastDayIndex = new Map();
     state.file2.data.forEach(row => {
       const key = cleanHeader(row[keyCol2]);
-      if (key) lastDayIndex.set(key, row);
+      if (!key) return;
+
+      const existingRow = lastDayIndex.get(key);
+      if (!existingRow) {
+        lastDayIndex.set(key, row);
+      } else {
+        // Si hay múltiples filas para el mismo trabajador, priorizar la fila con labor real sobre 'FALTA' o vacía
+        const existingAct = extractRawFromRow(existingRow, ['actividad', 'tipoactividad', 'motivo']) || '';
+        const newAct = extractRawFromRow(row, ['actividad', 'tipoactividad', 'motivo']) || '';
+        
+        const existingIsFalta = !existingAct || isAbsenceActivity(existingAct) || String(existingAct).toUpperCase().includes('FALTA');
+        const newIsFalta = !newAct || isAbsenceActivity(newAct) || String(newAct).toUpperCase().includes('FALTA');
+
+        if (existingIsFalta && !newIsFalta) {
+          lastDayIndex.set(key, row);
+        } else if (!existingIsFalta && !newIsFalta) {
+          const existingScore = (existingRow['IdCuadrilla'] ? 1 : 0) + (existingRow['Bus Patente'] ? 1 : 0) + (existingRow['LABOR'] ? 1 : 0);
+          const newScore = (row['IdCuadrilla'] ? 1 : 0) + (row['Bus Patente'] ? 1 : 0) + (row['LABOR'] ? 1 : 0);
+          if (newScore > existingScore) {
+            lastDayIndex.set(key, row);
+          }
+        }
+      }
     });
 
     // Step 4: Consolidate (Con Deduplicación Estricta de Personal)

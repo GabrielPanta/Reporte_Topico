@@ -277,16 +277,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                 '880': 'CAMPOS EXTERNOS', '881': 'EXPORTADORA'
             }
 
-            # Deduplicar por RUT/DNI manteniendo el registro más completo
-            seen_ruts_ud = set()
             data = []
             for item in raw_data:
-                rut = str(item.get('RUT/DNI', item.get('IDTRABAJADOR', ''))).strip()
-                if rut:
-                    if rut in seen_ruts_ud:
-                        continue
-                    seen_ruts_ud.add(rut)
-
                 # Formatear ZONA (ej. 54 -> "54 SANTA ROSA")
                 if 'ZONA' in item and item['ZONA'] is not None:
                     raw_z = str(item['ZONA']).strip()
