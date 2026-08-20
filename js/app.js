@@ -2817,8 +2817,8 @@
     });
   }
 
-  // Export Data
-  function exportData(format) {
+  // Export Data con Estilos Profesionales en Excel (.xlsx)
+  async function exportData(format) {
     if (!state.consolidatedData || state.consolidatedData.length === 0) {
       showToast('No hay datos para exportar. Procesa los archivos primero.', 'error');
       return;
@@ -2835,9 +2835,183 @@
       return orderedRow;
     });
 
+    if (format === 'xlsx' && typeof ExcelJS !== 'undefined') {
+      try {
+        showToast('Generando archivo Excel con diseño y estilos profesionales...', 'info');
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Sistema de Consolidación RRHH';
+        workbook.lastModifiedBy = 'Consolidador Verfrut';
+        workbook.created = new Date();
+        workbook.modified = new Date();
+
+        const worksheet = workbook.addWorksheet('Consolidado Personal', {
+          views: [{ state: 'frozen', xSplit: 6, ySplit: 4, showGridLines: true }]
+        });
+
+        // 1. Fila de Título Principal
+        const titleRow = worksheet.addRow(['CONSOLIDADO GENERAL DE PERSONAL Y ASISTENCIA']);
+        worksheet.mergeCells(1, 1, 1, TARGET_COLUMNS.length);
+        titleRow.height = 34;
+        titleRow.getCell(1).font = { name: 'Segoe UI', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
+        titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } }; // Slate 900
+        titleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // 2. Fila de Subtítulo / Métricas
+        const total = state.metrics.total || formattedExportData.length;
+        const active = state.metrics.active || 0;
+        const absent = state.metrics.absent || 0;
+        const leave = state.metrics.leave || 0;
+        const nowStr = new Date().toLocaleString('es-PE');
+        const subtitleText = `Reporte generado el: ${nowStr}  |  Total: ${total.toLocaleString()}  |  Activos: ${active.toLocaleString()}  |  Ausentes: ${absent.toLocaleString()}  |  Licencias/SPL: ${leave.toLocaleString()}`;
+        
+        const subRow = worksheet.addRow([subtitleText]);
+        worksheet.mergeCells(2, 1, 2, TARGET_COLUMNS.length);
+        subRow.height = 22;
+        subRow.getCell(1).font = { name: 'Segoe UI', size: 10, italic: true, color: { argb: 'FF475569' } };
+        subRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+        subRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // 3. Fila separadora vacía
+        const blankRow = worksheet.addRow([]);
+        blankRow.height = 8;
+
+        // 4. Cabeceras de Columnas
+        const headerRow = worksheet.addRow(TARGET_COLUMNS);
+        headerRow.height = 28;
+        headerRow.eachCell((cell, colNumber) => {
+          cell.font = { name: 'Segoe UI', size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } }; // Slate 800
+          cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+          cell.border = {
+            top: { style: 'medium', color: { argb: 'FF0F172A' } },
+            left: { style: 'thin', color: { argb: 'FF334155' } },
+            bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+            right: { style: 'thin', color: { argb: 'FF334155' } }
+          };
+        });
+
+        // 5. Filas de Datos
+        const thinBorder = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } }
+        };
+
+        const centerCols = new Set([
+          'Tiene Digitacion (jornal)', 'RutTrabajador', 'CodigoTrabajador',
+          'FechaNacimiento', 'Sexo', 'Edad', 'FechaInicioPeriodo',
+          'FechaInicioContrato', 'FechaTerminoContrato', 'PLACA',
+          'CODIGO BUS', 'TURNO', 'HASTA', 'ESTADO'
+        ]);
+
+        formattedExportData.forEach((item, index) => {
+          const rowValues = TARGET_COLUMNS.map(col => item[col] !== undefined ? item[col] : '');
+          const dataRow = worksheet.addRow(rowValues);
+          dataRow.height = 21;
+
+          const isEven = index % 2 === 0;
+          const bgZebra = isEven ? 'FFFFFFFF' : 'FFF8FAFC';
+
+          dataRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            const colName = TARGET_COLUMNS[colNumber - 1];
+            cell.font = { name: 'Segoe UI', size: 10, color: { argb: 'FF1E293B' } };
+            cell.border = thinBorder;
+            
+            // Alineación
+            if (centerCols.has(colName)) {
+              cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            } else {
+              cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            }
+
+            // Fondo por defecto
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgZebra } };
+
+            // Estilos especiales
+            if (colName === 'RutTrabajador') {
+              cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+            } else if (colName === 'Apellidos y Nombres') {
+              cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF1E293B' } };
+            } else if (colName === 'Tiene Digitacion (jornal)') {
+              const strVal = String(cell.value || '').toUpperCase();
+              if (strVal.includes('SI') || strVal.includes('SÍ') || strVal === '1' || strVal === 'TRUE') {
+                cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF15803D' } };
+              }
+            } else if (colName === 'ESTADO') {
+              const statusStr = String(cell.value || '').toUpperCase().trim();
+              if (statusStr === 'ACTIVO') {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCFCE7' } }; // Green 100
+                cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF15803D' } }; // Green 700
+                cell.border = {
+                  top: { style: 'thin', color: { argb: 'FF86EFAC' } },
+                  left: { style: 'thin', color: { argb: 'FF86EFAC' } },
+                  bottom: { style: 'thin', color: { argb: 'FF86EFAC' } },
+                  right: { style: 'thin', color: { argb: 'FF86EFAC' } }
+                };
+              } else if (statusStr === 'AUSENTE' || statusStr.includes('SIN MARCACIÓN') || statusStr.includes('SIN MARCACION')) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFE4E6' } }; // Rose 100
+                cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFBE123C' } }; // Rose 700
+                cell.border = {
+                  top: { style: 'thin', color: { argb: 'FFFCA5A5' } },
+                  left: { style: 'thin', color: { argb: 'FFFCA5A5' } },
+                  bottom: { style: 'thin', color: { argb: 'FFFCA5A5' } },
+                  right: { style: 'thin', color: { argb: 'FFFCA5A5' } }
+                };
+              } else {
+                // Licencia / Vacaciones / Permiso / etc.
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } }; // Amber 100
+                cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFB45309' } }; // Amber 700
+                cell.border = {
+                  top: { style: 'thin', color: { argb: 'FFFDE68A' } },
+                  left: { style: 'thin', color: { argb: 'FFFDE68A' } },
+                  bottom: { style: 'thin', color: { argb: 'FFFDE68A' } },
+                  right: { style: 'thin', color: { argb: 'FFFDE68A' } }
+                };
+              }
+            }
+          });
+        });
+
+        // 6. Configurar AutoFiltro en la fila de cabeceras
+        worksheet.autoFilter = {
+          from: { row: 4, column: 1 },
+          to: { row: 4 + formattedExportData.length, column: TARGET_COLUMNS.length }
+        };
+
+        // 7. Auto-ajuste inteligente de anchos de columna
+        TARGET_COLUMNS.forEach((colName, colIdx) => {
+          let maxLen = colName.length;
+          formattedExportData.forEach(row => {
+            const val = row[colName];
+            if (val !== null && val !== undefined) {
+              const len = String(val).length;
+              if (len > maxLen) maxLen = len;
+            }
+          });
+          const colLetter = worksheet.getColumn(colIdx + 1);
+          colLetter.width = Math.min(Math.max(maxLen + 4, 13), 42);
+        });
+
+        // 8. Generar buffer y descargar archivo
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast(`Archivo Excel exportado con estilos: ${fileName}`, 'success');
+        return;
+      } catch (excelErr) {
+        console.error('Error generando Excel con ExcelJS, usando SheetJS de respaldo:', excelErr);
+      }
+    }
+
+    // Fallback a SheetJS si ExcelJS no está disponible
     if (format === 'xlsx') {
       const ws = XLSX.utils.json_to_sheet(formattedExportData, { header: TARGET_COLUMNS });
-
       const colWidths = TARGET_COLUMNS.map(key => {
         let maxLen = key.length;
         formattedExportData.forEach(row => {
@@ -2847,7 +3021,6 @@
         return { wch: Math.min(Math.max(maxLen + 3, 14), 40) };
       });
       ws['!cols'] = colWidths;
-
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Consolidado');
       XLSX.writeFile(wb, fileName);
