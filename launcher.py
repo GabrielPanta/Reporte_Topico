@@ -73,6 +73,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             self.handle_api_cuadrillas(parsed_url.query)
         elif path == '/api/cuarteles':
             self.handle_api_cuarteles(parsed_url.query)
+        elif path == '/api/zonas':
+            self.handle_api_zonas(parsed_url.query)
         elif path == '/api/test-sql':
             self.handle_api_test_sql()
         else:
@@ -122,12 +124,34 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         activo = int(params.get('activo', [1])[0])
         mes = int(params.get('mes', [default_month])[0])
         anio = int(params.get('anio', [default_year])[0])
-        zona = params.get('zona', [default_zonas])[0]
         fechaini = params.get('fechaini', [default_fechaini])[0]
 
         try:
             conn = pyodbc.connect(get_connection_string(), timeout=40)
             cursor = conn.cursor()
+
+            # Consultar dinámicamente el catálogo de Zonas para la empresa activa desde la tabla [Zona]
+            zonas_emp_map = {}
+            try:
+                cursor.execute("SELECT IdZona, Nombre FROM [Zona] WHERE IdEmpresa = ?", (id_empresa,))
+                for zr in cursor.fetchall():
+                    zid = str(zr[0]).strip()
+                    znom = str(zr[1]).strip()
+                    import re
+                    clean_z = re.sub(r'\(JOR\s*[\d\.]+\)', '', znom, flags=re.IGNORECASE).strip()
+                    zonas_emp_map[zid] = clean_z or znom
+            except Exception as ze:
+                print(f"Warning: No se pudo consultar tabla [Zona]: {ze}")
+
+            # Construir la lista completa de IDs de zona para consultar
+            all_known_zids = set(zonas_emp_map.keys())
+            for extra_id in range(0, 100):
+                all_known_zids.add(str(extra_id))
+            for special_id in [121, 149, 153, 155, 156, 180, 181, 190, 241, 249, 253, 255, 280, 290, 755, 781, 790, 821, 840, 841, 848, 849, 850, 851, 852, 853, 854, 855, 856, 858, 870, 880, 881, 953]:
+                all_known_zids.add(str(special_id))
+
+            zona_param = params.get('zona', [','.join(sorted(all_known_zids, key=lambda x: int(x) if x.isdigit() else 9999))])[0]
+
             sql = """
             EXEC SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS 
                 @IdEmpresa = ?, 
@@ -137,7 +161,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                 @Zona = ?, 
                 @fechaini = ?
             """
-            cursor.execute(sql, (id_empresa, activo, mes, anio, zona, fechaini))
+            cursor.execute(sql, (id_empresa, activo, mes, anio, zona_param, fechaini))
 
             if not cursor.description:
                 self.send_json_response(200, {'success': True, 'count': 0, 'headers': [], 'data': []})
@@ -214,6 +238,11 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                 if is_finiquitado:
                     continue
 
+                # Formatear Zona Labores con el nombre real de la zona
+                raw_zl = str(item.get('Zona Labores', '')).strip()
+                if raw_zl and raw_zl in zonas_emp_map and not raw_zl.endswith(zonas_emp_map[raw_zl]):
+                    item['Zona Labores'] = f"{raw_zl} {zonas_emp_map[raw_zl]}"
+
                 seen_ruts.add(rut)
                 data.append(item)
 
@@ -276,39 +305,30 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             except Exception as ce:
                 print(f"Warning: No se pudo cargar SPC_CUADRO_PREDIO_CUARTEL: {ce}")
 
+            # Consultar dinámicamente el catálogo de Zonas para la empresa activa desde la tabla [Zona]
+            zonas_emp_map = {}
+            try:
+                cursor.execute("SELECT IdZona, Nombre FROM [Zona] WHERE IdEmpresa = ?", (id_empresa,))
+                for zr in cursor.fetchall():
+                    zid = str(zr[0]).strip()
+                    znom = str(zr[1]).strip()
+                    import re
+                    clean_z = re.sub(r'\(JOR\s*[\d\.]+\)', '', znom, flags=re.IGNORECASE).strip()
+                    zonas_emp_map[zid] = clean_z or znom
+            except Exception as ze:
+                print(f"Warning: No se pudo consultar tabla [Zona]: {ze}")
+
             conn.close()
 
             raw_data = self._rows_to_dicts(columns, raw_rows)
 
-            # Catálogo de Zonas y Fundos
-            ZONAS_MAP = {
-                '1': 'VIÑA LA GRUTA', '2': 'PLANTA VERFRUT RAPEL', '3': 'FUNDO MOLINA',
-                '4': 'FUNDO EL DURAZNO', '5': 'FUNDO EL PORVENIR', '6': 'LA CEBADA',
-                '7': 'FUNDO TUNCAHUE', '8': 'FUNDO QUILAMUTA', '9': 'NUEVA ESPERANZA',
-                '10': 'FUNDO LA CABAÑA', '11': 'LIMONES (OBREROS)', '12': 'FUNDO LONCHA',
-                '13': 'ADMINISTRACION GENERAL', '14': 'MAQUINARIA PESADA', '15': 'PERSONAL RVD',
-                '16': 'FUNDO SAN VICENTE', '17': 'FUNDO SAN JOSÉ', '18': 'FUNDO SANTA ROSA',
-                '40': 'SANTA ROSA 2', '41': 'PLANTA VERFRUT ARANDANOS', '49': 'OPERACIONES CAMPO',
-                '50': 'OLIVARES BAJO', '53': 'LOS VIEJITOS', '54': 'SANTA ROSA',
-                '55': 'ADMINISTRACION VERFRUT PERU', '58': 'PUNTA ARENAS', '60': 'OLIVARES BAJO (OBREROS)',
-                '64': 'SANTA ROSA (OBREROS)', '68': 'PUNTA ARENAS (OBREROS)', '70': 'SAN VICENTE',
-                '80': 'CAMPOS EXTERNOS', '81': 'EXPORTADORA', '180': 'CAMPOS EXTERNOS',
-                '280': 'CAMPOS EXTERNOS', '755': 'ADMINISTRACION VERFRUT PERU', '781': 'EXPORTADORA',
-                '790': 'TERCEROS', '821': 'LIMONES', '840': 'SANTA ROSA 2',
-                '841': 'PLANTA VERFRUT ARANDANOS', '848': 'SAN RAFAEL', '849': 'OPERACIONES CAMPO',
-                '850': 'OLIVARES BAJO', '851': 'FUNDO EL PAPAYO', '852': 'LOS OLIVARES',
-                '853': 'LOS VIEJITOS', '854': 'SANTA ROSA', '855': 'ADMINISTRACION VERFRUT PERU',
-                '856': 'SAN VICENTE', '858': 'PUNTA ARENAS', '870': 'ALGARROBOS',
-                '880': 'CAMPOS EXTERNOS', '881': 'EXPORTADORA'
-            }
-
             data = []
             for item in raw_data:
-                # Formatear ZONA (ej. 54 -> "54 SANTA ROSA")
+                # Formatear ZONA dinámicamente según la empresa seleccionada (ej. 51 -> "51 FUNDO EL PAPAYO" en Rapel, "51 ORGANICOS SAN RAFAEL" en Verfrut)
                 if 'ZONA' in item and item['ZONA'] is not None:
                     raw_z = str(item['ZONA']).strip()
-                    if raw_z in ZONAS_MAP and not raw_z.endswith(ZONAS_MAP[raw_z]):
-                        item['ZONA'] = f"{raw_z} {ZONAS_MAP[raw_z]}"
+                    if raw_z in zonas_emp_map and not raw_z.endswith(zonas_emp_map[raw_z]):
+                        item['ZONA'] = f"{raw_z} {zonas_emp_map[raw_z]}"
 
                 # Enriquecer CUARTEL/SECTOR con descripción completa de SPC_CUADRO_PREDIO_CUARTEL
                 for k in ['CUARTEL/SECTOR', 'Cuartel', 'CUARTEL', 'SubCentroCosto / Cuartel', 'Sector']:
@@ -535,6 +555,37 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             })
         except Exception as e:
             self.send_json_response(500, {'success': False, 'error': f"Error en SPC_CUADRO_PREDIO_CUARTEL: {str(e)}"})
+
+    def handle_api_zonas(self, query_str):
+        """Consulta catálogo de Zonas desde la tabla [Zona] según IdEmpresa"""
+        try:
+            import pyodbc
+        except ImportError:
+            self.send_json_response(500, {'success': False, 'error': 'pyodbc no está instalado.'})
+            return
+
+        params = urllib.parse.parse_qs(query_str)
+        id_empresa = int(params.get('idEmpresa', [14])[0])
+
+        try:
+            conn = pyodbc.connect(get_connection_string(), timeout=15)
+            cursor = conn.cursor()
+            cursor.execute("SELECT IdZona, IdEmpresa, Nombre, COD_CENTROCOSTO, NOM_CENTROCOSTO FROM [Zona] WHERE IdEmpresa = ? ORDER BY IdZona", (id_empresa,))
+
+            columns = [col[0] for col in cursor.description]
+            raw_rows = cursor.fetchall()
+            conn.close()
+
+            data = self._rows_to_dicts(columns, raw_rows)
+            self.send_json_response(200, {
+                'success': True,
+                'count': len(data),
+                'headers': columns,
+                'data': data,
+                'source': f"SQL Server ({SQL_CONFIG['server']}/{SQL_CONFIG['database']})"
+            })
+        except Exception as e:
+            self.send_json_response(500, {'success': False, 'error': f"Error al consultar Zonas: {str(e)}"})
 
     def _rows_to_dicts(self, columns, raw_rows):
         data = []
