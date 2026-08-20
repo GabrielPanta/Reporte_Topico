@@ -1682,15 +1682,36 @@
     const fileKey = `file${fileIndex}`;
     const headers = state[fileKey].headers;
 
-    let detectedKey = headers[0];
+    let detectedKey = '';
+    // Prioridad 1: RutTrabajador / RUT/DNI / RUT / DNI exacto
     for (const h of headers) {
       const cleanH = cleanHeader(h);
-      if (ID_KEYWORDS.some(keyword => cleanH === keyword || cleanH.includes(keyword))) {
+      if (cleanH === 'ruttrabajador' || cleanH === 'rutdni' || cleanH === 'rut' || cleanH === 'dni' || cleanH === 'numdoc' || cleanH === 'docidentidad' || cleanH === 'documento') {
         detectedKey = h;
         break;
       }
     }
-    state[fileKey].keyCol = detectedKey;
+    // Prioridad 2: Que contenga 'rut' o 'dni'
+    if (!detectedKey) {
+      for (const h of headers) {
+        const cleanH = cleanHeader(h);
+        if (cleanH.includes('rut') || cleanH.includes('dni')) {
+          detectedKey = h;
+          break;
+        }
+      }
+    }
+    // Prioridad 3: Código de trabajador / ID
+    if (!detectedKey) {
+      for (const h of headers) {
+        const cleanH = cleanHeader(h);
+        if (ID_KEYWORDS.some(keyword => cleanH === keyword || cleanH.includes(keyword))) {
+          detectedKey = h;
+          break;
+        }
+      }
+    }
+    state[fileKey].keyCol = detectedKey || headers[0];
 
     if (fileIndex === 1) {
       let detectedPat = '', detectedMat = '', detectedNom = '';
