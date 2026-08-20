@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.spec
+build/
+dist/
+*.egg-info/
+.env
+venv/
+env/
+
+# IDE / Gemini / Scratch
+.gemini/
+.agents/
+.vscode/
+.idea/
+*.log
+scratch/
+
+# Test data / Binaries
+*.xlsx
+*.xls
+*.csv
+!test_user_exact_columns.xlsx

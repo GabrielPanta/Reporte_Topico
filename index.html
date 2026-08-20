@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consolidador de Personal, Labores y Marcaciones | RRHH Pro</title>
+  <meta name="description" content="Plataforma SaaS ejecutiva para procesar, cruzar y exportar automáticamente el consolidado de personal con los 23 campos exactos requeridos.">
+  
+  <!-- Google Fonts with local fallback -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/styles.css?v=20260820_1200">
+</head>
+<body>
+
+  <!-- Ambient Background Glow -->
+  <div class="ambient-glow glow-top-left" aria-hidden="true"></div>
+  <div class="ambient-glow glow-bottom-right" aria-hidden="true"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="logo-group">
+        <div class="logo-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <div class="logo-title-row">
+            <h1>Consolidador de Personal & Marcaciones</h1>
+            <span class="pro-badge">PRO v2.0</span>
+            <span class="db-status-badge" id="db-status-badge" title="Conexión con base de datos SQL Server vfstbd01">
+              <span class="db-dot"></span> SQL Server Conectado
+            </span>
+          </div>
+          <p>Cruce automatizado de personal, labores y asistencia con 23 campos exactos</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Direct SQL Load All Button in Header -->
+        <button id="btn-load-all-sql" class="btn btn-primary btn-sm" title="Sincronizar Trabajadores, Labores, Buses y Cuadrillas directamente desde SQL Server (vfstbd01)">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+          <span>⚡ Sincronizar Todo (SQL)</span>
+        </button>
+
+        <button id="btn-load-demo" class="btn btn-secondary btn-sm" title="Cargar los 5 archivos demo con un clic (Atajo: Ctrl+D)">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>Datos Demo</span>
+        </button>
+
+        <button id="btn-shortcuts" class="btn btn-secondary btn-sm btn-icon-only" title="Atajos de teclado" aria-label="Ver atajos de teclado">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+            <path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M6 16h12"></path>
+          </svg>
+        </button>
+
+        <button id="btn-help" class="btn btn-secondary btn-sm btn-icon-only" title="Guía e instrucciones" aria-label="Abrir guía de uso">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </button>
+
+        <!-- Dark / Light Theme Switcher -->
+        <button id="btn-theme-toggle" class="btn-theme-toggle" title="Cambiar a modo oscuro / claro" aria-label="Alternar tema">
+          <span class="theme-icon sun-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </span>
+          <span class="theme-icon moon-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- Step Wizard -->
+    <nav class="step-wizard" aria-label="Progreso del proceso">
+      <div class="step-item active" id="step-1">
+        <div class="step-number">
+          <span class="num-text">1</span>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div class="step-text">
+          <span class="step-title">Carga de Datos</span>
+          <span class="step-desc" id="step-1-desc">SQL Server + Marcaciones</span>
+        </div>
+      </div>
+
+      <div class="step-connector"><div class="connector-progress"></div></div>
+
+      <div class="step-item" id="step-2">
+        <div class="step-number">
+          <span class="num-text">2</span>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div class="step-text">
+          <span class="step-title">Mapeo & Cruce</span>
+          <span class="step-desc">DNI, Labores, Buses & Cuadrillas</span>
+        </div>
+      </div>
+
+      <div class="step-connector"><div class="connector-progress"></div></div>
+
+      <div class="step-item" id="step-3">
+        <div class="step-number">
+          <span class="num-text">3</span>
+          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div class="step-text">
+          <span class="step-title">Consolidado Final</span>
+          <span class="step-desc">Exploración & Exportación</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Upload Grid (5 Excel Files / Direct Database) -->
+    <section class="cards-grid" aria-label="Carga de archivos y conexión de datos">
+      
+      <!-- Card 1: Trabajadores (Direct SQL Server Connection + Fallback Upload) -->
+      <article class="upload-card card-theme-blue card-has-sql" id="card-1">
+        <header class="card-header">
+          <div class="card-badge-num">1</div>
+          <div class="card-titles">
+            <div class="card-title-row">
+              <h2>Trabajadores</h2>
+              <span class="card-tag tag-required">Requerido</span>
+            </div>
+            <p>Maestro de personal desde SQL Server (o Excel)</p>
+          </div>
+        </header>
+
+        <!-- SQL Server Direct Fetch Action Banner -->
+        <div class="sql-action-banner">
+          <button type="button" id="btn-load-sql" class="btn btn-sql-primary" title="Consultar SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <span>Cargar desde SQL Server</span>
+          </button>
+          <button type="button" id="btn-open-sql-params" class="btn-sql-config" title="Configurar parámetros SQL (Empresa, Mes, Año, Zona)" aria-label="Parámetros SQL">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="divider-text">
+          <span>ó sube un archivo Excel</span>
+        </div>
+
+        <div class="dropzone" id="dropzone-1">
+          <input type="file" id="file-input-1" class="dropzone-input" accept=".xlsx, .xls, .csv">
+          <div class="dropzone-icon-wrapper">
+            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <span class="dropzone-label">Arrastra o haz clic aquí</span>
+          <span class="dropzone-sub">Excel con datos del maestro de personal</span>
+        </div>
+
+        <div class="file-info-box" id="file-info-1">
+          <div class="file-info-details">
+            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <polyline points="9 15 12 18 15 15"></polyline>
+            </svg>
+            <div class="file-info-text">
+              <div class="file-name">archivo.xlsx</div>
+              <div class="file-meta">0 KB • 0 filas</div>
+            </div>
+          </div>
+          <div class="file-box-actions">
+            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="1" aria-label="Previsualizar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsible Column Configuration -->
+        <button type="button" class="btn-toggle-config" id="toggle-config-1" aria-expanded="false">
+          <span>Configurar Columnas</span>
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <div class="card-config" id="card-config-1">
+          <div class="field-group sheet-select-group" id="sheet-group-1" style="display: none;">
+            <label for="sheet-select-1">Hoja del Libro Excel:</label>
+            <select id="sheet-select-1" class="select-input"></select>
+          </div>
+          <div class="field-group">
+            <label for="key-select-1">Columna Clave (DNI / Código):</label>
+            <select id="key-select-1" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="paterno-select-1">Columna Ap. Paterno:</label>
+            <select id="paterno-select-1" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="materno-select-1">Columna Ap. Materno:</label>
+            <select id="materno-select-1" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="nombres-select-1">Columna Nombres / Completo:</label>
+            <select id="nombres-select-1" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 2: Último Día Laborado & Labores (SQL Server Direct Fetch + Fallback Upload) -->
+      <article class="upload-card card-theme-emerald card-has-sql" id="card-2">
+        <header class="card-header">
+          <div class="card-badge-num">2</div>
+          <div class="card-titles">
+            <div class="card-title-row">
+              <h2>Último Día & Labores</h2>
+              <span class="card-tag tag-required">Requerido</span>
+            </div>
+            <p>Labores, fecha, actividad y motivo desde SQL Server (o Excel)</p>
+          </div>
+        </header>
+
+        <!-- SQL Server Direct Fetch Action Banner for Card 2 -->
+        <div class="sql-action-banner">
+          <button type="button" id="btn-load-sql-2" class="btn btn-sql-primary btn-sql-emerald" title="Consultar SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <span>Cargar desde SQL Server</span>
+          </button>
+          <button type="button" id="btn-open-sql-params-2" class="btn-sql-config" title="Configurar parámetros SQL (Empresa, Mes, Año)" aria-label="Parámetros SQL Labores">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="divider-text">
+          <span>ó sube un archivo Excel</span>
+        </div>
+
+        <div class="dropzone" id="dropzone-2">
+          <input type="file" id="file-input-2" class="dropzone-input" accept=".xlsx, .xls, .csv">
+          <div class="dropzone-icon-wrapper">
+            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <span class="dropzone-label">Arrastra o haz clic aquí</span>
+          <span class="dropzone-sub">Excel con labores y actividad / motivo</span>
+        </div>
+
+        <div class="file-info-box" id="file-info-2">
+          <div class="file-info-details">
+            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <polyline points="9 15 12 18 15 15"></polyline>
+            </svg>
+            <div class="file-info-text">
+              <div class="file-name">archivo.xlsx</div>
+              <div class="file-meta">0 KB • 0 filas</div>
+            </div>
+          </div>
+          <div class="file-box-actions">
+            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="2" aria-label="Previsualizar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsible Column Configuration -->
+        <button type="button" class="btn-toggle-config" id="toggle-config-2" aria-expanded="false">
+          <span>Configurar Columnas</span>
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <div class="card-config" id="card-config-2">
+          <div class="field-group sheet-select-group" id="sheet-group-2" style="display: none;">
+            <label for="sheet-select-2">Hoja del Libro Excel:</label>
+            <select id="sheet-select-2" class="select-input"></select>
+          </div>
+          <div class="field-group">
+            <label for="key-select-2">Columna Clave (Rut / DNI):</label>
+            <select id="key-select-2" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="act-select-2">Columna ACTIVIDAD:</label>
+            <select id="act-select-2" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="labor-select-2">Columna LABOR:</label>
+            <select id="labor-select-2" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="cuadrilla-select-2">Columna IdCuadrilla:</label>
+            <select id="cuadrilla-select-2" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="turno-select-2">Columna TURNO / Hora Inicio:</label>
+            <select id="turno-select-2" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 3: Marcaciones (SQL Server Direct Fetch + Fallback Upload) -->
+      <article class="upload-card card-theme-sky card-has-sql" id="card-3">
+        <header class="card-header">
+          <div class="card-badge-num">3</div>
+          <div class="card-titles">
+            <div class="card-title-row">
+              <h2>Marcaciones</h2>
+              <span class="card-tag tag-required">Requerido</span>
+            </div>
+            <p>Marcaciones y buses desde SQL Server (o Excel)</p>
+          </div>
+        </header>
+
+        <!-- SQL Server Direct Fetch Action Banner for Card 3 -->
+        <div class="sql-action-banner">
+          <button type="button" id="btn-load-sql-3" class="btn btn-sql-primary btn-sql-sky" title="Consultar SPC_LOGIN_MARCACIONES (Condición 3 días)">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <span>Cargar desde SQL Server (3 días)</span>
+          </button>
+          <button type="button" id="btn-open-sql-params-3" class="btn-sql-config" title="Configurar parámetros SQL Marcaciones (Fecha, Rango de días, Empresa)" aria-label="Parámetros SQL Marcaciones">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="divider-text">
+          <span>ó sube un archivo Excel</span>
+        </div>
+
+        <div class="dropzone" id="dropzone-3">
+          <input type="file" id="file-input-3" class="dropzone-input" accept=".xlsx, .xls, .csv">
+          <div class="dropzone-icon-wrapper">
+            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <span class="dropzone-label">Arrastra o haz clic aquí</span>
+          <span class="dropzone-sub">Excel con los registros de marcación</span>
+        </div>
+
+        <div class="file-info-box" id="file-info-3">
+          <div class="file-info-details">
+            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <polyline points="9 15 12 18 15 15"></polyline>
+            </svg>
+            <div class="file-info-text">
+              <div class="file-name">archivo.xlsx</div>
+              <div class="file-meta">0 KB • 0 filas</div>
+            </div>
+          </div>
+          <div class="file-box-actions">
+            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="3" aria-label="Previsualizar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsible Column Configuration -->
+        <button type="button" class="btn-toggle-config" id="toggle-config-3" aria-expanded="false">
+          <span>Configurar Columnas</span>
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <div class="card-config" id="card-config-3">
+          <div class="field-group sheet-select-group" id="sheet-group-3" style="display: none;">
+            <label for="sheet-select-3">Hoja del Libro Excel:</label>
+            <select id="sheet-select-3" class="select-input"></select>
+          </div>
+          <div class="field-group">
+            <label for="key-select-3">Columna Clave (Documento / DNI):</label>
+            <select id="key-select-3" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="nom-est-select-3">Columna NOMBRE_ESTACION (Placa):</label>
+            <select id="nom-est-select-3" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="tipo-est-select-3">Columna TIPO_ESTACION (Filtro BUS):</label>
+            <select id="tipo-est-select-3" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 4: Catálogo de Buses y Rutas (Direct SQL Fetch + Fallback Upload) -->
+      <article class="upload-card card-theme-amber card-has-sql" id="card-4">
+        <header class="card-header">
+          <div class="card-badge-num">4</div>
+          <div class="card-titles">
+            <div class="card-title-row">
+              <h2>Buses & Rutas</h2>
+              <span class="card-tag tag-optional">Opcional</span>
+            </div>
+            <p>Patente, Código Bus (Campo) y Ruta desde SQL (o Excel)</p>
+          </div>
+        </header>
+
+        <!-- SQL Server Direct Fetch Action Banner for Card 4 -->
+        <div class="sql-action-banner">
+          <button type="button" id="btn-load-sql-4" class="btn btn-sql-primary btn-sql-amber" title="Consultar SPC_BUSES">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <span>Cargar desde SQL Server</span>
+          </button>
+        </div>
+
+        <div class="divider-text">
+          <span>ó sube un archivo Excel</span>
+        </div>
+
+        <div class="dropzone" id="dropzone-4">
+          <input type="file" id="file-input-4" class="dropzone-input" accept=".xlsx, .xls, .csv">
+          <div class="dropzone-icon-wrapper">
+            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="3" width="22" height="13" rx="2" ry="2"></rect>
+              <path d="M16 8h2"></path>
+              <path d="M6 8h2"></path>
+              <circle cx="5.5" cy="18.5" r="2.5"></circle>
+              <circle cx="18.5" cy="18.5" r="2.5"></circle>
+            </svg>
+          </div>
+          <span class="dropzone-label">Arrastra o haz clic aquí</span>
+          <span class="dropzone-sub">Excel con Patente, Codigo Campo y Ruta</span>
+        </div>
+
+        <div class="file-info-box" id="file-info-4">
+          <div class="file-info-details">
+            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <polyline points="9 15 12 18 15 15"></polyline>
+            </svg>
+            <div class="file-info-text">
+              <div class="file-name">archivo.xlsx</div>
+              <div class="file-meta">0 KB • 0 filas</div>
+            </div>
+          </div>
+          <div class="file-box-actions">
+            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="4" aria-label="Previsualizar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsible Column Configuration -->
+        <button type="button" class="btn-toggle-config" id="toggle-config-4" aria-expanded="false">
+          <span>Configurar Columnas</span>
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <div class="card-config" id="card-config-4">
+          <div class="field-group sheet-select-group" id="sheet-group-4" style="display: none;">
+            <label for="sheet-select-4">Hoja del Libro Excel:</label>
+            <select id="sheet-select-4" class="select-input"></select>
+          </div>
+          <div class="field-group">
+            <label for="patente-select-4">Columna Patente / Placa:</label>
+            <select id="patente-select-4" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="cod-bus-select-4">Columna Código Bus (Codigo Campo):</label>
+            <select id="cod-bus-select-4" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="ruta-select-4">Columna Ruta (Descripcion Ruta):</label>
+            <select id="ruta-select-4" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 5: Catálogo de Cuadrillas & Encargados (Direct SQL Fetch + Fallback Upload) -->
+      <article class="upload-card card-theme-purple card-has-sql" id="card-5">
+        <header class="card-header">
+          <div class="card-badge-num">5</div>
+          <div class="card-titles">
+            <div class="card-title-row">
+              <h2>Cuadrillas</h2>
+              <span class="card-tag tag-optional">Opcional</span>
+            </div>
+            <p>IDCUADRILLA, Descripción y Encargado desde SQL (o Excel)</p>
+          </div>
+        </header>
+
+        <!-- SQL Server Direct Fetch Action Banner for Card 5 -->
+        <div class="sql-action-banner">
+          <button type="button" id="btn-load-sql-5" class="btn btn-sql-primary btn-sql-purple" title="Consultar SPC_DINAMICA_CUADRILLAS">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            <span>Cargar desde SQL Server</span>
+          </button>
+        </div>
+
+        <div class="divider-text">
+          <span>ó sube un archivo Excel</span>
+        </div>
+
+        <div class="dropzone" id="dropzone-5">
+          <input type="file" id="file-input-5" class="dropzone-input" accept=".xlsx, .xls, .csv">
+          <div class="dropzone-icon-wrapper">
+            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <span class="dropzone-label">Arrastra o haz clic aquí</span>
+          <span class="dropzone-sub">Excel con IDCUADRILLA y Encargado</span>
+        </div>
+
+        <div class="file-info-box" id="file-info-5">
+          <div class="file-info-details">
+            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <polyline points="9 15 12 18 15 15"></polyline>
+            </svg>
+            <div class="file-info-text">
+              <div class="file-name">archivo.xlsx</div>
+              <div class="file-meta">0 KB • 0 filas</div>
+            </div>
+          </div>
+          <div class="file-box-actions">
+            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="5" aria-label="Previsualizar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsible Column Configuration -->
+        <button type="button" class="btn-toggle-config" id="toggle-config-5" aria-expanded="false">
+          <span>Configurar Columnas</span>
+          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <div class="card-config" id="card-config-5">
+          <div class="field-group sheet-select-group" id="sheet-group-5" style="display: none;">
+            <label for="sheet-select-5">Hoja del Libro Excel:</label>
+            <select id="sheet-select-5" class="select-input"></select>
+          </div>
+          <div class="field-group">
+            <label for="idcuadrilla-select-5">Columna IDCUADRILLA:</label>
+            <select id="idcuadrilla-select-5" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="desc-cuadrilla-select-5">Columna Descripción:</label>
+            <select id="desc-cuadrilla-select-5" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="nombre-encargado-select-5">Columna Nombre Encargado:</label>
+            <select id="nombre-encargado-select-5" class="select-input">
+              <option value="">(Cargue archivo primero)</option>
+            </select>
+          </div>
+        </div>
+      </article>
+
+    </section>
+
+    <!-- Action & Rule Banner -->
+    <div class="actions-container">
+      <div class="rule-summary">
+        <div class="rule-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+        </div>
+        <div class="rule-text">
+          <h3>Regla de Evaluación de Estado del Personal</h3>
+          <div class="rule-pills-row">
+            <span class="rule-pill rule-pill-active">
+              <span class="pill-dot"></span> <strong>ACTIVO</strong>: Con marcación de asistencia o digitación = NO
+            </span>
+            <span class="rule-pill rule-pill-absent">
+              <span class="pill-dot"></span> <strong>AUSENTE</strong>: Sin marcación y sin inasistencia justificada
+            </span>
+            <span class="rule-pill rule-pill-leave">
+              <span class="pill-dot"></span> <strong>LICENCIAS / SPL / VACACIONES</strong>: Según motivo de ausencia
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-buttons">
+        <button id="btn-reset-all" class="btn btn-secondary">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          <span>Limpiar Todo</span>
+        </button>
+
+        <button id="btn-process" class="btn btn-primary" disabled>
+          <svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span class="btn-text">Procesar y Consolidar</span>
+          <span class="shortcut-badge">Ctrl + Enter</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <section class="results-section" id="results-section" aria-label="Resultados de Consolidación">
+      
+      <div class="section-header">
+        <div class="section-title">
+          <div class="section-title-badge">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            Consolidado Generado
+          </div>
+          <h2>Base Consolidada de Personal (23 Campos)</h2>
+          <p>Visualiza, busca, filtra, ordena y descarga el reporte consolidado listo para auditoría y gerencia.</p>
+        </div>
+
+        <div class="export-actions">
+          <button id="btn-copy-table" class="btn btn-secondary btn-sm" title="Copiar filas visibles al portapapeles en formato Excel">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copiar</span>
+          </button>
+
+          <button id="btn-print-table" class="btn btn-secondary btn-sm" title="Imprimir o exportar como PDF">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"></polyline>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+              <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+            <span>Imprimir</span>
+          </button>
+
+          <button id="btn-export-csv" class="btn btn-secondary btn-sm" title="Descargar como CSV estructurado con UTF-8">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Exportar CSV</span>
+          </button>
+
+          <button id="btn-export-excel" class="btn btn-success" title="Descargar archivo Excel con formato y anchos automáticos">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Descargar Excel (.xlsx)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Proportional Distribution Bar -->
+      <div class="distribution-card">
+        <div class="distribution-header">
+          <span class="distribution-title">Distribución del Estado del Personal</span>
+          <span class="distribution-subtitle" id="distribution-sub">100% de la dotación evaluada</span>
+        </div>
+        <div class="distribution-bar-track">
+          <div class="dist-segment dist-active" id="dist-active" style="width: 0%" title="Activos"></div>
+          <div class="dist-segment dist-absent" id="dist-absent" style="width: 0%" title="Ausentes"></div>
+          <div class="dist-segment dist-leave" id="dist-leave" style="width: 0%" title="Licencias / Permisos / Vacaciones"></div>
+        </div>
+        <div class="distribution-legend">
+          <span class="legend-item"><span class="legend-dot dot-active"></span> Activos: <strong id="pct-active">0%</strong></span>
+          <span class="legend-item"><span class="legend-dot dot-absent"></span> Ausentes: <strong id="pct-absent">0%</strong></span>
+          <span class="legend-item"><span class="legend-dot dot-leave"></span> Licencias/SPL: <strong id="pct-leave">0%</strong></span>
+        </div>
+      </div>
+
+      <!-- Metrics Cards (Clickable to Filter) -->
+      <div class="metrics-grid">
+        <div class="metric-card metric-interactive" data-filter-target="ALL" title="Clic para ver todos los trabajadores">
+          <div class="metric-icon-box metric-blue">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value-row">
+              <div class="metric-value" id="metric-total">0</div>
+              <span class="metric-badge badge-neutral">100%</span>
+            </div>
+            <div class="metric-label">Total Trabajadores</div>
+          </div>
+        </div>
+
+        <div class="metric-card metric-interactive" data-filter-target="ACTIVE" title="Clic para filtrar solo trabajadores Activos">
+          <div class="metric-icon-box metric-green">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value-row">
+              <div class="metric-value" id="metric-active">0</div>
+              <span class="metric-badge badge-success" id="kpi-pct-active">0%</span>
+            </div>
+            <div class="metric-label">Activos (Marcación / Digitado)</div>
+          </div>
+        </div>
+
+        <div class="metric-card metric-interactive" data-filter-target="ABSENT" title="Clic para filtrar solo trabajadores Ausentes">
+          <div class="metric-icon-box metric-amber">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value-row">
+              <div class="metric-value" id="metric-absent">0</div>
+              <span class="metric-badge badge-danger" id="kpi-pct-absent">0%</span>
+            </div>
+            <div class="metric-label">Ausentes (Sin Marcación)</div>
+          </div>
+        </div>
+
+        <div class="metric-card metric-interactive" data-filter-target="LEAVE" title="Clic para filtrar solo Licencias / SPL / Vacaciones">
+          <div class="metric-icon-box metric-red">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <div class="metric-content">
+            <div class="metric-value-row">
+              <div class="metric-value" id="metric-leave">0</div>
+              <span class="metric-badge badge-warning" id="kpi-pct-leave">0%</span>
+            </div>
+            <div class="metric-label">Licencias / SPL / Vacaciones</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table Panel -->
+      <div class="table-panel">
+        <div class="table-toolbar">
+          
+          <!-- Search Bar -->
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="table-search" class="search-input" placeholder="Buscar por DNI, nombres, cargo, labor, ruta, placa, estado..." aria-label="Buscar en la tabla">
+            <button type="button" id="btn-clear-search" class="btn-clear-search" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">&times;</button>
+            <span class="search-kbd-hint">Ctrl + K</span>
+          </div>
+
+          <!-- State Filter Chips -->
+          <div class="table-filters" role="group" aria-label="Filtros por estado">
+            <button class="filter-chip active" data-filter="ALL">
+              <span>Todos</span>
+              <span class="chip-count" id="count-chip-all">0</span>
+            </button>
+            <button class="filter-chip" data-filter="ACTIVE">
+              <span class="chip-dot dot-active"></span>
+              <span>Activos</span>
+              <span class="chip-count" id="count-chip-active">0</span>
+            </button>
+            <button class="filter-chip" data-filter="ABSENT">
+              <span class="chip-dot dot-absent"></span>
+              <span>Ausentes</span>
+              <span class="chip-count" id="count-chip-absent">0</span>
+            </button>
+            <button class="filter-chip" data-filter="LEAVE">
+              <span class="chip-dot dot-leave"></span>
+              <span>Licencias/SPL</span>
+              <span class="chip-count" id="count-chip-leave">0</span>
+            </button>
+          </div>
+
+          <!-- Extra Tools (Columns Visibility & Page Size) -->
+          <div class="toolbar-tools">
+            
+            <!-- Column Visibility Dropdown -->
+            <div class="columns-dropdown-wrapper">
+              <button id="btn-toggle-columns" class="btn btn-secondary btn-sm" aria-expanded="false" title="Mostrar u ocultar columnas de la tabla">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18"></path>
+                </svg>
+                <span>Columnas</span>
+                <svg class="chevron-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+
+              <div class="columns-dropdown-menu" id="columns-dropdown-menu">
+                <div class="columns-presets">
+                  <button type="button" class="btn-preset" data-preset="all">Ver Todas (23)</button>
+                  <button type="button" class="btn-preset" data-preset="summary">Resumen</button>
+                  <button type="button" class="btn-preset" data-preset="attendance">Asistencia</button>
+                  <button type="button" class="btn-preset" data-preset="transport">Transporte</button>
+                </div>
+                <div class="columns-list" id="columns-checkbox-list">
+                  <!-- Dynamically populated checkbox list -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Page Size Selector -->
+            <div class="page-size-selector">
+              <label for="select-page-size">Filas:</label>
+              <select id="select-page-size" class="select-input-sm">
+                <option value="10">10</option>
+                <option value="15" selected>15</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="99999">Todas</option>
+              </select>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="table-info-bar">
+          <span class="info-text">💡 <em>Haz clic en cualquier fila para ver el expediente completo del trabajador. Haz clic en las cabeceras para ordenar.</em></span>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table" id="consolidated-table">
+            <thead id="table-head">
+              <!-- Dynamically rendered headers with sort buttons -->
+            </thead>
+            <tbody id="table-body">
+              <!-- Dynamically rendered rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-footer">
+          <div class="pagination-info">
+            Mostrando <strong id="page-start">0</strong> - <strong id="page-end">0</strong> de <strong id="page-total">0</strong> registros
+          </div>
+          <div class="pagination-controls">
+            <button id="btn-first-page" class="btn-page" title="Primera página" disabled>&laquo;</button>
+            <button id="btn-prev-page" class="btn-page" title="Página anterior" disabled>&larr; Anterior</button>
+            <span id="page-num-display" class="page-display">Pág. 1 de 1</span>
+            <button id="btn-next-page" class="btn-page" title="Página siguiente" disabled>Siguiente &rarr;</button>
+            <button id="btn-last-page" class="btn-page" title="Última página" disabled>&raquo;</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- SQL Parameters Modal for Card 1 (Trabajadores) -->
+  <div class="modal-overlay" id="modal-sql-params" role="dialog" aria-modal="true" aria-labelledby="sql-params-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div class="metric-icon-box metric-blue" style="width: 32px; height: 32px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+          </div>
+          <h3 id="sql-params-title">Parámetros SQL: Maestro Trabajadores</h3>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-sql-params" aria-label="Cerrar ventana">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Procedimiento: <code>SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS</code> en <code>vfstbd01.bsis_rem_afr</code>
+        </p>
+
+        <form id="form-sql-params" style="display: flex; flex-direction: column; gap: 0.85rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="field-group">
+              <label for="sql-param-empresa">IdEmpresa:</label>
+              <input type="number" id="sql-param-empresa" class="select-input" value="14" required>
+            </div>
+            <div class="field-group">
+              <label for="sql-param-activo">Activo:</label>
+              <select id="sql-param-activo" class="select-input">
+                <option value="1" selected>1 (Solo Activos)</option>
+                <option value="0">0 (Inactivos)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="field-group">
+              <label for="sql-param-mes">Mes (1 - 12):</label>
+              <select id="sql-param-mes" class="select-input">
+                <option value="1">1 - Enero</option>
+                <option value="2">2 - Febrero</option>
+                <option value="3">3 - Marzo</option>
+                <option value="4">4 - Abril</option>
+                <option value="5">5 - Mayo</option>
+                <option value="6">6 - Junio</option>
+                <option value="7">7 - Julio</option>
+                <option value="8" selected>8 - Agosto</option>
+                <option value="9">9 - Setiembre</option>
+                <option value="10">10 - Octubre</option>
+                <option value="11">11 - Noviembre</option>
+                <option value="12">12 - Diciembre</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="sql-param-anio">Año:</label>
+              <input type="number" id="sql-param-anio" class="select-input" value="2026" required>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="sql-param-fechaini">Fecha Corte (@fechaini DD/MM/AAAA):</label>
+            <input type="text" id="sql-param-fechaini" class="select-input" value="31/8/2026" required>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Consultar y Cargar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- SQL Parameters Modal for Card 2 (Último Día & Labores) -->
+  <div class="modal-overlay" id="modal-sql-params-2" role="dialog" aria-modal="true" aria-labelledby="sql-params-2-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div class="metric-icon-box metric-green" style="width: 32px; height: 32px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+          <h3 id="sql-params-2-title">Parámetros SQL: Último Día & Labores</h3>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-sql-params-2" aria-label="Cerrar ventana">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Procedimiento: <code>SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR</code> en <code>vfstbd01.bsis_rem_afr</code>
+        </p>
+
+        <form id="form-sql-params-2" style="display: flex; flex-direction: column; gap: 0.85rem;">
+          <div class="field-group">
+            <label for="sql-param-2-empresa">IdEmpresa:</label>
+            <input type="number" id="sql-param-2-empresa" class="select-input" value="14" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="field-group">
+              <label for="sql-param-2-mes">Mes (1 - 12):</label>
+              <select id="sql-param-2-mes" class="select-input">
+                <option value="1">1 - Enero</option>
+                <option value="2">2 - Febrero</option>
+                <option value="3">3 - Marzo</option>
+                <option value="4">4 - Abril</option>
+                <option value="5">5 - Mayo</option>
+                <option value="6">6 - Junio</option>
+                <option value="7">7 - Julio</option>
+                <option value="8" selected>8 - Agosto</option>
+                <option value="9">9 - Setiembre</option>
+                <option value="10">10 - Octubre</option>
+                <option value="11">11 - Noviembre</option>
+                <option value="12">12 - Diciembre</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label for="sql-param-2-anio">Año:</label>
+              <input type="number" id="sql-param-2-anio" class="select-input" value="2026" required>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params-2">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params-2">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Consultar y Cargar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- SQL Parameters Modal for Card 3 (Marcaciones) -->
+  <div class="modal-overlay" id="modal-sql-params-3" role="dialog" aria-modal="true" aria-labelledby="sql-params-3-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div class="metric-icon-box metric-sky" style="width: 32px; height: 32px; background: rgba(2, 132, 199, 0.12); color: #0284c7;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <h3 id="sql-params-3-title">Parámetros SQL: Marcaciones</h3>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-sql-params-3" aria-label="Cerrar ventana">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Procedimiento: <code>SPC_LOGIN_MARCACIONES</code> en <code>vfstbd01.bsis_rem_afr</code>
+        </p>
+
+        <form id="form-sql-params-3" style="display: flex; flex-direction: column; gap: 0.85rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="field-group">
+              <label for="sql-param-3-fecha">Fecha (@Fecha DD/MM/AAAA):</label>
+              <input type="text" id="sql-param-3-fecha" class="select-input" value="19/8/2026" required>
+            </div>
+            <div class="field-group">
+              <label for="sql-param-3-dias">Condición de Días:</label>
+              <select id="sql-param-3-dias" class="select-input">
+                <option value="1">1 Día (Solo la fecha)</option>
+                <option value="3" selected>3 Días (Condición)</option>
+                <option value="7">7 Días (Semana)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="field-group">
+              <label for="sql-param-3-empresa">IdEmpresa:</label>
+              <input type="number" id="sql-param-3-empresa" class="select-input" value="14" required>
+            </div>
+            <div class="field-group">
+              <label for="sql-param-3-sw">sw_contrato:</label>
+              <select id="sql-param-3-sw" class="select-input">
+                <option value="0" selected>0 (General)</option>
+                <option value="1">1</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params-3">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params-3">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Consultar y Cargar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Worker Dossier / Detail Modal -->
+  <div class="modal-overlay" id="modal-dossier" role="dialog" aria-modal="true" aria-labelledby="dossier-title">
+    <div class="modal-content modal-content-lg">
+      <div class="modal-header">
+        <div class="dossier-header-title">
+          <div class="dossier-avatar" id="dossier-avatar">TR</div>
+          <div>
+            <h3 id="dossier-worker-name">Nombre del Trabajador</h3>
+            <p id="dossier-worker-dni" class="dossier-subtitle">DNI: - • Código: -</p>
+          </div>
+        </div>
+        <div class="dossier-header-actions">
+          <span id="dossier-status-badge"></span>
+          <button type="button" class="btn-close" id="btn-close-dossier" aria-label="Cerrar expediente">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body" id="dossier-body">
+        <!-- Dynamically rendered detailed fields organized by section -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Excel File Preview Modal -->
+  <div class="modal-overlay" id="modal-preview" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+    <div class="modal-content modal-content-xl">
+      <div class="modal-header">
+        <div>
+          <h3 id="preview-title">Vista Previa del Archivo Excel</h3>
+          <p id="preview-subtitle" class="preview-subtitle">Mostrando las primeras 10 filas de muestra</p>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-preview" aria-label="Cerrar vista previa">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="table-wrapper preview-table-wrapper" id="preview-table-container">
+          <!-- Dynamically filled sample table -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard Shortcuts Modal -->
+  <div class="modal-overlay" id="modal-shortcuts" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="shortcuts-title">Atajos de Teclado</h3>
+        <button type="button" class="btn-close" id="btn-close-shortcuts" aria-label="Cerrar atajos">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="shortcuts-list">
+          <div class="shortcut-row">
+            <span class="shortcut-desc">Procesar y consolidar datos</span>
+            <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-desc">Buscar en la tabla consolidada</span>
+            <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>K</kbd> ó <kbd>/</kbd></span>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-desc">Cargar datos demo de ejemplo</span>
+            <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>D</kbd></span>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-desc">Cerrar modales o limpiar búsqueda</span>
+            <span class="shortcut-keys"><kbd>Esc</kbd></span>
+          </div>
+          <div class="shortcut-row">
+            <span class="shortcut-desc">Página anterior / siguiente</span>
+            <span class="shortcut-keys"><kbd>&larr;</kbd> / <kbd>&rarr;</kbd></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help & Documentation Modal -->
+  <div class="modal-overlay" id="modal-help" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Guía de Uso del Consolidador de Personal</h3>
+        <button type="button" class="btn-close" id="btn-close-modal" aria-label="Cerrar ventana">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Esta herramienta procesa y concatena automáticamente los datos de trabajadores desde SQL Server o Excel generando exactamente los <strong>23 campos solicitados</strong>:</p>
+        
+        <h4>Estructura de las 23 Columnas del Consolidado:</h4>
+        <ol class="columns-ordered-list">
+          <li><code>Regimen</code></li>
+          <li><code>Tiene Digitacion (jornal)</code></li>
+          <li><code>RutTrabajador</code></li>
+          <li><code>CodigoTrabajador</code></li>
+          <li><code>Apellidos y Nombres</code></li>
+          <li><code>FechaNacimiento</code></li>
+          <li><code>Sexo</code></li>
+          <li><code>Edad</code></li>
+          <li><code>FechaInicioPeriodo</code></li>
+          <li><code>FechaInicioContrato</code></li>
+          <li><code>FechaTerminoContrato</code></li>
+          <li><code>Oficio</code></li>
+          <li><code>Zona Labores</code></li>
+          <li><code>SubCentroCosto / Cuartel</code></li>
+          <li><code>ACTIVIDAD</code></li>
+          <li><code>LABOR</code></li>
+          <li><code>ENCARGADO</code></li>
+          <li><code>PLACA</code></li>
+          <li><code>CODIGO BUS</code></li>
+          <li><code>RUTA</code></li>
+          <li><code>TURNO</code></li>
+          <li><code>HASTA</code></li>
+          <li><strong style="color: var(--primary-600);"><code>ESTADO</code></strong></li>
+        </ol>
+
+        <h4>Lógica de Evaluación de Estado:</h4>
+        <ul>
+          <li><strong>ESTADO = "ACTIVO"</strong>: Si el Rut/DNI registra marcación en Archivo 3 o digitación = NO.</li>
+          <li><strong>ESTADO = "AUSENTE"</strong>: Si NO registra marcación y no tiene una inasistencia justificada.</li>
+          <li><strong>ESTADO = [Valor de ACTIVIDAD]</strong>: Si registra una inasistencia (ej. "LICENCIA POR MATERNIDAD", "DESCANSO MÉDICO", "VACACIONES", "PERSONAL CON S.P.L", etc.).</li>
+        </ul>
+
+        <div class="privacy-note">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <small><em>Conexión Segura: La conexión a SQL Server se realiza localmente desde el servidor Python hacia vfstbd01.</em></small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- SheetJS local library -->
+  <script src="xlsx.full.min.js"></script>
+  <!-- Main Application Logic -->
+  <script src="js/app.js?v=20260820_1200"></script>
+</body>
+</html>
