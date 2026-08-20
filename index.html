@@ -1201,16 +1201,12 @@
         <form id="form-sql-params-3" style="display: flex; flex-direction: column; gap: 0.85rem;">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div class="field-group">
-              <label for="sql-param-3-fecha">Fecha (@Fecha DD/MM/AAAA):</label>
-              <input type="text" id="sql-param-3-fecha" class="select-input" value="19/8/2026" required>
+              <label for="sql-param-3-desde">Fecha Desde (@DESDE / @Fecha):</label>
+              <input type="text" id="sql-param-3-desde" class="select-input" value="18/08/2026" placeholder="DD/MM/AAAA" required>
             </div>
             <div class="field-group">
-              <label for="sql-param-3-dias">Condición de Días:</label>
-              <select id="sql-param-3-dias" class="select-input">
-                <option value="1">1 Día (Solo la fecha)</option>
-                <option value="3" selected>3 Días (Condición)</option>
-                <option value="7">7 Días (Semana)</option>
-              </select>
+              <label for="sql-param-3-hasta">Fecha Hasta (@HASTA / @FechaHasta):</label>
+              <input type="text" id="sql-param-3-hasta" class="select-input" value="20/08/2026" placeholder="DD/MM/AAAA" required>
             </div>
           </div>
 
@@ -1228,16 +1224,21 @@
             </div>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.5rem;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params-3">Cancelar</button>
-            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params-3">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Consultar y Cargar
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-calc-3days" style="font-size: 0.75rem;">
+              📅 Auto: Hoy y 2 días atrás (3 días)
             </button>
+            <div style="display: flex; gap: 0.6rem;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params-3">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params-3">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Consultar y Cargar
+              </button>
+            </div>
           </div>
         </form>
       </div>

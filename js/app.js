@@ -428,8 +428,9 @@
     btnCloseSqlParams3: document.getElementById('btn-close-sql-params-3'),
     btnCancelSqlParams3: document.getElementById('btn-cancel-sql-params-3'),
     formSqlParams3: document.getElementById('form-sql-params-3'),
-    sqlParam3Fecha: document.getElementById('sql-param-3-fecha'),
-    sqlParam3Dias: document.getElementById('sql-param-3-dias'),
+    sqlParam3Desde: document.getElementById('sql-param-3-desde'),
+    sqlParam3Hasta: document.getElementById('sql-param-3-hasta'),
+    btnCalc3Days: document.getElementById('btn-calc-3days'),
     sqlParam3Empresa: document.getElementById('sql-param-3-empresa'),
     sqlParam3Sw: document.getElementById('sql-param-3-sw'),
 
@@ -1242,6 +1243,18 @@
     }
   }
 
+  // Obtener rango de 3 días (hoy y 2 días hacia atrás)
+  function getDefault3DaysRange() {
+    const today = new Date();
+    const d3 = new Date(today);
+    d3.setDate(today.getDate() - 2);
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const hasta = `${pad(today.getDate())}/${pad(today.getMonth() + 1)}/${today.getFullYear()}`;
+    const desde = `${pad(d3.getDate())}/${pad(d3.getMonth() + 1)}/${d3.getFullYear()}`;
+    return { desde, hasta };
+  }
+
   // Load Marcaciones from SQL Server (Archivo 3 - SPC_LOGIN_MARCACIONES)
   async function loadMarcacionesFromSqlServer(customParams = null) {
     const btn3 = elements.btnLoadSql3;
@@ -1252,14 +1265,15 @@
         btn3.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Consultando Marcaciones...</span>';
       }
 
-      showToast('Consultando marcaciones biométricas en vfstbd01 (SPC_LOGIN_MARCACIONES)...', 'info');
-
+      const defaultRange = getDefault3DaysRange();
       const p = customParams || {
-        fecha: elements.sqlParam3Fecha ? elements.sqlParam3Fecha.value : '19/8/2026',
-        dias: elements.sqlParam3Dias ? elements.sqlParam3Dias.value : '3',
+        fechaDesde: elements.sqlParam3Desde ? elements.sqlParam3Desde.value : (elements.sqlParam3Fecha ? elements.sqlParam3Fecha.value : defaultRange.desde),
+        fechaHasta: elements.sqlParam3Hasta ? elements.sqlParam3Hasta.value : defaultRange.hasta,
         idEmpresa: elements.sqlParam3Empresa ? elements.sqlParam3Empresa.value : '14',
         sw_contrato: elements.sqlParam3Sw ? elements.sqlParam3Sw.value : '0'
       };
+
+      showToast(`Consultando marcaciones (${p.fechaDesde} al ${p.fechaHasta}) en vfstbd01...`, 'info');
 
       const queryParams = new URLSearchParams(p);
       const response = await fetch(`/api/marcaciones?${queryParams.toString()}`);
@@ -1276,7 +1290,7 @@
 
       state.file3 = {
         data: result.data,
-        name: `SQL Server (Marcaciones) - ${result.params.fecha} (${result.params.dias} días)`,
+        name: `SQL Server (Marcaciones) - ${result.params.fechaDesde} al ${result.params.fechaHasta}`,
         headers: result.headers,
         keyCol: 'RutTrabajador',
         nomEstCol: 'NOMBRE_ESTACION',
@@ -1293,7 +1307,7 @@
       checkProcessingReadiness();
 
       closeModal(elements.modalSqlParams3);
-      showToast(`¡${result.count.toLocaleString()} marcaciones cargadas desde SQL Server (${result.params.dias} días)!`, 'success');
+      showToast(`¡${result.count.toLocaleString()} marcaciones cargadas (${result.params.fechaDesde} al ${result.params.fechaHasta})!`, 'success');
       return result;
     } catch (err) {
       console.error(err);
@@ -1441,12 +1455,20 @@
     if (elements.btnCancelSqlParams3) {
       elements.btnCancelSqlParams3.addEventListener('click', () => closeModal(elements.modalSqlParams3));
     }
+    if (elements.btnCalc3Days) {
+      elements.btnCalc3Days.addEventListener('click', () => {
+        const range = getDefault3DaysRange();
+        if (elements.sqlParam3Desde) elements.sqlParam3Desde.value = range.desde;
+        if (elements.sqlParam3Hasta) elements.sqlParam3Hasta.value = range.hasta;
+        showToast(`Fechas ajustadas: ${range.desde} al ${range.hasta} (3 días)`, 'info');
+      });
+    }
     if (elements.formSqlParams3) {
       elements.formSqlParams3.addEventListener('submit', (e) => {
         e.preventDefault();
         const customParams = {
-          fecha: elements.sqlParam3Fecha ? elements.sqlParam3Fecha.value : '19/8/2026',
-          dias: elements.sqlParam3Dias ? elements.sqlParam3Dias.value : '3',
+          fechaDesde: elements.sqlParam3Desde ? elements.sqlParam3Desde.value : '18/08/2026',
+          fechaHasta: elements.sqlParam3Hasta ? elements.sqlParam3Hasta.value : '20/08/2026',
           idEmpresa: elements.sqlParam3Empresa ? elements.sqlParam3Empresa.value : '14',
           sw_contrato: elements.sqlParam3Sw ? elements.sqlParam3Sw.value : '0'
         };

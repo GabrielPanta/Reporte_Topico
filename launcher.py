@@ -315,33 +315,42 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             return
 
         params = urllib.parse.parse_qs(query_str)
-        fecha = params.get('fecha', ['19/8/2026'])[0]
-        fecha_hasta = params.get('fechaHasta', [None])[0]
+        fecha = params.get('fecha', [None])[0]
+        fecha_desde = params.get('fechaDesde', [None])[0] or params.get('desde', [None])[0]
+        fecha_hasta = params.get('fechaHasta', [None])[0] or params.get('hasta', [None])[0]
         sw_contrato = int(params.get('sw_contrato', [0])[0])
         id_empresa = int(params.get('idEmpresa', [14])[0]) if params.get('idEmpresa') else 14
-        dias = int(params.get('dias', [3])[0]) # Por defecto 3 días como condición
+        dias = int(params.get('dias', [3])[0])
+
+        # Calcular rango de 3 fechas desde la fecha base hacia atrás
+        now = datetime.datetime.now()
+        if not fecha_hasta:
+            if fecha:
+                fecha_hasta = fecha
+            else:
+                fecha_hasta = f"{now.day:02d}/{now.month:02d}/{now.year}"
+
+        if not fecha_desde:
+            try:
+                parts = [int(p) for p in fecha_hasta.split('/')]
+                end_dt = datetime.date(parts[2], parts[1], parts[0])
+                start_dt = end_dt - datetime.timedelta(days=dias - 1)
+                fecha_desde = f"{start_dt.day:02d}/{start_dt.month:02d}/{start_dt.year}"
+                fecha_hasta = f"{end_dt.day:02d}/{end_dt.month:02d}/{end_dt.year}"
+            except Exception:
+                fecha_desde = '18/08/2026'
+                fecha_hasta = '20/08/2026'
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=45)
+            conn = pyodbc.connect(get_connection_string(), timeout=60)
             cursor = conn.cursor()
 
-            if fecha_hasta:
-                sql = "EXEC SPC_LOGIN_MARCACIONES @Fecha = ?, @FechaHasta = ?, @sw_contrato = ?, @IdEmpresa = ?"
-                cursor.execute(sql, (fecha, fecha_hasta, sw_contrato, id_empresa))
-            elif dias > 1:
-                try:
-                    parts = [int(p) for p in fecha.split('/')]
-                    end_dt = datetime.date(parts[2], parts[1], parts[0])
-                    start_dt = end_dt - datetime.timedelta(days=dias - 1)
-                    start_str = f"{start_dt.day}/{start_dt.month}/{start_dt.year}"
-                    sql = "EXEC SPC_LOGIN_MARCACIONES @Fecha = ?, @FechaHasta = ?, @sw_contrato = ?, @IdEmpresa = ?"
-                    cursor.execute(sql, (start_str, fecha, sw_contrato, id_empresa))
-                except Exception:
-                    sql = "EXEC SPC_LOGIN_MARCACIONES @Fecha = ?, @sw_contrato = ?, @IdEmpresa = ?"
-                    cursor.execute(sql, (fecha, sw_contrato, id_empresa))
-            else:
-                sql = "EXEC SPC_LOGIN_MARCACIONES @Fecha = ?, @sw_contrato = ?, @IdEmpresa = ?"
-                cursor.execute(sql, (fecha, sw_contrato, id_empresa))
+            sql = "EXEC SPC_LOGIN_MARCACIONES @Fecha = ?, @FechaHasta = ?, @sw_contrato = 0, @IdEmpresa = ?"
+            cursor.execute(sql, (fecha_desde, fecha_hasta, id_empresa))
+
+            while cursor.description is None:
+                if not cursor.nextset():
+                    break
 
             if not cursor.description:
                 self.send_json_response(200, {'success': True, 'count': 0, 'headers': [], 'data': []})
@@ -359,7 +368,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                 'headers': columns,
                 'data': data,
                 'source': f"SQL Server ({SQL_CONFIG['server']}/{SQL_CONFIG['database']})",
-                'params': {'fecha': fecha, 'fechaHasta': fecha_hasta, 'sw_contrato': sw_contrato, 'idEmpresa': id_empresa, 'dias': dias}
+                'params': {'fechaDesde': fecha_desde, 'fechaHasta': fecha_hasta, 'sw_contrato': sw_contrato, 'idEmpresa': id_empresa, 'dias': dias}
             })
         except Exception as e:
             self.send_json_response(500, {'success': False, 'error': f"Error en SPC_LOGIN_MARCACIONES: {str(e)}"})
