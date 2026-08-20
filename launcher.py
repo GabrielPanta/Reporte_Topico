@@ -593,38 +593,68 @@ def main():
     print("  CONSOLIDADOR DE PERSONAL, LABORES Y MARCACIONES (RRHH PRO)")
     print("  Conector SQL Server Activo (vfstbd01): 5 Fuentes Disponibles")
     print("=" * 65)
-    print("\nIniciando servidor local seguro...")
+    print("\nIniciando aplicación de escritorio...")
 
     port = find_free_port()
     server_address = ('127.0.0.1', port)
     httpd = HTTPServer(server_address, CustomHTTPHandler)
-
     url = f"http://127.0.0.1:{port}/index.html"
-    print(f"\n[OK] Servidor activo en: {url}")
-    print("[OK] Endpoints SQL Server listos:")
-    print("     - /api/trabajadores (SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS)")
-    print("     - /api/ultimo-dia   (SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR)")
-    print("     - /api/marcaciones  (SPC_LOGIN_MARCACIONES - 1 o 3 días)")
-    print("     - /api/buses        (SPC_BUSES)")
-    print("     - /api/cuadrillas   (SPC_DINAMICA_CUADRILLAS)")
-    print("[OK] Abriendo la aplicación en tu navegador...")
-    print("\n-----------------------------------------------------------------")
-    print("  Para usar el programa: interactúa normalmente en el navegador.")
-    print("  Para cerrar el programa: cierra esta ventana o presiona Ctrl + C.")
-    print("-----------------------------------------------------------------\n")
 
-    def open_browser():
-        time.sleep(0.6)
-        webbrowser.open(url)
+    # Iniciar servidor HTTP en segundo plano
+    server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    server_thread.start()
 
-    threading.Thread(target=open_browser, daemon=True).start()
+    print(f"[OK] Motor interno activo en: {url}")
+    print("[OK] Abriendo ventana nativa de escritorio...")
 
+    use_webview = True
     try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\nCerrando servidor...")
+        import webview
+        window = webview.create_window(
+            title='Consolidador de Personal, Labores y Marcaciones - RRHH PRO',
+            url=url,
+            width=1360,
+            height=880,
+            min_size=(1024, 650),
+            resizable=True,
+            text_select=True,
+            confirm_close=False
+        )
+        webview.start(gui='edgechromium', debug=False)
+        print("\nAplicación cerrada por el usuario.")
         httpd.server_close()
         sys.exit(0)
+    except Exception as e:
+        print(f"Modo ventana alternativa ({e})...")
+        use_webview = False
+
+    if not use_webview:
+        # Fallback a Edge App Mode (ventana independiente sin barras ni pestañas de navegador)
+        import subprocess
+        opened = False
+        edge_paths = [
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+        ]
+        for ep in edge_paths:
+            if os.path.exists(ep):
+                try:
+                    subprocess.Popen([ep, f"--app={url}", "--window-size=1360,880"])
+                    opened = True
+                    break
+                except Exception:
+                    pass
+
+        if not opened:
+            webbrowser.open(url)
+
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nCerrando servidor...")
+            httpd.server_close()
+            sys.exit(0)
 
 if __name__ == '__main__':
     main()
