@@ -508,22 +508,31 @@
     return strVal;
   }
 
-  // Formateador de Zona de Labores (ej. "54" -> "54 SANTA ROSA")
+  // Formateador de Zona de Labores (ej. "54" -> "54 SANTA ROSA", "850" -> "850 OLIVARES BAJO")
   function formatZonaValue(rawVal) {
     if (rawVal === null || rawVal === undefined || rawVal === '') return '';
     const strVal = String(rawVal).trim();
     if (!strVal || strVal === '(en blanco)' || strVal === '-' || strVal.toLowerCase() === 'null') return '';
 
-    // Si ya tiene el formato "54 SANTA ROSA" o "54 - SANTA ROSA"
-    const match = strVal.match(/^(\d+)\s*[-:]?\s*(.+)$/);
+    // Caso 1: Si es puramente numérico (ej. "54", "849", "850", 54)
+    if (/^\d+$/.test(strVal)) {
+      const nom = ZONAS_MAP[strVal];
+      if (nom) {
+        return `${strVal} ${nom}`.trim();
+      }
+      return strVal;
+    }
+
+    // Caso 2: Si ya empieza con número seguido de letras (ej. "54 SANTA ROSA", "54 - SANTA ROSA")
+    const match = strVal.match(/^(\d+)\s*[-:]?\s*([A-Za-zÁ-Úá-úñÑ].*)$/);
     if (match) {
       const numId = match[1];
-      const rest = match[2].trim();
-      const nom = ZONAS_MAP[numId] || rest;
+      const textPart = match[2].trim();
+      const nom = ZONAS_MAP[numId] || textPart;
       return `${numId} ${nom}`.trim();
     }
 
-    // Si es solo el número o ID (ej. "54", "849", "80")
+    // Caso 3: Búsqueda por código limpio
     const cleanId = cleanHeader(strVal);
     if (ZONAS_MAP[cleanId]) {
       return `${cleanId} ${ZONAS_MAP[cleanId]}`.trim();
