@@ -435,8 +435,19 @@
     sqlParam3Empresa: document.getElementById('sql-param-3-empresa'),
     sqlParam3Sw: document.getElementById('sql-param-3-sw'),
 
-    // Cards 4 & 5 SQL Controls (Buses & Cuadrillas)
+    // Card 4 SQL Controls (Buses & Rutas - SPC_REGISTRO_RUTA)
     btnLoadSql4: document.getElementById('btn-load-sql-4'),
+    btnOpenSqlParams4: document.getElementById('btn-open-sql-params-4'),
+    modalSqlParams4: document.getElementById('modal-sql-params-4'),
+    btnCloseSqlParams4: document.getElementById('btn-close-sql-params-4'),
+    btnCancelSqlParams4: document.getElementById('btn-cancel-sql-params-4'),
+    formSqlParams4: document.getElementById('form-sql-params-4'),
+    sqlParam4Codpais: document.getElementById('sql-param-4-codpais'),
+    sqlParam4Empresa: document.getElementById('sql-param-4-empresa'),
+    sqlParam4Desde: document.getElementById('sql-param-4-desde'),
+    sqlParam4Hasta: document.getElementById('sql-param-4-hasta'),
+
+    // Card 5 SQL Controls (Cuadrillas)
     btnLoadSql5: document.getElementById('btn-load-sql-5'),
 
     // Toast Container
@@ -1176,9 +1187,10 @@
       showToast('Consultando buses y rutas en vfstbd01 (SPC_REGISTRO_RUTA)...', 'info');
 
       const p = customParams || {
-        codPais: 'PE',
-        desde: '16/08/2026',
-        hasta: '31/08/2026'
+        codPais: (elements.sqlParam4Codpais && elements.sqlParam4Codpais.value) || 'PE',
+        desde: (elements.sqlParam4Desde && elements.sqlParam4Desde.value) || '16-08-2026',
+        hasta: (elements.sqlParam4Hasta && elements.sqlParam4Hasta.value) || '31-08-2026',
+        idEmpresa: (elements.sqlParam4Empresa && elements.sqlParam4Empresa.value) || '0'
       };
 
       const queryParams = new URLSearchParams(p);
@@ -1200,11 +1212,13 @@
 
       autoDetectColumns(4);
       updateFileCardUI(4, { name: `SQL Server (Rutas) - ${result.count.toLocaleString()} registros`, size: result.count * 80 }, result.count);
+      closeModal(elements.modalSqlParams4);
       showToast(`¡${result.count.toLocaleString()} registros de buses y rutas cargados (SPC_REGISTRO_RUTA)!`, 'success');
       return result;
     } catch (err) {
       console.error(err);
       showToast(`Error al consultar Buses y Rutas: ${err.message}`, 'error');
+      throw err;
     } finally {
       if (btn4) {
         btn4.disabled = false;
@@ -1492,10 +1506,33 @@
       });
     }
 
-    // Cards 4 & 5 SQL Events (Buses & Cuadrillas)
+    // Card 4 SQL Events (Buses & Rutas - SPC_REGISTRO_RUTA)
     if (elements.btnLoadSql4) {
       elements.btnLoadSql4.addEventListener('click', () => loadBusesFromSqlServer());
     }
+    if (elements.btnOpenSqlParams4) {
+      elements.btnOpenSqlParams4.addEventListener('click', () => openModal(elements.modalSqlParams4));
+    }
+    if (elements.btnCloseSqlParams4) {
+      elements.btnCloseSqlParams4.addEventListener('click', () => closeModal(elements.modalSqlParams4));
+    }
+    if (elements.btnCancelSqlParams4) {
+      elements.btnCancelSqlParams4.addEventListener('click', () => closeModal(elements.modalSqlParams4));
+    }
+    if (elements.formSqlParams4) {
+      elements.formSqlParams4.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const customParams = {
+          codPais: elements.sqlParam4Codpais ? elements.sqlParam4Codpais.value.trim() : 'PE',
+          desde: elements.sqlParam4Desde ? elements.sqlParam4Desde.value.trim() : '16-08-2026',
+          hasta: elements.sqlParam4Hasta ? elements.sqlParam4Hasta.value.trim() : '31-08-2026',
+          idEmpresa: elements.sqlParam4Empresa ? elements.sqlParam4Empresa.value : '0'
+        };
+        loadBusesFromSqlServer(customParams);
+      });
+    }
+
+    // Card 5 SQL Events (Cuadrillas)
     if (elements.btnLoadSql5) {
       elements.btnLoadSql5.addEventListener('click', () => loadCuadrillasFromSqlServer());
     }
@@ -2340,7 +2377,7 @@
       }
     });
 
-    // Step 2: Index File 4 (Catálogo de Buses y Rutas)
+    // Step 2: Index File 4 (Catálogo de Buses y Rutas - Indexación Multiclave)
     const busesCatalogMap = new Map();
     if (state.file4.data && state.file4.data.length > 0) {
       const patenteCol4 = (elements.patenteSelect4 && elements.patenteSelect4.value) || state.file4.patenteCol;
@@ -2369,11 +2406,19 @@
           }
         }
 
+        const info = { codBus: codBusVal, ruta: rutaVal, patenteOriginal: patenteVal };
+
         if (patenteVal) {
           const cleanPlate = cleanHeader(patenteVal);
-          if (cleanPlate) {
-            busesCatalogMap.set(cleanPlate, { codBus: codBusVal, ruta: rutaVal, patenteOriginal: patenteVal });
-          }
+          if (cleanPlate) busesCatalogMap.set(cleanPlate, info);
+        }
+        if (codBusVal) {
+          const cleanCod = cleanHeader(codBusVal);
+          if (cleanCod && !busesCatalogMap.has(cleanCod)) busesCatalogMap.set(cleanCod, info);
+        }
+        if (busRow['Bus']) {
+          const cleanBus = cleanHeader(busRow['Bus']);
+          if (cleanBus && !busesCatalogMap.has(cleanBus)) busesCatalogMap.set(cleanBus, info);
         }
       });
     }
@@ -2564,16 +2609,34 @@
       let codigoBusConsolidado = '';
       let rutaConsolidada = '';
 
-      if (placaConsolidada && busesCatalogMap.size > 0) {
-        const placasArray = placaConsolidada.split('/').map(p => cleanHeader(p)).filter(Boolean);
+      if (busesCatalogMap.size > 0) {
+        const keysToCheck = [];
+        if (placaConsolidada) {
+          placaConsolidada.split('/').forEach(p => {
+            const cp = cleanHeader(p);
+            if (cp && !keysToCheck.includes(cp)) keysToCheck.push(cp);
+          });
+        }
+        if (row2) {
+          if (row2['Bus Patente']) {
+            const cp = cleanHeader(row2['Bus Patente']);
+            if (cp && !keysToCheck.includes(cp)) keysToCheck.push(cp);
+          }
+          if (row2['Codigo Bus']) {
+            const cb = cleanHeader(row2['Codigo Bus']);
+            if (cb && !keysToCheck.includes(cb)) keysToCheck.push(cb);
+          }
+        }
+
         const codigosList = [];
         const rutasList = [];
 
-        placasArray.forEach(cleanP => {
-          const busInfo = busesCatalogMap.get(cleanP);
+        keysToCheck.forEach(k => {
+          const busInfo = busesCatalogMap.get(k);
           if (busInfo) {
             if (busInfo.codBus && !codigosList.includes(busInfo.codBus)) codigosList.push(busInfo.codBus);
             if (busInfo.ruta && !rutasList.includes(busInfo.ruta)) rutasList.push(busInfo.ruta);
+            if (!placaConsolidada && busInfo.patenteOriginal) placaConsolidada = busInfo.patenteOriginal;
           }
         });
 

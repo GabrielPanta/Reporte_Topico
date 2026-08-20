@@ -377,8 +377,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
 
         params = urllib.parse.parse_qs(query_str)
         cod_pais = params.get('codPais', ['PE'])[0] or params.get('cod_pais', ['PE'])[0]
-        desde = params.get('desde', ['16/08/2026'])[0]
-        hasta = params.get('hasta', ['31/08/2026'])[0]
+        desde = params.get('desde', ['16-08-2026'])[0].replace('/', '-')
+        hasta = params.get('hasta', ['31-08-2026'])[0].replace('/', '-')
         id_empresa = int(params.get('idEmpresa', [0])[0]) if params.get('idEmpresa') and params.get('idEmpresa')[0] != '0' else None
 
         try:
@@ -416,20 +416,6 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                 'params': {'codPais': cod_pais, 'desde': desde, 'hasta': hasta, 'idEmpresa': id_empresa}
             })
         except Exception as e:
-            # Fallback a SPC_BUSES si falla
-            try:
-                conn = pyodbc.connect(get_connection_string(), timeout=10)
-                cursor = conn.cursor()
-                cursor.execute("EXEC SPC_BUSES @IDEMPRESA = 14")
-                if cursor.description:
-                    columns = [col[0] for col in cursor.description]
-                    raw_rows = cursor.fetchall()
-                    conn.close()
-                    data = self._rows_to_dicts(columns, raw_rows)
-                    self.send_json_response(200, {'success': True, 'count': len(data), 'headers': columns, 'data': data, 'source': 'SPC_BUSES (Fallback)'})
-                    return
-            except Exception:
-                pass
             self.send_json_response(500, {'success': False, 'error': f"Error en SPC_REGISTRO_RUTA: {str(e)}"})
 
     def handle_api_cuadrillas(self, query_str):

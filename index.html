@@ -530,13 +530,19 @@
 
         <!-- SQL Server Direct Fetch Action Banner for Card 4 -->
         <div class="sql-action-banner">
-          <button type="button" id="btn-load-sql-4" class="btn btn-sql-primary btn-sql-amber" title="Consultar SPC_BUSES">
+          <button type="button" id="btn-load-sql-4" class="btn btn-sql-primary btn-sql-amber" title="Consultar SPC_REGISTRO_RUTA (Buses y Rutas)">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
               <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
               <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
             </svg>
             <span>Cargar desde SQL Server</span>
+          </button>
+          <button type="button" id="btn-open-sql-params-4" class="btn-sql-config" title="Configurar parámetros SQL Buses y Rutas (País, Fechas, Empresa)" aria-label="Parámetros SQL Buses">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
           </button>
         </div>
 
@@ -1239,6 +1245,65 @@
                 Consultar y Cargar
               </button>
             </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- SQL Query Parameters Modal - Card 4: Buses y Rutas (SPC_REGISTRO_RUTA) -->
+  <div class="modal-overlay" id="modal-sql-params-4" role="dialog" aria-modal="true" aria-labelledby="sql-params-title-4">
+    <div class="modal-content modal-content-sm">
+      <div class="modal-header">
+        <div class="modal-header-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 id="sql-params-title-4">Parámetros SQL: Buses y Rutas</h3>
+          <p class="modal-subtitle">Procedimiento: <code>SPC_REGISTRO_RUTA</code></p>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-sql-params-4" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="form-sql-params-4" class="sql-params-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="sql-param-4-codpais">Código País (@COD_PAIS):</label>
+              <input type="text" id="sql-param-4-codpais" class="select-input" value="PE" placeholder="PE" required>
+            </div>
+            <div class="form-group">
+              <label for="sql-param-4-empresa">Empresa (@IDEMPRESA):</label>
+              <select id="sql-param-4-empresa" class="select-input">
+                <option value="0" selected>0 (Todas las empresas)</option>
+                <option value="14">14 - VERFRUT S.A.C.</option>
+                <option value="9">9 - RAPEL S.A.C.</option>
+                <option value="12">12 - ALGARROBOS</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sql-param-4-desde">Fecha Desde (@DESDE):</label>
+              <input type="text" id="sql-param-4-desde" class="select-input" value="16-08-2026" placeholder="DD-MM-YYYY" required>
+            </div>
+            <div class="form-group">
+              <label for="sql-param-4-hasta">Fecha Hasta (@HASTA):</label>
+              <input type="text" id="sql-param-4-hasta" class="select-input" value="31-08-2026" placeholder="DD-MM-YYYY" required>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.8rem;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params-4">Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params-4">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Consultar y Cargar
+            </button>
           </div>
         </form>
       </div>
