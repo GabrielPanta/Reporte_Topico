@@ -159,6 +159,63 @@
     '35': 'INVERSIONES HEFEI S.A.C.'
   };
 
+  // Catálogo de Zonas y Fundos
+  const ZONAS_MAP = {
+    '1': 'VIÑA LA GRUTA',
+    '2': 'PLANTA VERFRUT RAPEL',
+    '3': 'FUNDO MOLINA',
+    '4': 'FUNDO EL DURAZNO',
+    '5': 'FUNDO EL PORVENIR',
+    '6': 'LA CEBADA',
+    '7': 'FUNDO TUNCAHUE',
+    '8': 'FUNDO QUILAMUTA',
+    '9': 'NUEVA ESPERANZA',
+    '10': 'FUNDO LA CABAÑA',
+    '11': 'LIMONES (OBREROS)',
+    '12': 'FUNDO LONCHA',
+    '13': 'ADMINISTRACION GENERAL',
+    '14': 'MAQUINARIA PESADA',
+    '15': 'PERSONAL RVD',
+    '16': 'FUNDO SAN VICENTE',
+    '17': 'FUNDO SAN JOSÉ',
+    '18': 'FUNDO SANTA ROSA',
+    '40': 'SANTA ROSA 2',
+    '41': 'PLANTA VERFRUT ARANDANOS',
+    '49': 'OPERACIONES CAMPO',
+    '50': 'OLIVARES BAJO',
+    '53': 'LOS VIEJITOS',
+    '54': 'SANTA ROSA',
+    '55': 'ADMINISTRACION VERFRUT PERU',
+    '58': 'PUNTA ARENAS',
+    '60': 'OLIVARES BAJO (OBREROS)',
+    '64': 'SANTA ROSA (OBREROS)',
+    '68': 'PUNTA ARENAS (OBREROS)',
+    '70': 'SAN VICENTE',
+    '80': 'CAMPOS EXTERNOS',
+    '81': 'EXPORTADORA',
+    '180': 'CAMPOS EXTERNOS',
+    '280': 'CAMPOS EXTERNOS',
+    '755': 'ADMINISTRACION VERFRUT PERU',
+    '781': 'EXPORTADORA',
+    '790': 'TERCEROS',
+    '821': 'LIMONES',
+    '840': 'SANTA ROSA 2',
+    '841': 'PLANTA VERFRUT ARANDANOS',
+    '848': 'SAN RAFAEL',
+    '849': 'OPERACIONES CAMPO',
+    '850': 'OLIVARES BAJO',
+    '851': 'FUNDO EL PAPAYO',
+    '852': 'LOS OLIVARES',
+    '853': 'LOS VIEJITOS',
+    '854': 'SANTA ROSA',
+    '855': 'ADMINISTRACION VERFRUT PERU',
+    '856': 'SAN VICENTE',
+    '858': 'PUNTA ARENAS',
+    '870': 'ALGARROBOS',
+    '880': 'CAMPOS EXTERNOS',
+    '881': 'EXPORTADORA'
+  };
+
   // Mapeo de alias normalizados
   const COLUMN_ALIASES = {
     'Empresa': ['empresa', 'idempresa', 'nombreempresa', 'razonsocial', 'compania', 'cia', 'nomempresa', 'emp', 'nom_empresa', 'razon_social'],
@@ -451,6 +508,30 @@
     return strVal;
   }
 
+  // Formateador de Zona de Labores (ej. "54" -> "54 SANTA ROSA")
+  function formatZonaValue(rawVal) {
+    if (rawVal === null || rawVal === undefined || rawVal === '') return '';
+    const strVal = String(rawVal).trim();
+    if (!strVal || strVal === '(en blanco)' || strVal === '-' || strVal.toLowerCase() === 'null') return '';
+
+    // Si ya tiene el formato "54 SANTA ROSA" o "54 - SANTA ROSA"
+    const match = strVal.match(/^(\d+)\s*[-:]?\s*(.+)$/);
+    if (match) {
+      const numId = match[1];
+      const rest = match[2].trim();
+      const nom = ZONAS_MAP[numId] || rest;
+      return `${numId} ${nom}`.trim();
+    }
+
+    // Si es solo el número o ID (ej. "54", "849", "80")
+    const cleanId = cleanHeader(strVal);
+    if (ZONAS_MAP[cleanId]) {
+      return `${cleanId} ${ZONAS_MAP[cleanId]}`.trim();
+    }
+
+    return strVal;
+  }
+
   // Extrae el valor raw sin pre-formatear
   function extractRawFromRow(row, aliasList) {
     if (!row) return null;
@@ -717,12 +798,15 @@
     if (targetCol === 'Zona Labores') {
       const act = row2 ? extractFromRow(row2, ['actividad', 'tipoactividad', 'motivo', 'situacion', 'labor', 'labores']) : '';
       const hasRegularLabor = act && !isAbsenceActivity(act);
+      let rawZ = '';
       if (hasRegularLabor && row2) {
-        return extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar', 'zonatrabajo']) ||
-               extractFromRow(row1, ['zonalabores', 'zonadelabores', 'centrocostopredio', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']);
+        rawZ = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar', 'zonatrabajo']) ||
+               extractFromRow(row1, ['centrocostopredio', 'zonalabores', 'zonadelabores', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']);
+      } else {
+        rawZ = extractFromRow(row1, ['centrocostopredio', 'zonalabores', 'zonadelabores', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']) ||
+               (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar']) : '');
       }
-      return extractFromRow(row1, ['zonalabores', 'zonadelabores', 'centrocostopredio', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']) ||
-             (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar']) : '');
+      return formatZonaValue(rawZ);
     }
 
     if (targetCol === 'SubCentroCosto / Cuartel') {
@@ -2381,11 +2465,13 @@
       let zonaConsolidada = '';
       if (hasRegularLaborInFile2 && row2) {
         // En Archivo 2 buscar ZONA o Zona Labores (sin tomar Labor)
-        zonaConsolidada = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) ||
-                          extractFromRow(row1, ['zonalabores', 'zonadelabores', 'centrocostopredio', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']);
+        const rawZ2 = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) ||
+                      extractFromRow(row1, ['centrocostopredio', 'zonalabores', 'zonadelabores', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']);
+        zonaConsolidada = formatZonaValue(rawZ2);
       } else {
-        zonaConsolidada = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'centrocostopredio', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']) ||
-                          (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) : '');
+        const rawZ1 = extractFromRow(row1, ['centrocostopredio', 'zonalabores', 'zonadelabores', 'nombrezonatrab', 'zona', 'sede', 'fundo', 'campo']) ||
+                      (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) : '');
+        zonaConsolidada = formatZonaValue(rawZ1);
       }
 
       let cuartelConsolidado = '';
@@ -2845,7 +2931,7 @@
         workbook.modified = new Date();
 
         const worksheet = workbook.addWorksheet('Consolidado Personal', {
-          views: [{ state: 'frozen', xSplit: 6, ySplit: 4, showGridLines: true }]
+          views: [{ showGridLines: true }]
         });
 
         // 1. Fila de Título Principal

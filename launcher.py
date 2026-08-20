@@ -255,8 +255,28 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             raw_rows = cursor.fetchall()
             conn.close()
 
-            raw_data = self._rows_to_dicts(columns, raw_rows)
-            
+            # Catálogo de Zonas y Fundos
+            ZONAS_MAP = {
+                '1': 'VIÑA LA GRUTA', '2': 'PLANTA VERFRUT RAPEL', '3': 'FUNDO MOLINA',
+                '4': 'FUNDO EL DURAZNO', '5': 'FUNDO EL PORVENIR', '6': 'LA CEBADA',
+                '7': 'FUNDO TUNCAHUE', '8': 'FUNDO QUILAMUTA', '9': 'NUEVA ESPERANZA',
+                '10': 'FUNDO LA CABAÑA', '11': 'LIMONES (OBREROS)', '12': 'FUNDO LONCHA',
+                '13': 'ADMINISTRACION GENERAL', '14': 'MAQUINARIA PESADA', '15': 'PERSONAL RVD',
+                '16': 'FUNDO SAN VICENTE', '17': 'FUNDO SAN JOSÉ', '18': 'FUNDO SANTA ROSA',
+                '40': 'SANTA ROSA 2', '41': 'PLANTA VERFRUT ARANDANOS', '49': 'OPERACIONES CAMPO',
+                '50': 'OLIVARES BAJO', '53': 'LOS VIEJITOS', '54': 'SANTA ROSA',
+                '55': 'ADMINISTRACION VERFRUT PERU', '58': 'PUNTA ARENAS', '60': 'OLIVARES BAJO (OBREROS)',
+                '64': 'SANTA ROSA (OBREROS)', '68': 'PUNTA ARENAS (OBREROS)', '70': 'SAN VICENTE',
+                '80': 'CAMPOS EXTERNOS', '81': 'EXPORTADORA', '180': 'CAMPOS EXTERNOS',
+                '280': 'CAMPOS EXTERNOS', '755': 'ADMINISTRACION VERFRUT PERU', '781': 'EXPORTADORA',
+                '790': 'TERCEROS', '821': 'LIMONES', '840': 'SANTA ROSA 2',
+                '841': 'PLANTA VERFRUT ARANDANOS', '848': 'SAN RAFAEL', '849': 'OPERACIONES CAMPO',
+                '850': 'OLIVARES BAJO', '851': 'FUNDO EL PAPAYO', '852': 'LOS OLIVARES',
+                '853': 'LOS VIEJITOS', '854': 'SANTA ROSA', '855': 'ADMINISTRACION VERFRUT PERU',
+                '856': 'SAN VICENTE', '858': 'PUNTA ARENAS', '870': 'ALGARROBOS',
+                '880': 'CAMPOS EXTERNOS', '881': 'EXPORTADORA'
+            }
+
             # Deduplicar por RUT/DNI manteniendo el registro más completo
             seen_ruts_ud = set()
             data = []
@@ -266,6 +286,13 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                     if rut in seen_ruts_ud:
                         continue
                     seen_ruts_ud.add(rut)
+
+                # Formatear ZONA (ej. 54 -> "54 SANTA ROSA")
+                if 'ZONA' in item and item['ZONA'] is not None:
+                    raw_z = str(item['ZONA']).strip()
+                    if raw_z in ZONAS_MAP and not raw_z.endswith(ZONAS_MAP[raw_z]):
+                        item['ZONA'] = f"{raw_z} {ZONAS_MAP[raw_z]}"
+
                 data.append(item)
 
             self.send_json_response(200, {
