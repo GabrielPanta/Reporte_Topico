@@ -393,8 +393,9 @@
     dossierAvatar: document.getElementById('dossier-avatar'),
     dossierBody: document.getElementById('dossier-body'),
 
-    // SQL Server Controls
-    btnLoadAllSql: document.getElementById('btn-load-all-sql'),
+    // Header Controls
+    btnThemeToggle: document.getElementById('btn-theme-toggle'),
+    btnSoundToggle: document.getElementById('btn-sound-toggle'),
     btnLoadSql: document.getElementById('btn-load-sql'),
     btnLoadSqlHeader: document.getElementById('btn-load-sql-header'),
     btnOpenSqlParams: document.getElementById('btn-open-sql-params'),
@@ -439,6 +440,61 @@
     // Toast Container
     toastContainer: document.getElementById('toast-container')
   };
+
+  // Sistema de Notificación Sonora con Web Audio API (Cero dependencias)
+  let soundEnabled = true;
+
+  function playSuccessSound(type = 'chime') {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      const now = ctx.currentTime;
+
+      if (type === 'chime' || type === 'success') {
+        // Timbre armónico de 3 notas brillantes (E5 -> A5 -> C#6)
+        const notes = [
+          { freq: 659.25, time: 0, dur: 0.35, gain: 0.15 },
+          { freq: 880.00, time: 0.10, dur: 0.45, gain: 0.18 },
+          { freq: 1108.73, time: 0.20, dur: 0.70, gain: 0.22 }
+        ];
+
+        notes.forEach(n => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(n.freq, now + n.time);
+          gain.gain.setValueAtTime(0, now + n.time);
+          gain.gain.linearRampToValueAtTime(n.gain, now + n.time + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + n.time + n.dur);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + n.time);
+          osc.stop(now + n.time + n.dur);
+        });
+      } else if (type === 'step') {
+        // Tono suave para pasos individuales o archivos cargados
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880.00, now);
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.12, now + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+    } catch (e) {
+      console.warn('Audio no disponible:', e);
+    }
+  }
 
   // Keywords for primary keys
   const ID_KEYWORDS = ['ruttrabajador', 'rut', 'dni', 'documento', 'docidentidad', 'identificacion', 'codigotrabajador', 'codigo', 'cod', 'codtrabajador', 'id', 'cedula'];
@@ -1276,6 +1332,7 @@
 
     const successful = results.filter(r => r.status === 'fulfilled').length;
     if (successful >= 3) {
+      playSuccessSound('chime');
       showToast('🎉 ¡Las fuentes de datos fueron sincronizadas desde SQL Server! Puedes hacer clic en "Procesar y Consolidar".', 'success');
     }
   }
@@ -1289,6 +1346,21 @@
     elements.btnPrintTable.addEventListener('click', () => window.print());
     elements.btnLoadDemo.addEventListener('click', loadDemoData);
     elements.btnResetAll.addEventListener('click', resetAll);
+    // Sound Toggle
+    if (elements.btnSoundToggle) {
+      elements.btnSoundToggle.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        const iconOn = elements.btnSoundToggle.querySelector('.sound-on-icon');
+        const iconOff = elements.btnSoundToggle.querySelector('.sound-off-icon');
+        if (iconOn && iconOff) {
+          iconOn.style.display = soundEnabled ? 'block' : 'none';
+          iconOff.style.display = soundEnabled ? 'none' : 'block';
+        }
+        elements.btnSoundToggle.title = soundEnabled ? 'Sonido de notificación (Activado)' : 'Sonido de notificación (Silenciado)';
+        showToast(soundEnabled ? '🔊 Sonido activado' : '🔇 Sonido silenciado', 'info');
+        if (soundEnabled) playSuccessSound('step');
+      });
+    }
 
     // Modals
     elements.btnHelp.addEventListener('click', () => openModal(elements.modalHelp));
@@ -1777,6 +1849,7 @@
     autoDetectColumns(fileIndex);
     updateFileCardUI(fileIndex, file || state[fileKey].fileObj || { name: state[fileKey].name, size: 0 }, rawJson.length);
     checkProcessingReadiness();
+    playSuccessSound('step');
     showToast(`Archivo ${fileIndex} cargado (${sheetName}): ${rawJson.length.toLocaleString()} filas`, 'success');
   }
 
@@ -2601,6 +2674,7 @@
     elements.resultsSection.classList.add('active');
     elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
 
+    playSuccessSound('chime');
     showToast(`¡Consolidación exitosa! ${consolidated.length.toLocaleString()} registros procesados.`, 'success');
   }
 
@@ -3107,6 +3181,7 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        playSuccessSound('step');
         showToast(`Archivo Excel exportado con estilos: ${fileName}`, 'success');
         return;
       } catch (excelErr) {
