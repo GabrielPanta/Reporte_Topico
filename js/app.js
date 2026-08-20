@@ -334,8 +334,12 @@
     descCuadrillaSelect5: document.getElementById('desc-cuadrilla-select-5'),
     nombreEncargadoSelect5: document.getElementById('nombre-encargado-select-5'),
 
-    // Results Section & Distribution
+    // Results Section, Actions & Distribution
     resultsSection: document.getElementById('results-section'),
+    btnExportExcelHeader: document.getElementById('btn-export-excel-header'),
+    btnExportExcel: document.getElementById('btn-export-excel'),
+    btnExportCsv: document.getElementById('btn-export-csv'),
+    btnPrint: document.getElementById('btn-print'),
     distActive: document.getElementById('dist-active'),
     distAbsent: document.getElementById('dist-absent'),
     distLeave: document.getElementById('dist-leave'),
@@ -1688,6 +1692,49 @@
       state.currentPage = maxPage;
       renderTable();
     });
+
+    // Export & Action Buttons
+    if (elements.btnExportExcelHeader) {
+      elements.btnExportExcelHeader.addEventListener('click', () => {
+        if (!state.consolidatedData || state.consolidatedData.length === 0) {
+          if (state.file1.data && state.file1.data.length > 0) {
+            processConsolidation();
+            exportData('xlsx');
+          } else {
+            showToast('Primero haz clic en ⚡ Sincronizar Todo (SQL) o carga los datos.', 'info');
+          }
+        } else {
+          exportData('xlsx');
+        }
+      });
+    }
+
+    if (elements.btnExportExcel) {
+      elements.btnExportExcel.addEventListener('click', () => {
+        if (!state.consolidatedData || state.consolidatedData.length === 0) {
+          if (state.file1.data && state.file1.data.length > 0) {
+            processConsolidation();
+            exportData('xlsx');
+          } else {
+            showToast('Primero haz clic en ⚡ Sincronizar Todo (SQL) o carga los datos.', 'info');
+          }
+        } else {
+          exportData('xlsx');
+        }
+      });
+    }
+
+    if (elements.btnExportCsv) {
+      elements.btnExportCsv.addEventListener('click', () => {
+        exportData('csv');
+      });
+    }
+
+    if (elements.btnPrint) {
+      elements.btnPrint.addEventListener('click', () => {
+        window.print();
+      });
+    }
 
     // Global Keyboard Shortcuts
     document.addEventListener('keydown', (e) => {
