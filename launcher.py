@@ -255,6 +255,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             raw_rows = cursor.fetchall()
             conn.close()
 
+            raw_data = self._rows_to_dicts(columns, raw_rows)
+
             # Catálogo de Zonas y Fundos
             ZONAS_MAP = {
                 '1': 'VIÑA LA GRUTA', '2': 'PLANTA VERFRUT RAPEL', '3': 'FUNDO MOLINA',
