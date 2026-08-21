@@ -159,61 +159,462 @@
     '35': 'INVERSIONES HEFEI S.A.C.'
   };
 
-  // Catálogo de Zonas y Fundos
-  const ZONAS_MAP = {
-    '1': 'VIÑA LA GRUTA',
-    '2': 'PLANTA VERFRUT RAPEL',
-    '3': 'FUNDO MOLINA',
-    '4': 'FUNDO EL DURAZNO',
-    '5': 'FUNDO EL PORVENIR',
-    '6': 'LA CEBADA',
-    '7': 'FUNDO TUNCAHUE',
-    '8': 'FUNDO QUILAMUTA',
-    '9': 'NUEVA ESPERANZA',
-    '10': 'FUNDO LA CABAÑA',
-    '11': 'LIMONES (OBREROS)',
-    '12': 'FUNDO LONCHA',
-    '13': 'ADMINISTRACION GENERAL',
-    '14': 'MAQUINARIA PESADA',
-    '15': 'PERSONAL RVD',
-    '16': 'FUNDO SAN VICENTE',
-    '17': 'FUNDO SAN JOSÉ',
-    '18': 'FUNDO SANTA ROSA',
-    '40': 'SANTA ROSA 2',
-    '41': 'PLANTA VERFRUT ARANDANOS',
-    '49': 'OPERACIONES CAMPO',
-    '50': 'OLIVARES BAJO',
-    '53': 'LOS VIEJITOS',
-    '54': 'SANTA ROSA',
-    '55': 'ADMINISTRACION VERFRUT PERU',
-    '58': 'PUNTA ARENAS',
-    '60': 'OLIVARES BAJO (OBREROS)',
-    '64': 'SANTA ROSA (OBREROS)',
-    '68': 'PUNTA ARENAS (OBREROS)',
-    '70': 'SAN VICENTE',
-    '80': 'CAMPOS EXTERNOS',
-    '81': 'EXPORTADORA',
-    '180': 'CAMPOS EXTERNOS',
-    '280': 'CAMPOS EXTERNOS',
-    '755': 'ADMINISTRACION VERFRUT PERU',
-    '781': 'EXPORTADORA',
-    '790': 'TERCEROS',
-    '821': 'LIMONES',
-    '840': 'SANTA ROSA 2',
-    '841': 'PLANTA VERFRUT ARANDANOS',
-    '848': 'SAN RAFAEL',
-    '849': 'OPERACIONES CAMPO',
-    '850': 'OLIVARES BAJO',
-    '851': 'FUNDO EL PAPAYO',
-    '852': 'LOS OLIVARES',
-    '853': 'LOS VIEJITOS',
-    '854': 'SANTA ROSA',
-    '855': 'ADMINISTRACION VERFRUT PERU',
-    '856': 'SAN VICENTE',
-    '858': 'PUNTA ARENAS',
-    '870': 'ALGARROBOS',
-    '880': 'CAMPOS EXTERNOS',
-    '881': 'EXPORTADORA'
+  // Catálogo de Zonas y Fundos segmentado estrictamente por Empresa (evita cruce entre Rapel 9, Verfrut 14, etc.)
+  const ZONAS_BY_EMPRESA_MAP = {
+    '1': {
+      '1': 'VIÑA LA GRUTA',
+      '2': 'PLANTA VERFRUT RAPEL',
+      '3': 'FUNDO MOLINA',
+      '4': 'FUNDO EL DURAZNO',
+      '5': 'FUNDO EL PORVENIR',
+      '6': 'LA CEBADA',
+      '7': 'FUNDO TUNCAHUE',
+      '8': 'FUNDO QUILAMUTA',
+      '9': 'NUEVA ESPERANZA',
+      '10': 'FUNDO LA CABAÑA',
+      '11': 'EL MACAL',
+      '12': 'FUNDO LONCHA',
+      '13': 'ADMINIST. GENERAL',
+      '14': 'MAQUINARA PESADA',
+      '15': 'PERSONAL RVD',
+      '16': 'TINTORERA',
+      '17': 'BODEGA EXPORTACION',
+      '18': 'FUNDO EL CHILQUE',
+      '19': 'PLANTA RAPEL TURNO NOCHE',
+      '20': 'FDO EL PARRAL',
+      '21': 'VALLE HERMOSO',
+      '22': 'GERENCIA Y ADMINISTRACION CAMPOS',
+      '23': 'MANZANARES',
+      '24': 'LA PIEDAD',
+      '25': 'EL SAUCE',
+      '26': 'PLANTA EL NEVADO',
+      '27': 'SANTA ISABEL',
+      '28': 'PLANTA LOS LIRIOS',
+      '29': 'PRESIDENCIA EJECUTIVA',
+      '30': 'ADMINISTRACION LONGAVI',
+      '31': 'SAN RAMIRO',
+      '32': 'PLANTA VERFRUT 1',
+      '33': 'PLANTA LOS LIRIOS 1',
+      '34': 'MOLINA 1',
+      '35': 'EL PORVENIR 1',
+      '36': 'QUILAMUTA 1',
+      '37': 'LA CABAÑA 1',
+      '38': 'LONCHA 1',
+      '39': 'CHILQUE 1',
+      '40': 'COMBARBALA 1',
+      '41': 'ADMINISTRACION LONGAVI 1',
+      '42': 'EL DURAZNO 1',
+      '43': 'FDO HUANCARA',
+      '44': 'FUNDO LA CABAÑA (MOLINA)',
+      '45': 'STA BERNARDITA Y ADRIANA',
+      '46': 'FUNDO LAS MERCEDES',
+      '47': 'ADMINISTRACION CAMPOS VICUÑA',
+      '48': 'SANTA RAQUEL',
+      '49': 'PLANTA ORO VERDE',
+      '50': 'ORO VERDE',
+      '51': 'FUNDO EL PAPAYO',
+      '52': 'ADMINISTRACION ORO VERDE',
+      '53': 'ADMINISTRACION GENERAL 1',
+      '54': 'GERENCIA Y ADMINISTRACION CAMPOS 1',
+      '55': 'VIVEROS',
+      '56': 'PLANTA ORO VERDE (TN)',
+      '57': 'FUNDO SANTA REBECA',
+      '58': 'ADMINISTRACION ORO VERDE 1',
+      '59': 'LAS VEGAS',
+      '60': 'VIVEROS SUR',
+      '61': 'FUNDO QUILICURA',
+      '62': 'CAMPO PERO',
+      '63': 'FUNDO COINCO',
+      '64': 'SANTA DANIELA',
+      '65': 'SAN FRANCISCO',
+      '66': 'FUNDO QUILICURA 1',
+      '67': 'LOS RISCOS',
+    },
+    '2': {
+      '13': 'GERENCIA GENERAL',
+    },
+    '3': {
+      '1': 'PEUMO ALTO',
+      '2': 'PLANTA VERFRUT',
+      '3': 'FUNDO MOLINA',
+      '4': 'FUNDO EL DURAZNO',
+      '5': 'FUNDO EL PORVENIR',
+      '6': 'LA CEBADA',
+      '7': 'FUNDO TUNCAHUE',
+      '8': 'FUNDO QUILAMUTA',
+      '9': 'FUNDO LONGAVI',
+      '10': 'FUNDO LA CABAÑA',
+      '11': 'EL MACAL',
+      '12': 'FUNDO LONCHA',
+      '13': 'ADMINISTRACION GENERAL',
+      '14': 'MAQUINARIA PESADA',
+      '15': 'PERSONAL RVD',
+      '16': 'TINTORERA',
+      '17': 'VIVERO',
+      '18': 'FUNDO EL CHILQUE',
+    },
+    '4': {
+      '8': 'FUNDO QUILAMUTA',
+    },
+    '5': {
+      '1': 'HARAS MATANCILLA',
+      '2': 'LAGO AZUL',
+      '15': 'PERSONAL RVD',
+      '46': 'FUNDO LAS MERCEDES',
+    },
+    '7': {
+      '13': 'ADMINIST. GENERAL',
+      '15': 'PERSONAL RVD',
+      '55': 'FUNDO LAS BANDURRIAS',
+      '59': 'LAS VEGAS',
+    },
+    '8': {
+      '1': 'PRESIDENCIA',
+      '2': 'PRODUCTORES TERCEROS',
+      '3': 'GERENCIA VERFRUT',
+      '4': 'CONTROL DE CALIDAD',
+      '5': 'COMERCIALIZACION',
+      '6': 'VERLOG',
+      '7': 'FOREVER FRESH',
+      '8': 'COMERCIALIZACION 1',
+      '9': 'SUSTENTABILIDAD Y CERTIFICACION',
+      '10': 'SUSTENTABILIDAD Y CERTIFICACION 1',
+    },
+    '9': {
+      '11': 'LIMONES (OBREROS)',
+      '17': 'TALLER GENERAL',
+      '21': 'LIMONES',
+      '34': 'PLANTA LIMONES',
+      '35': 'PLANTA LIMONES (OBREROS)',
+      '39': 'OPERACIONES CAMPO',
+      '44': 'PLANTA PALTOS',
+      '45': 'PLANTA PALTOS (OBREROS)',
+      '46': 'SAN VIC L-V',
+      '49': 'OPERACIONES CAMPO',
+      '51': 'FUNDO EL PAPAYO',
+      '52': 'LOS OLIVARES',
+      '53': 'PLANTA RAPEL PERU',
+      '54': 'GERENCIA GENERAL',
+      '55': 'ADMINISTRACION RAPEL PERU',
+      '56': 'SAN VICENTE',
+      '57': 'ALAYO (OBREROS)',
+      '58': 'APROA',
+      '59': 'JARDIN',
+      '61': 'FUNDO EL PAPAYO (OBREROS)',
+      '62': 'LOS OLIVARES (OBREROS)',
+      '63': 'PLANTA RAPEL (OBREROS)',
+      '65': 'ADMINISTRACION (OBREROS)',
+      '66': 'SAN VICENTE (OBREROS)',
+      '67': 'ALAYO (ER)',
+      '68': 'APROA (OBREROS)',
+      '69': 'ALGARROBOS (OBREROS)',
+      '70': 'ALGARROBOS',
+      '71': 'FUNDO EL PAPAYO (ER)',
+      '72': 'LOS OLIVARES (ER)',
+      '73': 'PLANTA RAPEL PERU (ER)',
+      '75': 'ADMINISTRACION RAPEL PERU (ER)',
+      '76': 'SAN VICENTE (ER)',
+      '77': 'ALGARROBOS (ER)',
+      '78': 'APROA (ER)',
+      '80': 'CAMPOS EXTERNOS',
+      '81': 'EXPORTADORA',
+      '89': 'OPERACIONES CAMPO (E)',
+      '90': 'TERCEROS',
+      '121': 'LIMONES',
+      '149': 'OPERACIONES CAMPO',
+      '153': 'PLANTA RAPEL PERU',
+      '155': 'ADM SALUD OCUPACIONAL',
+      '156': 'SAN VICENTE',
+      '181': 'EXPORTADORA',
+      '190': 'TERCEROS',
+      '249': 'OPERACIONES CAMPO',
+      '253': 'PLANTA RAPEL PERU',
+      '255': 'ADMINISTRACION RAPEL',
+      '290': 'TERCEROS',
+      '755': 'ADMINISTRACION RAPEL PERU',
+      '781': 'EXPORTADORA',
+      '790': 'TERCEROS',
+      '821': 'LIMONES',
+      '849': 'OPERACIONES CAMPO',
+      '851': 'FUNDO EL PAPAYO',
+      '852': 'LOS OLIVARES',
+      '853': 'PLANTA RAPEL PERU',
+      '855': 'ADMINISTRACION RAPEL PERU',
+      '856': 'SAN VICENTE',
+      '858': 'APROA',
+      '870': 'ALGARROBOS',
+      '881': 'EXPORTADORA',
+      '953': 'PLANTA RAPEL PERU',
+    },
+    '11': {
+      '1': 'INMOBILIARIA',
+    },
+    '12': {
+      '51': 'RAPEL SAC',
+      '69': 'ALGARROBOS (OBREROS)',
+      '70': 'ALGARROBOS  (ER)',
+    },
+    '14': {
+      '13': 'ADMINISTRACION GENERAL',
+      '30': 'SANTA ROSA 2 (OBREROS)',
+      '31': 'PLANTA VERFRUT ARANDANOS (OBREROS)',
+      '38': 'SAN RAFAEL (OBREROS)',
+      '39': 'OPERACIONES CAMPO',
+      '40': 'SANTA ROSA 2',
+      '41': 'PLANTA VERFRUT ARANDANOS',
+      '48': 'SAN RAFAEL',
+      '49': 'OPERACIONES CAMPO',
+      '50': 'OLIVARES BAJO',
+      '51': 'ORGANICOS  SAN RAFAEL',
+      '53': 'LOS VIEJITOS',
+      '54': 'SANTA ROSA',
+      '55': 'ADMINISTRACION VERFRUT PERU',
+      '56': 'SANTA AMALIA',
+      '57': 'PLANTA VERFRUT',
+      '58': 'PUNTA ARENAS',
+      '59': 'PUNTA ARENAS 2',
+      '60': 'OLIVARES BAJO (OBREROS)',
+      '61': 'SAN RAFAEL (OBREROS)',
+      '62': 'LA OBRILLA (OBREROS)',
+      '63': 'LOS VIEJITOS (OBREROS)',
+      '64': 'SANTA ROSA (OBREROS)',
+      '65': 'ADMINISTRACION (OBREROS)',
+      '66': 'SANTA AMALIA (OBREROS)',
+      '67': 'PLANTA VERFRUT (OBREROS)',
+      '68': 'PUNTA ARENAS (OBREROS)',
+      '69': 'PUNTA ARENAS 2',
+      '71': 'SAN RAFAEL (ER)',
+      '74': 'SANTA ROSA (ER)',
+      '75': 'ADMINISTRACION VERFRUT PERU (ER)',
+      '76': 'SANTA AMALIA',
+      '78': 'PUNTA ARENAS',
+      '80': 'CAMPOS EXTERNOS',
+      '81': 'EXPORTADORA',
+      '90': 'TERCEROS',
+      '149': 'OPERACIONES CAMPO',
+      '155': 'ADM SALUD OCUPACIONAL',
+      '180': 'CAMPOS EXTERNOS',
+      '241': 'PLANTA VERFRUT ARANDANOS',
+      '249': 'OPERACIONES CAMPO',
+      '255': 'ADMINISTRACION VERFRUT',
+      '280': 'CAMPOS EXTERNOS',
+      '755': 'ADMINISTRACION VERFRUT PERU',
+      '840': 'SANTA ROSA 2',
+      '841': 'PLANTA VERFRUT ARANDANOS',
+      '848': 'SAN RAFAEL',
+      '849': 'OPERACIONES CAMPO',
+      '850': 'OLIVARES BAJO',
+      '853': 'LOS VIEJITOS',
+      '854': 'SANTA ROSA',
+      '855': 'ADMINISTRACION VERFRUT PERU',
+      '858': 'PUNTA ARENAS',
+      '880': 'CAMPOS EXTERNOS',
+    },
+    '16': {
+      '1': 'EL CARDAL',
+      '2': 'EL CARDAL 2',
+    },
+    '17': {
+      '1': 'OSORIO',
+    },
+    '19': {
+      '1': 'FUNDO SANTA GRACIELA',
+    },
+    '20': {
+      '1': 'ADMINISTRACION',
+    },
+    '21': {
+      '1': 'COMBARBALA',
+      '2': 'FUNDO EL GUINDO',
+      '3': 'PERSONAL RVD',
+      '4': 'FUNDO LOS TEJOS',
+      '5': 'FUNDO LONTUE',
+      '6': 'FUNDO MOLINA',
+      '7': 'ADMINISTRACION GENERAL',
+      '303': 'FUNDO LONTUE',
+    },
+    '22': {
+      '1': 'BODEGA LOS LIRIOS',
+    },
+    '23': {
+      '39': 'OPERACIONES CAMPO',
+      '49': 'OPERACIONES CAMPO',
+      '51': 'LA OBRILLA',
+      '52': 'LA OBRILLA 2',
+      '53': 'LA OBRILLA 3',
+      '54': 'LA OBRILLA 4',
+      '55': 'ADMINISTRACION AVANTI',
+      '61': 'LA OBRILLA (OBREROS)',
+      '62': 'LA OBRILLA 2 (OBREROS)',
+      '63': 'LA OBRILLA 3 (OBREROS)',
+      '64': 'LA OBRILLA 4 (OBREROS)',
+      '71': 'LA OBRILLA (ER)',
+      '849': 'OPERACIONES CAMPO',
+      '851': 'LA OBRILLA',
+    },
+    '31': {
+      '1': 'FUNDO BOMAREA',
+      '10': 'GERENCIA',
+      '11': 'RECURSOS HUMANOS',
+      '12': 'COMERCIAL',
+      '13': 'FINANZAS',
+      '14': 'ADMINISTRACION',
+      '15': 'TECNOLOGIAS DE LA INFORMACION',
+      '16': 'CAMPAMENTO',
+      '20': 'PLANTA BOMAREA',
+      '21': 'FUNDO BOMAREA - OBREROS',
+      '24': 'ADMINISTRACION - OBREROS',
+      '30': 'PLANTA - OBREROS',
+      '31': 'INVERSIONES TRABAJO EN CURSOS',
+      '92': 'FUNDO BOMAREA -COSECHA',
+      '93': 'VIVEROS BOMAREA',
+      '94': 'CROTALARIA',
+      '95': 'MAQUINARIA PROPIA',
+      '96': 'MAQUINARIA ALQUILADA',
+      '97': 'IMPLEMENTOS PROPIOS',
+      '98': 'IMPLEMENTOS ALQUILADOS',
+      '99': 'VEHICULOS PROPIOS',
+      '910': 'VEHICULOS ALQUILADOS',
+      '911': 'INVERSIONES- TRABAJOS EN CURSO',
+      '913': 'LABORATORIO - INSECTOS BENEFIC',
+      '915': 'GASTOS ADMINISTRATIVOS- FINANZ',
+      '916': 'GASTOS DE VENTA',
+      '917': 'OPERACION LOGISTICA',
+      '918': 'GASTOS FINANCIEROS',
+      '920': 'DIFERENCIA POR TC',
+      '921': 'INGRESOS- SALES',
+      '922': 'OTROS INGRESOS',
+      '9100': 'GERENCIA',
+      '9101': 'RECURSOS HUMANOS',
+      '9102': 'COMERCIAL',
+      '9103': 'FINANZAS',
+      '9104': 'ADMINISTRACIÓN',
+      '9105': 'TECNOLOGIA E INFORMATICA',
+      '9106': 'CAMPAMENTO',
+      '9107': 'Bomarea - Farm',
+    },
+    '32': {
+      '2': 'FUNDO MOSQUETA - FARMS',
+      '3': 'CALIDAD',
+      '10': 'GERENCIA',
+      '11': 'RECURSOS HUMANOS',
+      '12': 'COMERCIAL',
+      '13': 'GASTOS ADMINISTRATIVOS- FINANZAS',
+      '14': 'ADMINISTRACION',
+      '15': 'TECNOLOGIAS DE LA INFORMACION',
+      '16': 'CAMPAMENTO',
+      '17': 'GASTOS DE VENTA',
+      '20': 'PLANTA BOMAREA',
+      '21': 'FUNDO MOSQUETA - OBREROS',
+      '24': 'ADMINISTRACION - OBREROS',
+      '30': 'PLANTA - OBREROS',
+      '92': 'FUNDO MOSQUETA - COSECHA',
+      '93': 'MAQUINARIA PROPIA',
+      '94': 'MAQUINARIA ALQUILADA',
+      '95': 'IMPLEMENTOS PROPIOS',
+      '96': 'IMPLEMENTOS ALQUILADOS',
+      '97': 'VEHICULOS PROPIOS',
+      '98': 'EQUIPOS MENORES',
+      '99': 'SERVICIO DE PACKING PALTA',
+      '910': 'TRABAJOS EN CURSO',
+      '911': 'FUENTES DE AGUA',
+      '913': 'GASTOS ADMINISTRATIVOS- FINANZ',
+      '914': 'GASTOS DE VENTA',
+      '915': 'OPERACIÓN LOGISTICA',
+      '916': 'GASTOS FINANCIEROS',
+      '917': 'DIFERENCIA POR TC',
+      '921': 'INGRESOS-SALES',
+      '922': 'OTROS INGRESOS',
+      '923': 'GERENCIA',
+    },
+    '33': {
+      '4': 'FUNDO PIRONA',
+      '10': 'GERENCIA',
+      '11': 'RECURSOS HUMANOS',
+      '12': 'COMERCIAL',
+      '13': 'GASTOS ADMINISTRATIVOS- FINANZAS',
+      '14': 'ADMINISTRACION',
+      '15': 'TECNOLOGIAS DE LA INFORMACION',
+      '16': 'CAMPAMENTO',
+      '17': 'GASTOS DE VENTA',
+      '20': 'PLANTA BOMAREA',
+      '21': 'FUNDO PIRONA - OBREROS',
+      '24': 'ADMINISTRACION - OBREROS',
+      '30': 'PLANTA - OBREROS',
+      '92': 'FUNDO PIRONA -COSECHA',
+      '93': 'MAQUINARIA PROPIA',
+      '94': 'MAQUINARIA ALQUILADA',
+      '95': 'IMPLEMENTOS PROPIOS',
+      '96': 'IMPLEMENTOS ALQUILADOS',
+      '97': 'VEHICULOS PROPIOS',
+      '98': 'VEHICULOS ALQUILADOS',
+      '99': 'EQUIPOS MENORES',
+      '910': 'SERVICIO DE PACKING PALTA',
+      '911': 'TRABAJOS EN CURSO',
+      '912': 'FUENTES DE AGUA',
+      '914': 'GASTOS ADMINISTRATIVOS- FINAN',
+      '915': 'GASTOS DE VENTA',
+      '916': 'OPERACIÓN LOGISTICA',
+      '918': 'GASTOS FINANCIEROS',
+      '919': 'DIFERENCIA POR TC',
+      '921': 'INGRESOS - SALES',
+      '922': 'OTROS INGRESOS',
+      '923': 'GERENCIA',
+    },
+    '34': {
+      '1': 'FUNDO BOMAREA',
+      '10': 'GERENCIA',
+      '11': 'RECURSOS HUMANOS',
+      '12': 'COMERCIAL',
+      '13': 'GASTOS ADMINISTRATIVOS- FINANZAS',
+      '14': 'ADMINISTRACION',
+      '15': 'TECNOLOGIAS DE LA INFORMACION',
+      '16': 'CAMPAMENTO',
+      '20': 'PLANTA BOMAREA',
+      '21': 'FUNDO BOMAREA - OBREROS',
+      '24': 'ADMINISTRACION - OBREROS',
+      '30': 'PLANTA - OBREROS',
+      '913': 'GASTOS ADMINISTRATIVOS- FINANZ',
+      '916': 'GASTOS FINANCIEROS',
+      '917': 'DIFERENCIA TC',
+      '922': 'INGRESOS - SALES',
+      '923': 'OTROS INGRESOS',
+    },
+    '35': {
+      '3': 'FUNDO HEFEI',
+      '10': 'GERENCIA',
+      '11': 'RECURSOS HUMANOS',
+      '12': 'COMERCIAL',
+      '13': 'GASTOS ADMINISTRATIVOS- FINANZAS',
+      '14': 'ADMINISTRACION',
+      '15': 'TECNOLOGIAS DE LA INFORMACION',
+      '16': 'CAMPAMENTO',
+      '17': 'GASTOS DE VENTA',
+      '20': 'PLANTA BOMAREA',
+      '24': 'ADMINISTRACION - OBREROS',
+      '30': 'PLANTA - OBREROS',
+      '31': 'FUNDO HEFEI - OBREROS',
+      '92': 'FUNDO HEFEI - COSECHA',
+      '93': 'MAQUINARIA PROPIA',
+      '94': 'MAQUINARIA ALQUILADA',
+      '95': 'IMPLEMENTOS PROPIOS',
+      '96': 'IMPLEMENTOS ALQUILADOS',
+      '97': 'VEHICULOS PROPIOS',
+      '98': 'VEHICULOS ALQUILADOS',
+      '910': 'NEBUIZADORA',
+      '911': 'EQUIPOS MENORES',
+      '912': 'SERVICIO DE PACKING PALTA',
+      '913': 'FILTRADOS',
+      '915': 'GASTOS ADMINISTRATIVOS- FINANZ',
+      '916': 'GASTOS DE VENTA',
+      '917': 'OPERACION LOGISTICA',
+      '918': 'GASTOS FINANCIEROS',
+      '919': 'TRABAJOS EN CURSO',
+      '920': 'DIFERENCIA POR TC',
+      '922': 'OTROS INGRESOS',
+      '923': 'INGRESOS - SALES',
+      '924': 'GERENCIA',
+    },
   };
 
   // Mapeo de alias normalizados
@@ -404,6 +805,50 @@
     btnThemeToggle: document.getElementById('btn-theme-toggle'),
     btnSoundToggle: document.getElementById('btn-sound-toggle'),
     btnLoadAllSql: document.getElementById('btn-load-all-sql'),
+
+    // Modal Sincronización Completa SQL (Sync All)
+    modalSqlSyncAll: document.getElementById('modal-sql-sync-all'),
+    btnCloseSqlSyncAll: document.getElementById('btn-close-sql-sync-all'),
+    btnCancelSqlSyncAll: document.getElementById('btn-cancel-sql-sync-all'),
+    formSqlSyncAll: document.getElementById('form-sql-sync-all'),
+    btnSubmitSqlSyncAll: document.getElementById('btn-submit-sql-sync-all'),
+    btnSyncAllCalcDates: document.getElementById('btn-sync-all-calc-dates'),
+    btnSyncAllApplyMaster: document.getElementById('btn-sync-all-apply-master'),
+    syncAllSummaryCount: document.getElementById('sync-all-summary-count'),
+
+    syncAllMasterEmpresa: document.getElementById('sync-all-master-empresa'),
+    syncAllMasterEmpresaCustom: document.getElementById('sync-all-master-empresa-custom'),
+    syncAllMasterMes: document.getElementById('sync-all-master-mes'),
+    syncAllMasterAnio: document.getElementById('sync-all-master-anio'),
+
+    // Cards toggles & inputs
+    syncAllInclude1: document.getElementById('sync-all-include-1'),
+    syncAllP1Empresa: document.getElementById('sync-all-p1-empresa'),
+    syncAllP1Activo: document.getElementById('sync-all-p1-activo'),
+    syncAllP1Mes: document.getElementById('sync-all-p1-mes'),
+    syncAllP1Anio: document.getElementById('sync-all-p1-anio'),
+    syncAllP1Fechaini: document.getElementById('sync-all-p1-fechaini'),
+
+    syncAllInclude2: document.getElementById('sync-all-include-2'),
+    syncAllP2Empresa: document.getElementById('sync-all-p2-empresa'),
+    syncAllP2Mes: document.getElementById('sync-all-p2-mes'),
+    syncAllP2Anio: document.getElementById('sync-all-p2-anio'),
+
+    syncAllInclude3: document.getElementById('sync-all-include-3'),
+    syncAllP3Empresa: document.getElementById('sync-all-p3-empresa'),
+    syncAllP3Sw: document.getElementById('sync-all-p3-sw'),
+    syncAllP3Desde: document.getElementById('sync-all-p3-desde'),
+    syncAllP3Hasta: document.getElementById('sync-all-p3-hasta'),
+
+    syncAllInclude4: document.getElementById('sync-all-include-4'),
+    syncAllP4Codpais: document.getElementById('sync-all-p4-codpais'),
+    syncAllP4Empresa: document.getElementById('sync-all-p4-empresa'),
+    syncAllP4Desde: document.getElementById('sync-all-p4-desde'),
+    syncAllP4Hasta: document.getElementById('sync-all-p4-hasta'),
+
+    syncAllInclude5: document.getElementById('sync-all-include-5'),
+    syncAllP5Empresa: document.getElementById('sync-all-p5-empresa'),
+
     btnLoadSql: document.getElementById('btn-load-sql'),
     btnLoadSqlHeader: document.getElementById('btn-load-sql-header'),
     btnOpenSqlParams: document.getElementById('btn-open-sql-params'),
@@ -584,37 +1029,133 @@
     return strVal;
   }
 
-  // Formateador de Zona de Labores (ej. "54" -> "54 SANTA ROSA", "850" -> "850 OLIVARES BAJO")
-  function formatZonaValue(rawVal) {
+  // Helper: Resuelve el ID numérico de Empresa (ej. '9', '14') a partir de string o número
+  function resolveEmpresaId(empContext) {
+    if (empContext !== null && empContext !== undefined && empContext !== '') {
+      const str = String(empContext).trim();
+      if (/^\d+$/.test(str)) return str;
+      const matchNum = str.match(/^(\d+)\s*[-:]/);
+      if (matchNum) return matchNum[1];
+      const lower = str.toLowerCase();
+      if (lower.includes('rapel')) return '9';
+      if (lower.includes('verfrut') && (lower.includes('sac') || lower.includes('peru') || lower.includes('exportadora') || (!lower.includes('spa') && !lower.includes('chile')))) return '14';
+      if (lower.includes('algarrobo')) return '12';
+      if (lower.includes('avanti')) return '23';
+      if (lower.includes('bomarea')) return '31';
+      if (lower.includes('mosqueta')) return '32';
+      if (lower.includes('pirona')) return '33';
+      if (lower.includes('lefkada')) return '34';
+      if (lower.includes('hefei')) return '35';
+      if (lower.includes('porvenir')) return '1';
+      if (lower.includes('durazno')) return '2';
+      if (lower.includes('parrones')) return '3';
+      if (lower.includes('quilamuta')) return '4';
+      if (lower.includes('rvd')) return '5';
+      if (lower.includes('pilares')) return '7';
+      if (lower.includes('peñasco') || lower.includes('penasco')) return '19';
+      if (lower.includes('lirios')) return '22';
+      if (lower.includes('remanso')) return '21';
+      if (lower.includes('sky')) return '20';
+      if (lower.includes('faraleufu') || lower.includes('inmobiliaria')) return '11';
+      if (lower.includes('pjm')) return '16';
+      if (lower.includes('verceling')) return '17';
+      if (lower.includes('chile') || lower.includes('spa')) return '8';
+    }
+    if (typeof getSelectedEmpresaId === 'function') {
+      return getSelectedEmpresaId() || '14';
+    }
+    return '14';
+  }
+
+  // Limpia sufijos tipo "(JOR 8)", "(JOR 9.6)", "(9.6)", "( JOR 8)" del nombre de una zona
+  function cleanZoneText(txt) {
+    if (!txt) return '';
+    return String(txt).replace(/\s*\(\s*(?:JOR\s*)?[\d\.]+\s*\)/gi, '').trim();
+  }
+
+  // Consulta el nombre de zona según la empresa específica
+  function getZonaNameForEmpresa(empContext, zonaId) {
+    if (!zonaId) return null;
+    const cleanZId = String(zonaId).trim();
+    const empId = resolveEmpresaId(empContext);
+
+    // 1. Catálogo específico de la empresa de la fila
+    if (ZONAS_BY_EMPRESA_MAP[empId] && ZONAS_BY_EMPRESA_MAP[empId][cleanZId]) {
+      return ZONAS_BY_EMPRESA_MAP[empId][cleanZId];
+    }
+
+    // 2. Catálogo de la empresa seleccionada globalmente en la cabecera (si es distinta)
+    const activeEmpId = typeof getSelectedEmpresaId === 'function' ? getSelectedEmpresaId() : null;
+    if (activeEmpId && activeEmpId !== empId && ZONAS_BY_EMPRESA_MAP[activeEmpId] && ZONAS_BY_EMPRESA_MAP[activeEmpId][cleanZId]) {
+      return ZONAS_BY_EMPRESA_MAP[activeEmpId][cleanZId];
+    }
+
+    return null;
+  }
+
+  // Helper: Sincroniza dinámicamente el catálogo de Zonas desde SQL Server para la empresa activa
+  async function syncZonasCatalogFromSql(empresaId) {
+    if (!empresaId) return;
+    try {
+      const idStr = String(empresaId).trim();
+      const res = await fetch(`/api/zonas?idEmpresa=${idStr}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          if (!ZONAS_BY_EMPRESA_MAP[idStr]) ZONAS_BY_EMPRESA_MAP[idStr] = {};
+          json.data.forEach(item => {
+            const zid = String(item.IdZona !== undefined ? item.IdZona : '').trim();
+            const znom = cleanZoneText(item.Nombre || '');
+            if (zid && znom) {
+              ZONAS_BY_EMPRESA_MAP[idStr][zid] = znom;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudo sincronizar catálogo dinámico de zonas:', e);
+    }
+  }
+
+  // Formateador de Zona de Labores respetando la empresa de la fila y preservando descripciones reales
+  function formatZonaValue(rawVal, empresaContext) {
     if (rawVal === null || rawVal === undefined || rawVal === '') return '';
     const strVal = String(rawVal).trim();
     if (!strVal || strVal === '(en blanco)' || strVal === '-' || strVal.toLowerCase() === 'null') return '';
 
-    // Caso 1: Si es puramente numérico (ej. "54", "849", "850", 54)
+    // Caso 1: Si ya empieza con número seguido de letras (ej. "54 GERENCIA GENERAL", "54 SANTA ROSA", "58 APROA")
+    const match = strVal.match(/^(\d+)\s*[-:]?\s*([A-Za-zÁ-Úá-úñÑ].*)$/);
+    if (match) {
+      const numId = match[1];
+      const textPart = cleanZoneText(match[2]);
+      // Si ya tiene una descripción válida en los datos, PRESERVARLA SIEMPRE (nunca sobreescribir con otra empresa)
+      if (textPart && textPart.toLowerCase() !== 'null' && textPart.toLowerCase() !== 'en blanco') {
+        return `${numId} ${textPart}`.trim();
+      }
+      const catalogNom = getZonaNameForEmpresa(empresaContext, numId);
+      return catalogNom ? `${numId} ${catalogNom}`.trim() : numId;
+    }
+
+    // Caso 2: Si es puramente numérico (ej. "54", "58", "853", "858")
     if (/^\d+$/.test(strVal)) {
-      const nom = ZONAS_MAP[strVal];
-      if (nom) {
-        return `${strVal} ${nom}`.trim();
+      const catalogNom = getZonaNameForEmpresa(empresaContext, strVal);
+      if (catalogNom) {
+        return `${strVal} ${catalogNom}`.trim();
       }
       return strVal;
     }
 
-    // Caso 2: Si ya empieza con número seguido de letras (ej. "54 SANTA ROSA", "54 - SANTA ROSA")
-    const match = strVal.match(/^(\d+)\s*[-:]?\s*([A-Za-zÁ-Úá-úñÑ].*)$/);
-    if (match) {
-      const numId = match[1];
-      const textPart = match[2].trim();
-      const nom = ZONAS_MAP[numId] || textPart;
-      return `${numId} ${nom}`.trim();
+    // Caso 3: Si es solo texto (ej. "GERENCIA GENERAL", "SANTA ROSA", "FUNDO EL PAPAYO")
+    const cleanTxt = cleanZoneText(strVal);
+    const empId = resolveEmpresaId(empresaContext);
+    const cat = ZONAS_BY_EMPRESA_MAP[empId] || {};
+    for (const [zid, znom] of Object.entries(cat)) {
+      if (cleanHeader(znom) === cleanHeader(cleanTxt)) {
+        return `${zid} ${znom}`.trim();
+      }
     }
 
-    // Caso 3: Búsqueda por código limpio
-    const cleanId = cleanHeader(strVal);
-    if (ZONAS_MAP[cleanId]) {
-      return `${cleanId} ${ZONAS_MAP[cleanId]}`.trim();
-    }
-
-    return strVal;
+    return cleanTxt;
   }
 
   // Extrae el valor raw sin pre-formatear
@@ -901,7 +1442,10 @@
         rawZ = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
                (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar']) : '');
       }
-      return formatZonaValue(rawZ);
+      const empContext = extractFromRow(row1, ['empresa', 'idempresa', 'nomempresa', 'razonsocial', 'compania']) ||
+                         (row2 ? extractFromRow(row2, ['empresa', 'idempresa', 'nomempresa', 'razonsocial', 'compania']) : '') ||
+                         (typeof getSelectedEmpresaId === 'function' ? getSelectedEmpresaId() : '14');
+      return formatZonaValue(rawZ, empContext);
     }
 
     if (targetCol === 'SubCentroCosto / Cuartel') {
@@ -1052,7 +1596,7 @@
     return '14';
   }
 
-  // Helper: Sincronizar selectores de Empresa en todos los modales
+  // Helper: Sincronizar selectores de Empresa en todos los modales y campos de consulta
   function syncEmpresaSelectors(empresaId) {
     const idStr = String(empresaId);
     if (elements.globalEmpresaSelect) {
@@ -1068,10 +1612,28 @@
         }
       }
     }
+    if (elements.syncAllMasterEmpresa) {
+      const hasOpt = Array.from(elements.syncAllMasterEmpresa.options).some(o => o.value === idStr);
+      if (hasOpt) {
+        elements.syncAllMasterEmpresa.value = idStr;
+        if (elements.syncAllMasterEmpresaCustom) elements.syncAllMasterEmpresaCustom.style.display = 'none';
+      } else {
+        elements.syncAllMasterEmpresa.value = 'custom';
+        if (elements.syncAllMasterEmpresaCustom) {
+          elements.syncAllMasterEmpresaCustom.style.display = 'inline-block';
+          elements.syncAllMasterEmpresaCustom.value = idStr;
+        }
+      }
+    }
     if (elements.sqlParamEmpresa) elements.sqlParamEmpresa.value = idStr;
     if (elements.sqlParam2Empresa) elements.sqlParam2Empresa.value = idStr;
     if (elements.sqlParam3Empresa) elements.sqlParam3Empresa.value = idStr;
     if (elements.sqlParam4Empresa) elements.sqlParam4Empresa.value = idStr;
+    if (elements.syncAllP1Empresa) elements.syncAllP1Empresa.value = idStr;
+    if (elements.syncAllP2Empresa) elements.syncAllP2Empresa.value = idStr;
+    if (elements.syncAllP3Empresa) elements.syncAllP3Empresa.value = idStr;
+    if (elements.syncAllP4Empresa) elements.syncAllP4Empresa.value = idStr;
+    if (elements.syncAllP5Empresa) elements.syncAllP5Empresa.value = idStr;
   }
 
   // Load Workers Directly from SQL Server (Archivo 1)
@@ -1131,6 +1693,7 @@
         size: result.count * 150
       }, result.count);
       checkProcessingReadiness();
+      syncZonasCatalogFromSql(activeEmp);
 
       closeModal(elements.modalSqlParams);
       showToast(`¡${result.count.toLocaleString()} trabajadores cargados directamente desde SQL Server!`, 'success');
@@ -1391,6 +1954,154 @@
     }
   }
 
+  // Helper: Actualiza el contador y estados visuales en el modal de Sincronización Completa
+  function updateSyncAllSummaryCount() {
+    const checks = [
+      { chk: elements.syncAllInclude1, card: document.getElementById('sync-card-1') },
+      { chk: elements.syncAllInclude2, card: document.getElementById('sync-card-2') },
+      { chk: elements.syncAllInclude3, card: document.getElementById('sync-card-3') },
+      { chk: elements.syncAllInclude4, card: document.getElementById('sync-card-4') },
+      { chk: elements.syncAllInclude5, card: document.getElementById('sync-card-5') },
+    ];
+
+    let count = 0;
+    checks.forEach(item => {
+      if (item.chk && item.chk.checked) {
+        count++;
+        if (item.card) item.card.classList.remove('disabled');
+      } else if (item.card) {
+        item.card.classList.add('disabled');
+      }
+    });
+
+    if (elements.syncAllSummaryCount) {
+      elements.syncAllSummaryCount.textContent = `${count} de 5 fuentes seleccionadas para sincronizar`;
+    }
+  }
+
+  // Helper: Poblado inicial de parámetros en el modal de Sincronización Completa
+  function populateSyncAllModalWithActiveSettings() {
+    const empId = getSelectedEmpresaId();
+    
+    // Master Empresa
+    if (elements.syncAllMasterEmpresa) {
+      const hasOpt = Array.from(elements.syncAllMasterEmpresa.options).some(o => o.value === empId);
+      if (hasOpt) {
+        elements.syncAllMasterEmpresa.value = empId;
+        if (elements.syncAllMasterEmpresaCustom) elements.syncAllMasterEmpresaCustom.style.display = 'none';
+      } else {
+        elements.syncAllMasterEmpresa.value = 'custom';
+        if (elements.syncAllMasterEmpresaCustom) {
+          elements.syncAllMasterEmpresaCustom.style.display = 'inline-block';
+          elements.syncAllMasterEmpresaCustom.value = empId;
+        }
+      }
+    }
+
+    // Propagar a cards
+    if (elements.syncAllP1Empresa) elements.syncAllP1Empresa.value = empId;
+    if (elements.syncAllP2Empresa) elements.syncAllP2Empresa.value = empId;
+    if (elements.syncAllP3Empresa) elements.syncAllP3Empresa.value = empId;
+    if (elements.syncAllP4Empresa) elements.syncAllP4Empresa.value = empId;
+    if (elements.syncAllP5Empresa) elements.syncAllP5Empresa.value = empId;
+
+    // Mes & Año
+    const activeMes = (elements.sqlParamMes && elements.sqlParamMes.value) || String(new Date().getMonth() + 1);
+    const activeAnio = (elements.sqlParamAnio && elements.sqlParamAnio.value) || String(new Date().getFullYear());
+
+    if (elements.syncAllMasterMes) elements.syncAllMasterMes.value = activeMes;
+    if (elements.syncAllMasterAnio) elements.syncAllMasterAnio.value = activeAnio;
+    if (elements.syncAllP1Mes) elements.syncAllP1Mes.value = activeMes;
+    if (elements.syncAllP1Anio) elements.syncAllP1Anio.value = activeAnio;
+    if (elements.syncAllP2Mes) elements.syncAllP2Mes.value = activeMes;
+    if (elements.syncAllP2Anio) elements.syncAllP2Anio.value = activeAnio;
+
+    // Fechas automáticas (Corte fin de mes y 3 días de marcaciones)
+    calculateAndSetSyncAllDates(parseInt(activeMes, 10), parseInt(activeAnio, 10));
+
+    // Resetear checkboxes a activados
+    if (elements.syncAllInclude1) elements.syncAllInclude1.checked = true;
+    if (elements.syncAllInclude2) elements.syncAllInclude2.checked = true;
+    if (elements.syncAllInclude3) elements.syncAllInclude3.checked = true;
+    if (elements.syncAllInclude4) elements.syncAllInclude4.checked = true;
+    if (elements.syncAllInclude5) elements.syncAllInclude5.checked = true;
+
+    updateSyncAllSummaryCount();
+  }
+
+  // Helper: Cálculo de fechas de corte y rangos por mes/año
+  function calculateAndSetSyncAllDates(mesNum, anioNum) {
+    if (isNaN(mesNum) || isNaN(anioNum)) return;
+    
+    // Calcular último día del mes
+    let lastDay = 31;
+    if (mesNum === 2) {
+      lastDay = (anioNum % 4 === 0 && (anioNum % 100 !== 0 || anioNum % 400 === 0)) ? 29 : 28;
+    } else if ([4, 6, 9, 11].includes(mesNum)) {
+      lastDay = 30;
+    }
+
+    const fechaini = `${lastDay}/${mesNum}/${anioNum}`;
+    if (elements.syncAllP1Fechaini) elements.syncAllP1Fechaini.value = fechaini;
+    if (elements.sqlParamFechaini) elements.sqlParamFechaini.value = fechaini;
+
+    // Rango de 3 días para marcaciones (Hoy y 2 días atrás)
+    const range3d = getDefault3DaysRange();
+    if (elements.syncAllP3Desde) elements.syncAllP3Desde.value = range3d.desde;
+    if (elements.syncAllP3Hasta) elements.syncAllP3Hasta.value = range3d.hasta;
+    if (elements.syncAllP4Desde) elements.syncAllP4Desde.value = range3d.desde;
+    if (elements.syncAllP4Hasta) elements.syncAllP4Hasta.value = range3d.hasta;
+  }
+
+  // Helper: Ejecuta la sincronización en paralelo con los parámetros específicos de cada consulta
+  async function executeCustomParallelSync(options) {
+    const { do1, do2, do3, do4, do5, p1, p2, p3, p4, p5 } = options;
+    const btnAll = elements.btnLoadAllSql;
+    
+    try {
+      if (btnAll) {
+        btnAll.disabled = true;
+        btnAll.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Sincronizando Fuentes...</span>';
+      }
+
+      const activeTasks = [];
+      const taskNames = [];
+
+      if (do1) { activeTasks.push(loadFromSqlServer(p1)); taskNames.push('Trabajadores'); }
+      if (do2) { activeTasks.push(loadUltimoDiaFromSqlServer(p2)); taskNames.push('Labores'); }
+      if (do3) { activeTasks.push(loadMarcacionesFromSqlServer(p3)); taskNames.push('Marcaciones'); }
+      if (do4) { activeTasks.push(loadBusesFromSqlServer(p4)); taskNames.push('Buses y Rutas'); }
+      if (do5) { activeTasks.push(loadCuadrillasFromSqlServer(p5)); taskNames.push('Cuadrillas'); }
+
+      showToast(`⚡ Sincronizando ${activeTasks.length} fuentes seleccionadas desde SQL Server (Empresa ${p1.idEmpresa || getSelectedEmpresaId()})...`, 'info');
+
+      const results = await Promise.allSettled(activeTasks);
+
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      checkProcessingReadiness();
+
+      if (successful > 0) {
+        playSuccessSound('chime');
+        showToast(`🎉 ¡${successful} de ${activeTasks.length} fuentes sincronizadas con éxito! Consolidando...`, 'success');
+        setTimeout(() => {
+          if (state.file1.data && state.file2.data && state.file3.data) {
+            handleProcessData();
+          }
+        }, 350);
+      } else {
+        showToast('❌ Ocurrieron errores al sincronizar las fuentes desde SQL Server.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(`Error durante la sincronización: ${err.message}`, 'error');
+    } finally {
+      if (btnAll) {
+        btnAll.disabled = false;
+        btnAll.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>⚡ Sincronizar Todo (SQL)</span>';
+      }
+    }
+  }
+
   // Load All Sources from SQL Server in Parallel (5 Fuentes)
   async function loadAllFromSqlServer() {
     const btnAll = elements.btnLoadAllSql;
@@ -1495,10 +2206,148 @@
       }
     });
 
-    // Card 1 SQL Events
+    // Modal Sincronización Completa SQL (Sync All) Events
     if (elements.btnLoadAllSql) {
-      elements.btnLoadAllSql.addEventListener('click', () => loadAllFromSqlServer());
+      elements.btnLoadAllSql.addEventListener('click', () => {
+        openModal(elements.modalSqlSyncAll);
+        populateSyncAllModalWithActiveSettings();
+      });
     }
+    if (elements.btnCloseSqlSyncAll) {
+      elements.btnCloseSqlSyncAll.addEventListener('click', () => closeModal(elements.modalSqlSyncAll));
+    }
+    if (elements.btnCancelSqlSyncAll) {
+      elements.btnCancelSqlSyncAll.addEventListener('click', () => closeModal(elements.modalSqlSyncAll));
+    }
+
+    // Checkbox toggles in Sync All Modal
+    [elements.syncAllInclude1, elements.syncAllInclude2, elements.syncAllInclude3, elements.syncAllInclude4, elements.syncAllInclude5].forEach(chk => {
+      if (chk) chk.addEventListener('change', updateSyncAllSummaryCount);
+    });
+
+    // Master Empresa change in Sync All Modal
+    if (elements.syncAllMasterEmpresa) {
+      elements.syncAllMasterEmpresa.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val === 'custom') {
+          if (elements.syncAllMasterEmpresaCustom) {
+            elements.syncAllMasterEmpresaCustom.style.display = 'inline-block';
+            elements.syncAllMasterEmpresaCustom.focus();
+          }
+        } else {
+          if (elements.syncAllMasterEmpresaCustom) elements.syncAllMasterEmpresaCustom.style.display = 'none';
+          syncEmpresaSelectors(val);
+        }
+      });
+    }
+    if (elements.syncAllMasterEmpresaCustom) {
+      elements.syncAllMasterEmpresaCustom.addEventListener('input', (e) => {
+        const val = e.target.value.trim();
+        if (val) syncEmpresaSelectors(val);
+      });
+    }
+
+    // Master Mes / Año change in Sync All Modal
+    if (elements.syncAllMasterMes) {
+      elements.syncAllMasterMes.addEventListener('change', () => {
+        const m = parseInt(elements.syncAllMasterMes.value, 10);
+        const y = parseInt((elements.syncAllMasterAnio && elements.syncAllMasterAnio.value) || '2026', 10);
+        if (elements.syncAllP1Mes) elements.syncAllP1Mes.value = String(m);
+        if (elements.syncAllP2Mes) elements.syncAllP2Mes.value = String(m);
+        calculateAndSetSyncAllDates(m, y);
+      });
+    }
+    if (elements.syncAllMasterAnio) {
+      elements.syncAllMasterAnio.addEventListener('input', () => {
+        const m = parseInt((elements.syncAllMasterMes && elements.syncAllMasterMes.value) || '8', 10);
+        const y = parseInt(elements.syncAllMasterAnio.value, 10);
+        if (elements.syncAllP1Anio) elements.syncAllP1Anio.value = String(y);
+        if (elements.syncAllP2Anio) elements.syncAllP2Anio.value = String(y);
+        calculateAndSetSyncAllDates(m, y);
+      });
+    }
+
+    // Quick Action: Auto Fechas
+    if (elements.btnSyncAllCalcDates) {
+      elements.btnSyncAllCalcDates.addEventListener('click', () => {
+        const m = parseInt((elements.syncAllMasterMes && elements.syncAllMasterMes.value) || '8', 10);
+        const y = parseInt((elements.syncAllMasterAnio && elements.syncAllMasterAnio.value) || '2026', 10);
+        calculateAndSetSyncAllDates(m, y);
+        showToast('📅 Fechas de corte y marcaciones actualizadas.', 'info');
+      });
+    }
+
+    // Quick Action: Aplicar a todo
+    if (elements.btnSyncAllApplyMaster) {
+      elements.btnSyncAllApplyMaster.addEventListener('click', () => {
+        const empVal = (elements.syncAllMasterEmpresa && elements.syncAllMasterEmpresa.value === 'custom')
+          ? (elements.syncAllMasterEmpresaCustom && elements.syncAllMasterEmpresaCustom.value.trim()) || '14'
+          : (elements.syncAllMasterEmpresa && elements.syncAllMasterEmpresa.value) || '14';
+        const m = parseInt((elements.syncAllMasterMes && elements.syncAllMasterMes.value) || '8', 10);
+        const y = parseInt((elements.syncAllMasterAnio && elements.syncAllMasterAnio.value) || '2026', 10);
+        syncEmpresaSelectors(empVal);
+        if (elements.syncAllP1Mes) elements.syncAllP1Mes.value = String(m);
+        if (elements.syncAllP1Anio) elements.syncAllP1Anio.value = String(y);
+        if (elements.syncAllP2Mes) elements.syncAllP2Mes.value = String(m);
+        if (elements.syncAllP2Anio) elements.syncAllP2Anio.value = String(y);
+        calculateAndSetSyncAllDates(m, y);
+        showToast(`✅ Parámetros propagados a las 5 consultas (Empresa ${empVal}, Periodo ${m}/${y}).`, 'success');
+      });
+    }
+
+    // Submit Sync All Form
+    if (elements.formSqlSyncAll) {
+      elements.formSqlSyncAll.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const do1 = elements.syncAllInclude1 && elements.syncAllInclude1.checked;
+        const do2 = elements.syncAllInclude2 && elements.syncAllInclude2.checked;
+        const do3 = elements.syncAllInclude3 && elements.syncAllInclude3.checked;
+        const do4 = elements.syncAllInclude4 && elements.syncAllInclude4.checked;
+        const do5 = elements.syncAllInclude5 && elements.syncAllInclude5.checked;
+
+        if (!do1 && !do2 && !do3 && !do4 && !do5) {
+          showToast('⚠️ Debes seleccionar al menos una fuente para sincronizar.', 'warning');
+          return;
+        }
+
+        const p1 = {
+          idEmpresa: (elements.syncAllP1Empresa && elements.syncAllP1Empresa.value.trim()) || '14',
+          activo: (elements.syncAllP1Activo && elements.syncAllP1Activo.value) || '1',
+          mes: (elements.syncAllP1Mes && elements.syncAllP1Mes.value) || '8',
+          anio: (elements.syncAllP1Anio && elements.syncAllP1Anio.value) || '2026',
+          fechaini: (elements.syncAllP1Fechaini && elements.syncAllP1Fechaini.value.trim()) || '31/8/2026'
+        };
+
+        const p2 = {
+          idEmpresa: (elements.syncAllP2Empresa && elements.syncAllP2Empresa.value.trim()) || '14',
+          mes: (elements.syncAllP2Mes && elements.syncAllP2Mes.value) || '8',
+          anio: (elements.syncAllP2Anio && elements.syncAllP2Anio.value) || '2026'
+        };
+
+        const p3 = {
+          idEmpresa: (elements.syncAllP3Empresa && elements.syncAllP3Empresa.value.trim()) || '14',
+          fechaDesde: (elements.syncAllP3Desde && elements.syncAllP3Desde.value.trim()) || '18/08/2026',
+          fechaHasta: (elements.syncAllP3Hasta && elements.syncAllP3Hasta.value.trim()) || '20/08/2026',
+          sw_contrato: (elements.syncAllP3Sw && elements.syncAllP3Sw.value) || '0'
+        };
+
+        const p4 = {
+          codPais: (elements.syncAllP4Codpais && elements.syncAllP4Codpais.value.trim()) || 'PE',
+          idEmpresa: (elements.syncAllP4Empresa && elements.syncAllP4Empresa.value.trim()) || '0',
+          desde: (elements.syncAllP4Desde && elements.syncAllP4Desde.value.trim()) || '18/08/2026',
+          hasta: (elements.syncAllP4Hasta && elements.syncAllP4Hasta.value.trim()) || '20/08/2026'
+        };
+
+        const p5 = {
+          idEmpresa: (elements.syncAllP5Empresa && elements.syncAllP5Empresa.value.trim()) || '14'
+        };
+
+        closeModal(elements.modalSqlSyncAll);
+        executeCustomParallelSync({ do1, do2, do3, do4, do5, p1, p2, p3, p4, p5 });
+      });
+    }
+
+    // Card 1 SQL Events
     if (elements.btnLoadSql) {
       elements.btnLoadSql.addEventListener('click', () => loadFromSqlServer());
     }
@@ -2798,6 +3647,22 @@
         }
       }
 
+      // Empresa
+      let empresaConsolidada = '';
+      const rawEmpresa = extractFromRow(row1, ['empresa', 'nombreempresa', 'razonsocial', 'compania', 'nom_empresa', 'idempresa']) ||
+                         (row2 ? extractFromRow(row2, ['empresa', 'nombreempresa', 'razonsocial', 'compania', 'idempresa']) : '');
+      if (rawEmpresa) {
+        const cleanEmp = String(rawEmpresa).trim();
+        if (EMPRESAS_MAP[cleanEmp]) {
+          empresaConsolidada = EMPRESAS_MAP[cleanEmp];
+        } else {
+          empresaConsolidada = cleanEmp;
+        }
+      } else {
+        const activeEmpId = typeof getSelectedEmpresaId === 'function' ? getSelectedEmpresaId() : '14';
+        empresaConsolidada = EMPRESAS_MAP[activeEmpId] || 'SOCIEDAD EXPORTADORA VERFRUT S. A. C.';
+      }
+
       // Zona Labores y SubCentroCosto / Cuartel
       const hasRegularLaborInFile2 = row2 && (actividadVal || laborVal) && !isAbsenceActivity(actividadVal) && !isAbsenceActivity(laborVal);
 
@@ -2806,11 +3671,11 @@
         // En Archivo 2 buscar ZONA o Zona Labores (sin tomar Labor)
         const rawZ2 = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) ||
                       extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']);
-        zonaConsolidada = formatZonaValue(rawZ2);
+        zonaConsolidada = formatZonaValue(rawZ2, empresaConsolidada);
       } else {
         const rawZ1 = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
                       (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) : '');
-        zonaConsolidada = formatZonaValue(rawZ1);
+        zonaConsolidada = formatZonaValue(rawZ1, empresaConsolidada);
       }
 
       let cuartelConsolidado = '';
@@ -2846,21 +3711,6 @@
       }
       if (!encargadoConsolidado) {
         encargadoConsolidado = extractValueForColumn('ENCARGADO', row2, row1, keyCol1);
-      }
-
-      // Empresa
-      let empresaConsolidada = '';
-      const rawEmpresa = extractFromRow(row1, ['empresa', 'nombreempresa', 'razonsocial', 'compania', 'nom_empresa', 'idempresa']) ||
-                         (row2 ? extractFromRow(row2, ['empresa', 'nombreempresa', 'razonsocial', 'compania', 'idempresa']) : '');
-      if (rawEmpresa) {
-        const cleanEmp = String(rawEmpresa).trim();
-        if (EMPRESAS_MAP[cleanEmp]) {
-          empresaConsolidada = EMPRESAS_MAP[cleanEmp];
-        } else {
-          empresaConsolidada = cleanEmp;
-        }
-      } else {
-        empresaConsolidada = 'SOCIEDAD EXPORTADORA VERFRUT S. A. C.';
       }
 
       const consolidatedRow = {};

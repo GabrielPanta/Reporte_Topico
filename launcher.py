@@ -196,7 +196,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                     zid = str(zr[0]).strip()
                     znom = str(zr[1]).strip()
                     import re
-                    clean_z = re.sub(r'\(JOR\s*[\d\.]+\)', '', znom, flags=re.IGNORECASE).strip()
+                    clean_z = re.sub(r'\s*\(\s*(?:JOR\s*)?[\d\.]+\s*\)', '', znom, flags=re.IGNORECASE).strip()
                     zonas_emp_map[zid] = clean_z or znom
             except Exception as ze:
                 print(f"Warning: No se pudo consultar tabla [Zona]: {ze}")
@@ -371,7 +371,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                     zid = str(zr[0]).strip()
                     znom = str(zr[1]).strip()
                     import re
-                    clean_z = re.sub(r'\(JOR\s*[\d\.]+\)', '', znom, flags=re.IGNORECASE).strip()
+                    clean_z = re.sub(r'\s*\(\s*(?:JOR\s*)?[\d\.]+\s*\)', '', znom, flags=re.IGNORECASE).strip()
                     zonas_emp_map[zid] = clean_z or znom
             except Exception as ze:
                 print(f"Warning: No se pudo consultar tabla [Zona]: {ze}")
