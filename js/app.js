@@ -849,6 +849,24 @@
     syncAllInclude5: document.getElementById('sync-all-include-5'),
     syncAllP5Empresa: document.getElementById('sync-all-p5-empresa'),
 
+    // Direct SQL Database Configuration Modal
+    btnDbConfig: document.getElementById('btn-db-config'),
+    modalSqlDbConfig: document.getElementById('modal-sql-db-config'),
+    btnCloseSqlDbConfig: document.getElementById('btn-close-sql-db-config'),
+    btnCancelSqlDbConfig: document.getElementById('btn-cancel-sql-db-config'),
+    formSqlDbConfig: document.getElementById('form-sql-db-config'),
+    dbConfigServer: document.getElementById('db-config-server'),
+    dbConfigDatabase: document.getElementById('db-config-database'),
+    dbConfigUid: document.getElementById('db-config-uid'),
+    dbConfigPwd: document.getElementById('db-config-pwd'),
+    btnToggleDbPwd: document.getElementById('btn-toggle-db-pwd'),
+    dbConfigWsid: document.getElementById('db-config-wsid'),
+    dbConfigDriver: document.getElementById('db-config-driver'),
+    dbConfigStatusBox: document.getElementById('db-config-status-box'),
+    btnTestDbConfig: document.getElementById('btn-test-db-config'),
+    btnSaveDbConfig: document.getElementById('btn-save-db-config'),
+    btnResetDbConfig: document.getElementById('btn-reset-db-config'),
+
     btnLoadSql: document.getElementById('btn-load-sql'),
     btnLoadSqlHeader: document.getElementById('btn-load-sql-header'),
     btnOpenSqlParams: document.getElementById('btn-open-sql-params'),
@@ -1437,9 +1455,9 @@
       let rawZ = '';
       if (hasRegularLabor && row2) {
         rawZ = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar', 'zonatrabajo']) ||
-               extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']);
+               extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'sede', 'fundo', 'campo', 'centrocostopredio']);
       } else {
-        rawZ = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
+        rawZ = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
                (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar']) : '');
       }
       const empContext = extractFromRow(row1, ['empresa', 'idempresa', 'nomempresa', 'razonsocial', 'compania']) ||
@@ -1542,6 +1560,7 @@
     setupDropzones();
     setupCardConfigToggles();
     setupColumnVisibilityMenu();
+    loadSqlDatabaseConfig();
     checkSqlConnection();
   }
 
@@ -1573,15 +1592,178 @@
       if (data.success) {
         elements.dbStatusBadge.innerHTML = '<span class="db-dot"></span> SQL Server Conectado';
         elements.dbStatusBadge.classList.remove('disconnected');
+        elements.dbStatusBadge.title = 'SQL Server Conectado: Haz clic para cambiar contraseña o parámetros';
       } else {
         elements.dbStatusBadge.innerHTML = '<span class="db-dot" style="background-color: var(--danger-500); box-shadow: 0 0 6px var(--danger-500);"></span> SQL Desconectado';
         elements.dbStatusBadge.classList.add('disconnected');
+        elements.dbStatusBadge.title = `SQL Server Desconectado (${data.error || 'Verifica contraseña'}): Haz clic para configurar`;
       }
     } catch (e) {
       if (elements.dbStatusBadge) {
         elements.dbStatusBadge.innerHTML = '<span class="db-dot" style="background-color: var(--warning-500); box-shadow: 0 0 6px var(--warning-500);"></span> Modo Local';
+        elements.dbStatusBadge.title = 'Modo Local / Servidor de fondo no accesible';
       }
     }
+  }
+
+  // Load and populate SQL Database Configuration from backend
+  async function loadSqlDatabaseConfig() {
+    try {
+      const resp = await fetch('/api/sql-config');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data.success && data.config) {
+        const c = data.config;
+        if (elements.dbConfigDriver) elements.dbConfigDriver.value = c.driver || '{SQL Server}';
+        if (elements.dbConfigServer) elements.dbConfigServer.value = c.server || 'vfstbd01';
+        if (elements.dbConfigDatabase) elements.dbConfigDatabase.value = c.database || 'bsis_rem_afr';
+        if (elements.dbConfigUid) elements.dbConfigUid.value = c.uid || 'gpanta';
+        if (elements.dbConfigPwd) elements.dbConfigPwd.value = c.pwd || '';
+        if (elements.dbConfigWsid) elements.dbConfigWsid.value = c.wsid || 'VFRPTS03';
+        if (elements.dbConfigStatusBox) elements.dbConfigStatusBox.style.display = 'none';
+
+        if (elements.dbStatusBadge) {
+          elements.dbStatusBadge.title = `Conexión SQL Server (${c.server} / ${c.database}): Haz clic para cambiar contraseña o parámetros`;
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudo cargar la configuración de SQL:', e);
+    }
+  }
+
+  // Test SQL Database Connection in real-time
+  async function testSqlDatabaseConnection() {
+    const btn = elements.btnTestDbConfig;
+    const box = elements.dbConfigStatusBox;
+
+    const payload = {
+      driver: elements.dbConfigDriver ? elements.dbConfigDriver.value : '{SQL Server}',
+      server: elements.dbConfigServer ? elements.dbConfigServer.value.trim() : 'vfstbd01',
+      database: elements.dbConfigDatabase ? elements.dbConfigDatabase.value.trim() : 'bsis_rem_afr',
+      uid: elements.dbConfigUid ? elements.dbConfigUid.value.trim() : 'gpanta',
+      pwd: elements.dbConfigPwd ? elements.dbConfigPwd.value : '',
+      wsid: elements.dbConfigWsid ? elements.dbConfigWsid.value.trim() : 'VFRPTS03'
+    };
+
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Probando...</span>';
+      }
+      if (box) {
+        box.className = 'db-status-alert alert-loading';
+        box.style.display = 'flex';
+        box.innerHTML = '<span>⏳ Conectando con SQL Server y validando credenciales...</span>';
+      }
+
+      const resp = await fetch('/api/test-sql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        if (box) {
+          box.className = 'db-status-alert alert-success';
+          box.innerHTML = `<span>✅ ${data.message}</span>`;
+        }
+        if (elements.dbStatusBadge) {
+          elements.dbStatusBadge.innerHTML = '<span class="db-dot"></span> SQL Server Conectado';
+          elements.dbStatusBadge.classList.remove('disconnected');
+        }
+        showToast('¡Prueba de conexión exitosa!', 'success');
+        playSuccessSound('step');
+      } else {
+        if (box) {
+          box.className = 'db-status-alert alert-error';
+          box.innerHTML = `<span>❌ ${data.error || 'Error de conexión con SQL Server'}</span>`;
+        }
+        if (elements.dbStatusBadge) {
+          elements.dbStatusBadge.innerHTML = '<span class="db-dot" style="background-color: var(--danger-500); box-shadow: 0 0 6px var(--danger-500);"></span> SQL Desconectado';
+          elements.dbStatusBadge.classList.add('disconnected');
+        }
+        showToast('Error al conectar. Verifica servidor, usuario o contraseña.', 'error');
+      }
+    } catch (e) {
+      if (box) {
+        box.className = 'db-status-alert alert-error';
+        box.innerHTML = `<span>❌ Error de red o servidor: ${e.message}</span>`;
+      }
+      showToast(`Error al probar conexión: ${e.message}`, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> <span>🔌 Probar Conexión</span>';
+      }
+    }
+  }
+
+  // Save SQL Database Configuration permanently
+  async function saveSqlDatabaseConfig() {
+    const btn = elements.btnSaveDbConfig;
+    const box = elements.dbConfigStatusBox;
+
+    const payload = {
+      driver: elements.dbConfigDriver ? elements.dbConfigDriver.value : '{SQL Server}',
+      server: elements.dbConfigServer ? elements.dbConfigServer.value.trim() : 'vfstbd01',
+      database: elements.dbConfigDatabase ? elements.dbConfigDatabase.value.trim() : 'bsis_rem_afr',
+      uid: elements.dbConfigUid ? elements.dbConfigUid.value.trim() : 'gpanta',
+      pwd: elements.dbConfigPwd ? elements.dbConfigPwd.value : '',
+      wsid: elements.dbConfigWsid ? elements.dbConfigWsid.value.trim() : 'VFRPTS03'
+    };
+
+    if (!payload.server || !payload.database || !payload.uid) {
+      showToast('⚠️ Por favor completa el servidor, base de datos y usuario.', 'warning');
+      return;
+    }
+
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Guardando...</span>';
+      }
+
+      const resp = await fetch('/api/sql-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+
+      if (data.success) {
+        showToast('💾 Configuración de SQL Server guardada correctamente.', 'success');
+        playSuccessSound('chime');
+        closeModal(elements.modalSqlDbConfig);
+        checkSqlConnection();
+      } else {
+        throw new Error(data.error || 'No se pudo guardar la configuración.');
+      }
+    } catch (e) {
+      if (box) {
+        box.className = 'db-status-alert alert-error';
+        box.style.display = 'flex';
+        box.innerHTML = `<span>❌ Error al guardar: ${e.message}</span>`;
+      }
+      showToast(`Error al guardar: ${e.message}`, 'error');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> <span>💾 Guardar y Aplicar</span>';
+      }
+    }
+  }
+
+  // Reset to default config values in modal
+  function resetSqlDatabaseConfig() {
+    if (elements.dbConfigDriver) elements.dbConfigDriver.value = '{SQL Server}';
+    if (elements.dbConfigServer) elements.dbConfigServer.value = 'vfstbd01';
+    if (elements.dbConfigDatabase) elements.dbConfigDatabase.value = 'bsis_rem_afr';
+    if (elements.dbConfigUid) elements.dbConfigUid.value = 'gpanta';
+    if (elements.dbConfigPwd) elements.dbConfigPwd.value = 'Pantagabriel#98';
+    if (elements.dbConfigWsid) elements.dbConfigWsid.value = 'VFRPTS03';
+    if (elements.dbConfigStatusBox) elements.dbConfigStatusBox.style.display = 'none';
+    showToast('Valores predeterminados cargados en el formulario. Haz clic en "Guardar y Aplicar" para confirmar.', 'info');
   }
 
   // Helper: Obtener ID de Empresa Activa
@@ -2467,7 +2649,48 @@
       elements.btnLoadSql5.addEventListener('click', () => loadCuadrillasFromSqlServer());
     }
 
-    [elements.modalHelp, elements.modalShortcuts, elements.modalPreview, elements.modalDossier, elements.modalSqlParams, elements.modalSqlParams2, elements.modalSqlParams3].forEach(modal => {
+    // Direct Database Connection Configuration Modal Events
+    if (elements.btnDbConfig) {
+      elements.btnDbConfig.addEventListener('click', () => {
+        openModal(elements.modalSqlDbConfig);
+        loadSqlDatabaseConfig();
+      });
+    }
+    if (elements.dbStatusBadge) {
+      elements.dbStatusBadge.addEventListener('click', () => {
+        openModal(elements.modalSqlDbConfig);
+        loadSqlDatabaseConfig();
+      });
+    }
+    if (elements.btnCloseSqlDbConfig) {
+      elements.btnCloseSqlDbConfig.addEventListener('click', () => closeModal(elements.modalSqlDbConfig));
+    }
+    if (elements.btnCancelSqlDbConfig) {
+      elements.btnCancelSqlDbConfig.addEventListener('click', () => closeModal(elements.modalSqlDbConfig));
+    }
+    if (elements.btnTestDbConfig) {
+      elements.btnTestDbConfig.addEventListener('click', () => testSqlDatabaseConnection());
+    }
+    if (elements.btnResetDbConfig) {
+      elements.btnResetDbConfig.addEventListener('click', resetSqlDatabaseConfig);
+    }
+    if (elements.btnToggleDbPwd && elements.dbConfigPwd) {
+      elements.btnToggleDbPwd.addEventListener('click', () => {
+        const isPassword = elements.dbConfigPwd.type === 'password';
+        elements.dbConfigPwd.type = isPassword ? 'text' : 'password';
+        elements.btnToggleDbPwd.innerHTML = isPassword
+          ? '<svg class="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>'
+          : '<svg class="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+      });
+    }
+    if (elements.formSqlDbConfig) {
+      elements.formSqlDbConfig.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveSqlDatabaseConfig();
+      });
+    }
+
+    [elements.modalHelp, elements.modalShortcuts, elements.modalPreview, elements.modalDossier, elements.modalSqlParams, elements.modalSqlParams2, elements.modalSqlParams3, elements.modalSqlParams4, elements.modalSqlSyncAll, elements.modalSqlDbConfig].forEach(modal => {
       if (!modal) return;
       modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal(modal);
@@ -2547,8 +2770,8 @@
       elements.btnExportExcelHeader.addEventListener('click', () => {
         if (!state.consolidatedData || state.consolidatedData.length === 0) {
           if (state.file1.data && state.file1.data.length > 0) {
-            processConsolidation();
-            exportData('xlsx');
+            handleProcessData();
+            setTimeout(() => exportData('xlsx'), 400);
           } else {
             showToast('Primero haz clic en ⚡ Sincronizar Todo (SQL) o carga los datos.', 'info');
           }
@@ -2562,8 +2785,8 @@
       elements.btnExportExcel.addEventListener('click', () => {
         if (!state.consolidatedData || state.consolidatedData.length === 0) {
           if (state.file1.data && state.file1.data.length > 0) {
-            processConsolidation();
-            exportData('xlsx');
+            handleProcessData();
+            setTimeout(() => exportData('xlsx'), 400);
           } else {
             showToast('Primero haz clic en ⚡ Sincronizar Todo (SQL) o carga los datos.', 'info');
           }
@@ -3670,10 +3893,10 @@
       if (hasRegularLaborInFile2 && row2) {
         // En Archivo 2 buscar ZONA o Zona Labores (sin tomar Labor)
         const rawZ2 = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) ||
-                      extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']);
+                      extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'sede', 'fundo', 'campo', 'centrocostopredio']);
         zonaConsolidada = formatZonaValue(rawZ2, empresaConsolidada);
       } else {
-        const rawZ1 = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'nombrezonatrab', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
+        const rawZ1 = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
                       (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) : '');
         zonaConsolidada = formatZonaValue(rawZ1, empresaConsolidada);
       }

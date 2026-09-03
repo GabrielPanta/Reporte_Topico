@@ -18,7 +18,8 @@ a = Analysis(
         ('ejemplo_2_ultimo_dia_labores.xlsx', '.'),
         ('ejemplo_3_marcaciones.xlsx', '.'),
         ('ejemplo_4_buses_rutas.xlsx', '.'),
-        ('ejemplo_5_cuadrillas.xlsx', '.')
+        ('ejemplo_5_cuadrillas.xlsx', '.'),
+        ('sql_config.json', '.')
     ],
     hiddenimports=['pyodbc', 'webview', 'clr_loader', 'pythonnet', 'bottle'],
     hookspath=[],

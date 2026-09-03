@@ -31,7 +31,7 @@
           <div class="logo-title-row">
             <h1>Consolidador de Personal & Marcaciones</h1>
             <span class="pro-badge">UNIFRUTTI</span>
-            <span class="db-status-badge" id="db-status-badge" title="Conexión con base de datos SQL Server vfstbd01">
+            <span class="db-status-badge db-status-clickable" id="db-status-badge" title="Conexión SQL Server: Haz clic para cambiar contraseña o configurar parámetros">
               <span class="db-dot"></span> SQL Server Conectado
             </span>
           </div>
@@ -40,6 +40,16 @@
       </div>
 
       <div class="header-actions">
+        <!-- Direct SQL Database Configuration Button -->
+        <button id="btn-db-config" class="btn btn-secondary btn-sm" title="Configurar Parámetros y Contraseña de SQL Server" aria-label="Configuración SQL">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+          <span>⚙️ Conexión BD</span>
+        </button>
+
         <!-- Global Empresa Picker -->
         <div class="empresa-picker" id="empresa-picker-container" title="Empresa seleccionada para todas las consultas SQL (Maestro, Labores, Marcaciones, Rutas, Cuadrillas)">
           <div class="empresa-picker-label">
@@ -1765,6 +1775,108 @@
             <span class="shortcut-keys"><kbd>&larr;</kbd> / <kbd>&rarr;</kbd></span>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Configuración de Conexión SQL Server -->
+  <div class="modal-overlay" id="modal-sql-db-config" role="dialog" aria-modal="true" aria-labelledby="sql-db-config-title">
+    <div class="modal-content modal-content-md">
+      <div class="modal-header">
+        <div class="modal-header-icon" style="background: rgba(14, 165, 233, 0.15); color: #0284c7;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 id="sql-db-config-title">Configuración de Conexión SQL Server</h3>
+          <p class="modal-subtitle">Actualiza servidor, usuario, contraseña y parámetros de base de datos</p>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-sql-db-config" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="db-config-info-banner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <div>
+            <strong>Gestión de Contraseña y Acceso:</strong>
+            <span>Si cambias periódicamente tu contraseña institucional, actualízala aquí y haz clic en <strong>Guardar y Aplicar</strong> para mantener conectadas las 5 consultas automáticas.</span>
+          </div>
+        </div>
+
+        <form id="form-sql-db-config" class="sql-params-form">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="db-config-server">Servidor (Host / IP):</label>
+              <input type="text" id="db-config-server" class="select-input" placeholder="ej. vfstbd01" required>
+            </div>
+            <div class="form-group">
+              <label for="db-config-database">Base de Datos:</label>
+              <input type="text" id="db-config-database" class="select-input" placeholder="ej. bsis_rem_afr" required>
+            </div>
+            <div class="form-group">
+              <label for="db-config-uid">Usuario SQL (UID):</label>
+              <input type="text" id="db-config-uid" class="select-input" placeholder="ej. gpanta" required autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label for="db-config-pwd">Contraseña (PWD):</label>
+              <div class="password-input-wrapper">
+                <input type="password" id="db-config-pwd" class="select-input" placeholder="Nueva contraseña" required autocomplete="current-password">
+                <button type="button" class="btn-toggle-pwd" id="btn-toggle-db-pwd" title="Mostrar/Ocultar contraseña" aria-label="Mostrar u ocultar contraseña">
+                  <svg class="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="db-config-wsid">Estación (WSID):</label>
+              <input type="text" id="db-config-wsid" class="select-input" placeholder="ej. VFRPTS03">
+            </div>
+            <div class="form-group">
+              <label for="db-config-driver">Driver ODBC:</label>
+              <select id="db-config-driver" class="select-input">
+                <option value="{SQL Server}">{SQL Server} (Predeterminado de Windows)</option>
+                <option value="{ODBC Driver 17 for SQL Server}">{ODBC Driver 17 for SQL Server}</option>
+                <option value="{ODBC Driver 18 for SQL Server}">{ODBC Driver 18 for SQL Server}</option>
+                <option value="{SQL Server Native Client 11.0}">{SQL Server Native Client 11.0}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Caja de Feedback de Prueba de Conexión -->
+          <div id="db-config-status-box" class="db-status-alert" style="display: none;"></div>
+
+          <div class="modal-footer-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-db-config" title="Restaurar parámetros por defecto iniciales">
+              🔄 Restaurar Defecto
+            </button>
+            <div style="display: flex; gap: 0.6rem; align-items: center;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-test-db-config">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                </svg>
+                <span>🔌 Probar Conexión</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-db-config">Cancelar</button>
+              <button type="submit" class="btn btn-primary btn-sm" id="btn-save-db-config">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>💾 Guardar y Aplicar</span>
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </div>

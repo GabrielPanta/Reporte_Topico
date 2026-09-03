@@ -11,7 +11,7 @@ import urllib.parse
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 
 # Configuración de Base de Datos por defecto (SQL Server)
-SQL_CONFIG = {
+DEFAULT_SQL_CONFIG = {
     'driver': '{SQL Server}',
     'server': 'vfstbd01',
     'database': 'bsis_rem_afr',
@@ -20,14 +20,69 @@ SQL_CONFIG = {
     'wsid': 'VFRPTS03'
 }
 
-def get_connection_string():
+def get_config_file_path():
+    """Obtiene la ruta persistente del archivo sql_config.json junto al ejecutable o script."""
+    if getattr(sys, 'frozen', False):
+        base_dir = os.path.dirname(sys.executable)
+    else:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_dir, 'sql_config.json')
+
+def load_sql_config():
+    """Carga la configuración desde sql_config.json o crea el archivo con los valores por defecto."""
+    config = dict(DEFAULT_SQL_CONFIG)
+    config_path = get_config_file_path()
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                saved = json.load(f)
+                if isinstance(saved, dict):
+                    for k in DEFAULT_SQL_CONFIG.keys():
+                        if k in saved and saved[k] is not None:
+                            config[k] = str(saved[k])
+        except Exception as e:
+            print(f"Advertencia al leer {config_path}: {e}")
+    else:
+        try:
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Advertencia al crear {config_path}: {e}")
+    return config
+
+def save_sql_config(new_config):
+    """Guarda la nueva configuración de SQL Server en memoria y en el archivo JSON."""
+    global SQL_CONFIG
+    config_path = get_config_file_path()
+    if isinstance(new_config, dict):
+        for k in ['driver', 'server', 'database', 'uid', 'pwd', 'wsid']:
+            if k in new_config and new_config[k] is not None:
+                SQL_CONFIG[k] = str(new_config[k]).strip()
+    try:
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(SQL_CONFIG, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error al escribir {config_path}: {e}")
+    return SQL_CONFIG
+
+# Cargar configuración activa
+SQL_CONFIG = load_sql_config()
+
+def get_connection_string(config=None):
+    cfg = config or SQL_CONFIG
+    driver = cfg.get('driver', '{SQL Server}')
+    server = cfg.get('server', 'vfstbd01')
+    database = cfg.get('database', 'bsis_rem_afr')
+    uid = cfg.get('uid', 'gpanta')
+    pwd = cfg.get('pwd', '')
+    wsid = cfg.get('wsid', '')
     return (
-        f"DRIVER={SQL_CONFIG['driver']};"
-        f"SERVER={SQL_CONFIG['server']};"
-        f"DATABASE={SQL_CONFIG['database']};"
-        f"UID={SQL_CONFIG['uid']};"
-        f"PWD={SQL_CONFIG['pwd']};"
-        f"WSID={SQL_CONFIG.get('wsid', '')};"
+        f"DRIVER={driver};"
+        f"SERVER={server};"
+        f"DATABASE={database};"
+        f"UID={uid};"
+        f"PWD={pwd};"
+        f"WSID={wsid};"
     )
 
 def get_resource_path(relative_path):
@@ -77,6 +132,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             self.handle_api_zonas(parsed_url.query)
         elif path == '/api/test-sql':
             self.handle_api_test_sql()
+        elif path == '/api/sql-config':
+            self.handle_api_get_sql_config()
         else:
             super().do_GET()
 
@@ -88,10 +145,15 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             self.handle_api_save_excel()
         elif path == '/api/open-file':
             self.handle_api_open_file()
+        elif path == '/api/test-sql':
+            self.handle_api_test_sql_post()
+        elif path == '/api/sql-config':
+            self.handle_api_save_sql_config()
         else:
             self.send_json_response(404, {'success': False, 'error': 'Endpoint no encontrado'})
 
     def handle_api_save_excel(self):
+        """Guarda el archivo Excel generado en la carpeta Descargas o Escritorio de Windows."""
         try:
             import base64
             content_length = int(self.headers.get('Content-Length', 0))
@@ -103,6 +165,10 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
 
             # Guardar en la carpeta Descargas del usuario de Windows
             downloads_dir = os.path.join(os.path.expanduser('~'), 'Downloads')
+            if not os.path.exists(downloads_dir):
+                downloads_dir = os.path.join(os.path.expanduser('~'), 'Descargas')
+            if not os.path.exists(downloads_dir):
+                downloads_dir = os.path.join(os.path.expanduser('~'), 'Desktop')
             os.makedirs(downloads_dir, exist_ok=True)
             file_path = os.path.join(downloads_dir, filename)
 
@@ -125,6 +191,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             })
 
     def handle_api_open_file(self):
+        """Abre un archivo local en su aplicación predeterminada."""
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             post_body = self.rfile.read(content_length)
@@ -138,11 +205,91 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json_response(500, {'success': False, 'error': str(e)})
 
+    def handle_api_get_sql_config(self):
+        """Retorna la configuración actual de conexión a SQL Server."""
+        try:
+            self.send_json_response(200, {
+                'success': True,
+                'config': {
+                    'driver': SQL_CONFIG.get('driver', '{SQL Server}'),
+                    'server': SQL_CONFIG.get('server', 'vfstbd01'),
+                    'database': SQL_CONFIG.get('database', 'bsis_rem_afr'),
+                    'uid': SQL_CONFIG.get('uid', 'gpanta'),
+                    'pwd': SQL_CONFIG.get('pwd', ''),
+                    'wsid': SQL_CONFIG.get('wsid', 'VFRPTS03')
+                },
+                'config_path': get_config_file_path()
+            })
+        except Exception as e:
+            self.send_json_response(500, {'success': False, 'error': str(e)})
+
+    def handle_api_save_sql_config(self):
+        """Guarda la nueva configuración enviada desde la interfaz."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_body = self.rfile.read(content_length)
+            payload = json.loads(post_body.decode('utf-8'))
+
+            if not isinstance(payload, dict):
+                raise ValueError("El cuerpo debe ser un objeto JSON con los parámetros de conexión.")
+
+            updated = save_sql_config(payload)
+            self.send_json_response(200, {
+                'success': True,
+                'message': 'Configuración de base de datos guardada exitosamente.',
+                'config': {
+                    'driver': updated.get('driver'),
+                    'server': updated.get('server'),
+                    'database': updated.get('database'),
+                    'uid': updated.get('uid'),
+                    'pwd': updated.get('pwd'),
+                    'wsid': updated.get('wsid')
+                }
+            })
+        except Exception as e:
+            self.send_json_response(500, {
+                'success': False,
+                'error': f"Error al guardar configuración SQL: {str(e)}"
+            })
+
+    def handle_api_test_sql_post(self):
+        """Prueba de conexión con parámetros opcionales enviados en el cuerpo POST."""
+        try:
+            import pyodbc
+            content_length = int(self.headers.get('Content-Length', 0))
+            payload = {}
+            if content_length > 0:
+                post_body = self.rfile.read(content_length)
+                try:
+                    payload = json.loads(post_body.decode('utf-8'))
+                except Exception:
+                    payload = {}
+
+            test_cfg = dict(SQL_CONFIG)
+            if isinstance(payload, dict) and payload:
+                for k in ['driver', 'server', 'database', 'uid', 'pwd', 'wsid']:
+                    if k in payload and payload[k] is not None:
+                        test_cfg[k] = str(payload[k]).strip()
+
+            conn_str = get_connection_string(test_cfg)
+            conn = pyodbc.connect(conn_str, timeout=6)
+            conn.close()
+            self.send_json_response(200, {
+                'success': True,
+                'message': f"¡Conexión exitosa al servidor {test_cfg['server']} (Base de datos: {test_cfg['database']}, Usuario: {test_cfg['uid']})!"
+            })
+        except Exception as e:
+            self.send_json_response(500, {
+                'success': False,
+                'error': f"Error al conectar a SQL Server: {str(e)}"
+            })
+
     def handle_api_test_sql(self):
+        """Prueba de conexión con los parámetros guardados actualmente."""
         try:
             import pyodbc
             conn_str = get_connection_string()
-            conn = pyodbc.connect(conn_str, timeout=5)
+            conn = pyodbc.connect(conn_str, timeout=6)
             conn.close()
             self.send_json_response(200, {
                 'success': True,
@@ -700,7 +847,8 @@ def main():
 
     print("=" * 65)
     print("  CONSOLIDADOR DE PERSONAL, LABORES Y MARCACIONES (RRHH PRO)")
-    print("  Conector SQL Server Activo (vfstbd01): 5 Fuentes Disponibles")
+    print(f"  Conector SQL Server: {SQL_CONFIG.get('server')} ({SQL_CONFIG.get('database')}) | Usuario: {SQL_CONFIG.get('uid')}")
+    print(f"  Archivo de Configuración: {get_config_file_path()}")
     print("=" * 65)
     print("\nIniciando aplicación de escritorio...")
 
