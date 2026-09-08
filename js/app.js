@@ -641,7 +641,7 @@
     'CODIGO BUS': ['codigobus', 'codbus', 'bus', 'transporte', 'nrobus'],
     'RUTA': ['ruta', 'linea', 'recorrido', 'rutatransporte', 'rutabus', 'rutavehiculo'],
     'TURNO': ['horainicio', 'horaingreso', 'horarioinicio', 'turno', 'horario', 'jornada', 'tipoturno'],
-    'HASTA': ['ultimodia', 'fechaultimodia', 'fecultdia', 'ultimodialaborado', 'hasta', 'fechahasta', 'fec_hasta', 'vigenciahasta']
+    'HASTA': ['ultimodia', 'ultimo dia', 'fechaultimodia', 'fecultdia', 'ultimodialaborado']
   };
 
   // State Management
@@ -1461,12 +1461,9 @@
     }
 
     if (targetCol === 'HASTA') {
-      const ultimoDiaVal = extractFromRow(row2, ['ultimodia', 'ultimo_dia', 'fechaultimodia', 'fecha_ultimo_dia', 'fecultdia', 'ultimodialaborado']) ||
-                           extractFromRow(row1, ['ultimodia', 'ultimo_dia', 'fechaultimodia', 'fecha_ultimo_dia']);
-      if (ultimoDiaVal) return ultimoDiaVal;
-
-      return extractFromRow(row2, ['hasta', 'fechahasta', 'fecha_hasta', 'fec_hasta', 'vigenciahasta']) ||
-             extractFromRow(row1, ['hasta', 'fechahasta', 'fecha_hasta']);
+      if (!row2) return '';
+      const ultimoDiaVal = extractFromRow(row2, ['ultimodia', 'ultimo dia', 'ultimo_dia', 'fechaultimodia', 'fecha_ultimo_dia', 'fecultdia', 'ultimodialaborado']);
+      return ultimoDiaVal || '';
     }
 
     if (targetCol === 'Tiene Digitacion (jornal)') {
@@ -1927,12 +1924,15 @@
       const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParamEmpresa ? elements.sqlParamEmpresa.value : getSelectedEmpresaId());
       showToast(`Conectando a base de datos vfstbd01 y consultando trabajadores (Empresa ${activeEmp})...`, 'info');
 
+      const now = new Date();
+      const defMes = String(now.getMonth() + 1);
+      const defAnio = String(now.getFullYear());
       const p = customParams || {
         idEmpresa: activeEmp,
         activo: elements.sqlParamActivo ? elements.sqlParamActivo.value : '1',
-        mes: elements.sqlParamMes ? elements.sqlParamMes.value : '8',
-        anio: elements.sqlParamAnio ? elements.sqlParamAnio.value : '2026',
-        fechaini: elements.sqlParamFechaini ? elements.sqlParamFechaini.value : '31/8/2026'
+        mes: elements.sqlParamMes ? elements.sqlParamMes.value : defMes,
+        anio: elements.sqlParamAnio ? elements.sqlParamAnio.value : defAnio,
+        fechaini: (elements.sqlParamFechaini && elements.sqlParamFechaini.value.trim()) || ''
       };
 
       const queryParams = new URLSearchParams(p);
@@ -2363,17 +2363,15 @@
 
   // Helper: Cálculo de fechas de corte y rangos por mes/año
   function calculateAndSetSyncAllDates(mesNum, anioNum) {
+    mesNum = parseInt(mesNum, 10);
+    anioNum = parseInt(anioNum, 10);
     if (isNaN(mesNum) || isNaN(anioNum)) return;
     
-    // Calcular último día del mes
-    let lastDay = 31;
-    if (mesNum === 2) {
-      lastDay = (anioNum % 4 === 0 && (anioNum % 100 !== 0 || anioNum % 400 === 0)) ? 29 : 28;
-    } else if ([4, 6, 9, 11].includes(mesNum)) {
-      lastDay = 30;
-    }
+    // Calcular último día del mes de forma matemática exacta
+    const lastDay = new Date(anioNum, mesNum, 0).getDate();
+    const pad = (n) => String(n).padStart(2, '0');
 
-    const fechaini = `${lastDay}/${mesNum}/${anioNum}`;
+    const fechaini = `${pad(lastDay)}/${pad(mesNum)}/${anioNum}`;
     if (elements.syncAllP1Fechaini) elements.syncAllP1Fechaini.value = fechaini;
     if (elements.sqlParamFechaini) elements.sqlParamFechaini.value = fechaini;
     const advFechaini = document.getElementById('adv-param-fechaini');
@@ -2511,10 +2509,11 @@
     const activeDias = (selDias && selDias.value) ? parseInt(selDias.value) : 3;
 
     // Calcular fecha corte para SPC_FICHA_TRABAJADOR
-    let lastDay = 31;
-    if (activeMes === '2') lastDay = 28;
-    else if (['4', '6', '9', '11'].includes(activeMes)) lastDay = 30;
-    const fechainiCorte = `${lastDay}/${activeMes}/${activeAnio}`;
+    const mNum = parseInt(activeMes, 10) || (new Date().getMonth() + 1);
+    const yNum = parseInt(activeAnio, 10) || new Date().getFullYear();
+    const lastDay = new Date(yNum, mNum, 0).getDate();
+    const pad = (n) => String(n).padStart(2, '0');
+    const fechainiCorte = `${pad(lastDay)}/${pad(mNum)}/${yNum}`;
 
     // Actualizar chips informativos en el modal
     if (chipEmpresa) chipEmpresa.textContent = activeEmpText;
@@ -2931,32 +2930,37 @@
           return;
         }
 
+        const now = new Date();
+        const defMes = String(now.getMonth() + 1);
+        const defAnio = String(now.getFullYear());
+        const range3d = getDefault3DaysRange();
+
         const p1 = {
           idEmpresa: (elements.syncAllP1Empresa && elements.syncAllP1Empresa.value.trim()) || '14',
           activo: (elements.syncAllP1Activo && elements.syncAllP1Activo.value) || '1',
-          mes: (elements.syncAllP1Mes && elements.syncAllP1Mes.value) || '8',
-          anio: (elements.syncAllP1Anio && elements.syncAllP1Anio.value) || '2026',
-          fechaini: (elements.syncAllP1Fechaini && elements.syncAllP1Fechaini.value.trim()) || '31/8/2026'
+          mes: (elements.syncAllP1Mes && elements.syncAllP1Mes.value) || defMes,
+          anio: (elements.syncAllP1Anio && elements.syncAllP1Anio.value) || defAnio,
+          fechaini: (elements.syncAllP1Fechaini && elements.syncAllP1Fechaini.value.trim()) || ''
         };
 
         const p2 = {
           idEmpresa: (elements.syncAllP2Empresa && elements.syncAllP2Empresa.value.trim()) || '14',
-          mes: (elements.syncAllP2Mes && elements.syncAllP2Mes.value) || '8',
-          anio: (elements.syncAllP2Anio && elements.syncAllP2Anio.value) || '2026'
+          mes: (elements.syncAllP2Mes && elements.syncAllP2Mes.value) || defMes,
+          anio: (elements.syncAllP2Anio && elements.syncAllP2Anio.value) || defAnio
         };
 
         const p3 = {
           idEmpresa: (elements.syncAllP3Empresa && elements.syncAllP3Empresa.value.trim()) || '14',
-          fechaDesde: (elements.syncAllP3Desde && elements.syncAllP3Desde.value.trim()) || '18/08/2026',
-          fechaHasta: (elements.syncAllP3Hasta && elements.syncAllP3Hasta.value.trim()) || '20/08/2026',
+          fechaDesde: (elements.syncAllP3Desde && elements.syncAllP3Desde.value.trim()) || range3d.desde,
+          fechaHasta: (elements.syncAllP3Hasta && elements.syncAllP3Hasta.value.trim()) || range3d.hasta,
           sw_contrato: (elements.syncAllP3Sw && elements.syncAllP3Sw.value) || '0'
         };
 
         const p4 = {
           codPais: (elements.syncAllP4Codpais && elements.syncAllP4Codpais.value.trim()) || 'PE',
           idEmpresa: (elements.syncAllP4Empresa && elements.syncAllP4Empresa.value.trim()) || '0',
-          desde: (elements.syncAllP4Desde && elements.syncAllP4Desde.value.trim()) || '18/08/2026',
-          hasta: (elements.syncAllP4Hasta && elements.syncAllP4Hasta.value.trim()) || '20/08/2026'
+          desde: (elements.syncAllP4Desde && elements.syncAllP4Desde.value.trim()) || range3d.desde,
+          hasta: (elements.syncAllP4Hasta && elements.syncAllP4Hasta.value.trim()) || range3d.hasta
         };
 
         const p5 = {
@@ -2987,12 +2991,13 @@
     if (elements.formSqlParams) {
       elements.formSqlParams.addEventListener('submit', (e) => {
         e.preventDefault();
+        const now = new Date();
         const customParams = {
           idEmpresa: elements.sqlParamEmpresa ? elements.sqlParamEmpresa.value : getSelectedEmpresaId(),
           activo: elements.sqlParamActivo ? elements.sqlParamActivo.value : '1',
-          mes: elements.sqlParamMes ? elements.sqlParamMes.value : '8',
-          anio: elements.sqlParamAnio ? elements.sqlParamAnio.value : '2026',
-          fechaini: elements.sqlParamFechaini ? elements.sqlParamFechaini.value : '31/8/2026'
+          mes: elements.sqlParamMes ? elements.sqlParamMes.value : String(now.getMonth() + 1),
+          anio: elements.sqlParamAnio ? elements.sqlParamAnio.value : String(now.getFullYear()),
+          fechaini: elements.sqlParamFechaini ? elements.sqlParamFechaini.value.trim() : ''
         };
         loadFromSqlServer(customParams);
       });
@@ -3795,8 +3800,10 @@
     }
 
     if (fileIndex === 1) {
-      populateSelect(elements.keySelect1, headers, state.file1.keyCol);
-      elements.keySelect1.onchange = (e) => { state.file1.keyCol = e.target.value; };
+      if (elements.keySelect1) {
+        populateSelect(elements.keySelect1, headers, state.file1.keyCol);
+        elements.keySelect1.onchange = (e) => { state.file1.keyCol = e.target.value; };
+      }
       if (elements.paternoSelect1) {
         populateSelect(elements.paternoSelect1, headers, state.file1.patCol, '(Opcional)');
         elements.paternoSelect1.onchange = (e) => { state.file1.patCol = e.target.value; };
@@ -3810,8 +3817,14 @@
         elements.nombresSelect1.onchange = (e) => { state.file1.nomCol = e.target.value; };
       }
     } else if (fileIndex === 2) {
-      populateSelect(elements.keySelect2, headers, state.file2.keyCol);
-      populateSelect(elements.actSelect2, headers, state.file2.actCol);
+      if (elements.keySelect2) {
+        populateSelect(elements.keySelect2, headers, state.file2.keyCol);
+        elements.keySelect2.onchange = (e) => { state.file2.keyCol = e.target.value; };
+      }
+      if (elements.actSelect2) {
+        populateSelect(elements.actSelect2, headers, state.file2.actCol);
+        elements.actSelect2.onchange = (e) => { state.file2.actCol = e.target.value; };
+      }
       if (elements.laborSelect2) {
         populateSelect(elements.laborSelect2, headers, state.file2.laborCol);
         elements.laborSelect2.onchange = (e) => { state.file2.laborCol = e.target.value; };
@@ -3824,11 +3837,11 @@
         populateSelect(elements.turnoSelect2, headers, state.file2.turnoCol, '(Auto-detectar)');
         elements.turnoSelect2.onchange = (e) => { state.file2.turnoCol = e.target.value; };
       }
-      elements.keySelect2.onchange = (e) => { state.file2.keyCol = e.target.value; };
-      elements.actSelect2.onchange = (e) => { state.file2.actCol = e.target.value; };
     } else if (fileIndex === 3) {
-      populateSelect(elements.keySelect3, headers, state.file3.keyCol);
-      elements.keySelect3.onchange = (e) => { state.file3.keyCol = e.target.value; };
+      if (elements.keySelect3) {
+        populateSelect(elements.keySelect3, headers, state.file3.keyCol);
+        elements.keySelect3.onchange = (e) => { state.file3.keyCol = e.target.value; };
+      }
       if (elements.nomEstSelect3) {
         populateSelect(elements.nomEstSelect3, headers, state.file3.nomEstCol, '(Auto-detectar)');
         elements.nomEstSelect3.onchange = (e) => { state.file3.nomEstCol = e.target.value; };
@@ -3934,8 +3947,8 @@
     const infoBox = elements[`fileInfo${fileIndex}`];
     const input = elements[`fileInput${fileIndex}`];
 
-    card.classList.remove('loaded');
-    infoBox.classList.remove('active');
+    if (card) card.classList.remove('loaded');
+    if (infoBox) infoBox.classList.remove('active');
     if (input) input.value = '';
 
     const sheetGroup = elements[`sheetGroup${fileIndex}`];
@@ -4463,7 +4476,25 @@
         } else if (colName === 'Regimen') {
           consolidatedRow['Regimen'] = formatCellValue(row1['Tipo Regimen'] || row1['Regimen'] || row1['REGIMEN'] || extractValueForColumn(colName, row2, row1, keyCol1));
         } else if (colName === 'HASTA') {
-          consolidatedRow['HASTA'] = formatCellValue(row2 ? (row2['Hasta'] || row2['HASTA'] || row2['Fecha'] || row2['FecUltDia'] || row2['UltimoDia'] || '') : '');
+          let hastaVal = '';
+          if (row2) {
+            // Extraer estrictamente el campo "ULTIMO DIA" de la consulta Último Día Laborado
+            for (const k of Object.keys(row2)) {
+              const ck = cleanHeader(k);
+              if (ck === 'ultimodia' || ck === 'fechaultimodia' || ck === 'fecultdia' || ck === 'ultimodialaborado') {
+                hastaVal = row2[k];
+                break;
+              }
+            }
+            if (!hastaVal) {
+              hastaVal = row2['ULTIMO DIA'] || row2['ÚLTIMO DIA'] || row2['ÚLTIMO DÍA'] || row2['ULTIMO DÍA'] || row2['ULTIMO_DIA'] || row2['Ultimo Dia'] || row2['ultimo dia'] || row2['ULTIMODIA'] || row2['UltimoDia'] || '';
+            }
+          }
+          let formattedHasta = formatCellValue(hastaVal);
+          if (formattedHasta) {
+            formattedHasta = formattedHasta.replace(/[\sT]00:00:00.*/, '');
+          }
+          consolidatedRow['HASTA'] = formattedHasta;
         } else {
           consolidatedRow[colName] = extractValueForColumn(colName, row2, row1, keyCol1);
         }
@@ -4484,8 +4515,8 @@
     };
 
     // Update Wizard steps
-    elements.step2.classList.add('completed');
-    elements.step3.classList.add('active');
+    if (elements.step2) elements.step2.classList.add('completed');
+    if (elements.step3) elements.step3.classList.add('active');
 
     // Render Metrics, Distribution & Table
     updateMetricsAndDistributionUI();
@@ -4493,10 +4524,12 @@
     sortData();
     renderTable();
 
-    elements.resultsSection.classList.add('active');
+    if (elements.resultsSection) {
+      elements.resultsSection.classList.add('active');
+    }
     if (typeof window.switchViewMode === 'function') {
       window.switchViewMode('results');
-    } else {
+    } else if (elements.resultsSection) {
       elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
     }
 

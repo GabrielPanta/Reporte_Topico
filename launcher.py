@@ -96,7 +96,7 @@ def get_connection_string(config=None, force_trusted=False):
         f"WSID={wsid};"
     )
 
-def get_sql_connection(config=None, timeout=30):
+def get_sql_connection(config=None, timeout=60):
     """
     Obtiene una conexión activa a SQL Server.
     Prueba primero la autenticación configurada y si falla con error de login (18456),
@@ -105,18 +105,23 @@ def get_sql_connection(config=None, timeout=30):
     import pyodbc
     cfg = config or SQL_CONFIG
     trusted = str(cfg.get('trusted_connection', '')).lower() in ('yes', 'true', '1')
+    conn = None
     if trusted:
         conn = pyodbc.connect(get_connection_string(cfg, force_trusted=True), timeout=timeout)
-        return conn
-    try:
-        conn = pyodbc.connect(get_connection_string(cfg, force_trusted=False), timeout=timeout)
-        return conn
-    except Exception as e_sql:
+    else:
         try:
-            conn = pyodbc.connect(get_connection_string(cfg, force_trusted=True), timeout=timeout)
-            return conn
+            conn = pyodbc.connect(get_connection_string(cfg, force_trusted=False), timeout=timeout)
+        except Exception as e_sql:
+            try:
+                conn = pyodbc.connect(get_connection_string(cfg, force_trusted=True), timeout=timeout)
+            except Exception:
+                raise e_sql
+    if conn:
+        try:
+            conn.timeout = 120
         except Exception:
-            raise e_sql
+            pass
+    return conn
 
 def get_resource_path(relative_path):
     """Obtiene la ruta absoluta del recurso, ya sea en desarrollo o empaquetado."""
@@ -346,26 +351,38 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         default_month = now.month
         default_year = now.year
 
-        if default_month == 12:
-            last_day = 31
-        else:
-            next_month = datetime.date(default_year, default_month + 1, 1)
-            last_day = (next_month - datetime.timedelta(days=1)).day
-
-        default_fechaini = f"{last_day}/{default_month}/{default_year}"
-        default_zonas = (
-            '0,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,155,0'
-        )
+        import calendar
 
         params = urllib.parse.parse_qs(query_str)
         id_empresa = int(params.get('idEmpresa', [14])[0])
         activo = int(params.get('activo', [1])[0])
         mes = int(params.get('mes', [default_month])[0])
         anio = int(params.get('anio', [default_year])[0])
-        fechaini = params.get('fechaini', [default_fechaini])[0]
+
+        # Validar y calcular último día exacto para el mes/año
+        _, max_day = calendar.monthrange(anio, mes)
+        raw_fechaini = params.get('fechaini', [None])[0]
+        try:
+            if raw_fechaini:
+                parts = [int(p) for p in str(raw_fechaini).strip().split('/')]
+                if len(parts) == 3:
+                    f_day, f_month, f_year = parts[0], parts[1], parts[2]
+                    _, f_max_day = calendar.monthrange(f_year, f_month)
+                    valid_day = min(max(1, f_day), f_max_day)
+                    fechaini = f"{valid_day:02d}/{f_month:02d}/{f_year}"
+                else:
+                    fechaini = f"{max_day:02d}/{mes:02d}/{anio}"
+            else:
+                fechaini = f"{max_day:02d}/{mes:02d}/{anio}"
+        except Exception:
+            fechaini = f"{max_day:02d}/{mes:02d}/{anio}"
+
+        default_zonas = (
+            '0,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,155,0'
+        )
 
         try:
-            conn = get_sql_connection(timeout=40)
+            conn = get_sql_connection(timeout=90)
             cursor = conn.cursor()
 
             # Consultar dinámicamente el catálogo de Zonas para la empresa activa desde la tabla [Zona]
@@ -510,7 +527,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         anio = int(params.get('anio', [now.year])[0])
 
         try:
-            conn = get_sql_connection(timeout=40)
+            conn = get_sql_connection(timeout=60)
             cursor = conn.cursor()
 
             sql = "EXEC SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR @IDEMPRESA = ?, @MES = ?, @ANO = ?"
@@ -636,7 +653,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                 fecha_hasta = f"{now.day:02d}/{now.month:02d}/{now.year}"
 
         try:
-            conn = get_sql_connection(timeout=35)
+            conn = get_sql_connection(timeout=90)
             cursor = conn.cursor()
 
             sql = "EXEC SPC_LOGIN_MARCACIONES @Fecha = ?, @FechaHasta = ?, @sw_contrato = 0, @IdEmpresa = ?"
@@ -687,7 +704,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         id_empresa = int(params.get('idEmpresa', [0])[0]) if params.get('idEmpresa') and params.get('idEmpresa')[0] != '0' else None
 
         try:
-            conn = get_sql_connection(timeout=35)
+            conn = get_sql_connection(timeout=60)
             cursor = conn.cursor()
 
             # Ejecutar SPC_REGISTRO_RUTA
@@ -735,7 +752,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         id_empresa = int(params.get('idEmpresa', [14])[0])
 
         try:
-            conn = get_sql_connection(timeout=20)
+            conn = get_sql_connection(timeout=60)
             cursor = conn.cursor()
 
             sql = "EXEC SPC_DINAMICA_CUADRILLAS @EMPRESA = ?"
