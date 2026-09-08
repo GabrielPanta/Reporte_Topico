@@ -8,7 +8,7 @@ import json
 import datetime
 import decimal
 import urllib.parse
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import SimpleHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 
 # Configuración de Base de Datos por defecto (SQL Server)
 DEFAULT_SQL_CONFIG = {
@@ -17,7 +17,8 @@ DEFAULT_SQL_CONFIG = {
     'database': 'bsis_rem_afr',
     'uid': 'gpanta',
     'pwd': 'Pantagabriel#98',
-    'wsid': 'VFRPTS03'
+    'wsid': 'VFRPTS03',
+    'trusted_connection': 'yes'
 }
 
 def get_config_file_path():
@@ -55,7 +56,7 @@ def save_sql_config(new_config):
     global SQL_CONFIG
     config_path = get_config_file_path()
     if isinstance(new_config, dict):
-        for k in ['driver', 'server', 'database', 'uid', 'pwd', 'wsid']:
+        for k in ['driver', 'server', 'database', 'uid', 'pwd', 'wsid', 'trusted_connection']:
             if k in new_config and new_config[k] is not None:
                 SQL_CONFIG[k] = str(new_config[k]).strip()
     try:
@@ -68,7 +69,7 @@ def save_sql_config(new_config):
 # Cargar configuración activa
 SQL_CONFIG = load_sql_config()
 
-def get_connection_string(config=None):
+def get_connection_string(config=None, force_trusted=False):
     cfg = config or SQL_CONFIG
     driver = cfg.get('driver', '{SQL Server}')
     server = cfg.get('server', 'vfstbd01')
@@ -76,6 +77,16 @@ def get_connection_string(config=None):
     uid = cfg.get('uid', 'gpanta')
     pwd = cfg.get('pwd', '')
     wsid = cfg.get('wsid', '')
+    trusted = cfg.get('trusted_connection', '')
+
+    if force_trusted or str(trusted).lower() in ('yes', 'true', '1') or not pwd:
+        return (
+            f"DRIVER={driver};"
+            f"SERVER={server};"
+            f"DATABASE={database};"
+            f"Trusted_Connection=yes;"
+            f"WSID={wsid};"
+        )
     return (
         f"DRIVER={driver};"
         f"SERVER={server};"
@@ -84,6 +95,28 @@ def get_connection_string(config=None):
         f"PWD={pwd};"
         f"WSID={wsid};"
     )
+
+def get_sql_connection(config=None, timeout=30):
+    """
+    Obtiene una conexión activa a SQL Server.
+    Prueba primero la autenticación configurada y si falla con error de login (18456),
+    reintenta automáticamente con Autenticación Integrada de Windows (Trusted_Connection=yes).
+    """
+    import pyodbc
+    cfg = config or SQL_CONFIG
+    trusted = str(cfg.get('trusted_connection', '')).lower() in ('yes', 'true', '1')
+    if trusted:
+        conn = pyodbc.connect(get_connection_string(cfg, force_trusted=True), timeout=timeout)
+        return conn
+    try:
+        conn = pyodbc.connect(get_connection_string(cfg, force_trusted=False), timeout=timeout)
+        return conn
+    except Exception as e_sql:
+        try:
+            conn = pyodbc.connect(get_connection_string(cfg, force_trusted=True), timeout=timeout)
+            return conn
+        except Exception:
+            raise e_sql
 
 def get_resource_path(relative_path):
     """Obtiene la ruta absoluta del recurso, ya sea en desarrollo o empaquetado."""
@@ -216,7 +249,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                     'database': SQL_CONFIG.get('database', 'bsis_rem_afr'),
                     'uid': SQL_CONFIG.get('uid', 'gpanta'),
                     'pwd': SQL_CONFIG.get('pwd', ''),
-                    'wsid': SQL_CONFIG.get('wsid', 'VFRPTS03')
+                    'wsid': SQL_CONFIG.get('wsid', 'VFRPTS03'),
+                    'trusted_connection': SQL_CONFIG.get('trusted_connection', 'yes')
                 },
                 'config_path': get_config_file_path()
             })
@@ -243,7 +277,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                     'database': updated.get('database'),
                     'uid': updated.get('uid'),
                     'pwd': updated.get('pwd'),
-                    'wsid': updated.get('wsid')
+                    'wsid': updated.get('wsid'),
+                    'trusted_connection': updated.get('trusted_connection', 'yes')
                 }
             })
         except Exception as e:
@@ -267,12 +302,11 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
 
             test_cfg = dict(SQL_CONFIG)
             if isinstance(payload, dict) and payload:
-                for k in ['driver', 'server', 'database', 'uid', 'pwd', 'wsid']:
+                for k in ['driver', 'server', 'database', 'uid', 'pwd', 'wsid', 'trusted_connection']:
                     if k in payload and payload[k] is not None:
                         test_cfg[k] = str(payload[k]).strip()
 
-            conn_str = get_connection_string(test_cfg)
-            conn = pyodbc.connect(conn_str, timeout=6)
+            conn = get_sql_connection(test_cfg, timeout=8)
             conn.close()
             self.send_json_response(200, {
                 'success': True,
@@ -288,8 +322,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         """Prueba de conexión con los parámetros guardados actualmente."""
         try:
             import pyodbc
-            conn_str = get_connection_string()
-            conn = pyodbc.connect(conn_str, timeout=6)
+            conn = get_sql_connection(timeout=8)
             conn.close()
             self.send_json_response(200, {
                 'success': True,
@@ -332,7 +365,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         fechaini = params.get('fechaini', [default_fechaini])[0]
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=40)
+            conn = get_sql_connection(timeout=40)
             cursor = conn.cursor()
 
             # Consultar dinámicamente el catálogo de Zonas para la empresa activa desde la tabla [Zona]
@@ -477,8 +510,9 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         anio = int(params.get('anio', [now.year])[0])
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=40)
+            conn = get_sql_connection(timeout=40)
             cursor = conn.cursor()
+
             sql = "EXEC SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR @IDEMPRESA = ?, @MES = ?, @ANO = ?"
             cursor.execute(sql, (id_empresa, mes, anio))
 
@@ -581,7 +615,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         id_empresa = int(params.get('idEmpresa', [14])[0]) if params.get('idEmpresa') else 14
         dias = int(params.get('dias', [3])[0])
 
-        # Calcular rango de 3 fechas desde la fecha base hacia atrás
+        # Calcular rango dinámico de 3 fechas hacia atrás
         now = datetime.datetime.now()
         if not fecha_hasta:
             if fecha:
@@ -597,11 +631,12 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
                 fecha_desde = f"{start_dt.day:02d}/{start_dt.month:02d}/{start_dt.year}"
                 fecha_hasta = f"{end_dt.day:02d}/{end_dt.month:02d}/{end_dt.year}"
             except Exception:
-                fecha_desde = '18/08/2026'
-                fecha_hasta = '20/08/2026'
+                start_dt = now - datetime.timedelta(days=dias - 1)
+                fecha_desde = f"{start_dt.day:02d}/{start_dt.month:02d}/{start_dt.year}"
+                fecha_hasta = f"{now.day:02d}/{now.month:02d}/{now.year}"
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=60)
+            conn = get_sql_connection(timeout=35)
             cursor = conn.cursor()
 
             sql = "EXEC SPC_LOGIN_MARCACIONES @Fecha = ?, @FechaHasta = ?, @sw_contrato = 0, @IdEmpresa = ?"
@@ -642,14 +677,19 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
 
         params = urllib.parse.parse_qs(query_str)
         cod_pais = params.get('codPais', ['PE'])[0] or params.get('cod_pais', ['PE'])[0]
-        desde = params.get('desde', ['16-08-2026'])[0].replace('/', '-')
-        hasta = params.get('hasta', ['31-08-2026'])[0].replace('/', '-')
+        now = datetime.datetime.now()
+        d_15 = now - datetime.timedelta(days=15)
+        default_desde = f"{d_15.day:02d}-{d_15.month:02d}-{d_15.year}"
+        default_hasta = f"{now.day:02d}-{now.month:02d}-{now.year}"
+
+        desde = params.get('desde', [default_desde])[0].replace('/', '-')
+        hasta = params.get('hasta', [default_hasta])[0].replace('/', '-')
         id_empresa = int(params.get('idEmpresa', [0])[0]) if params.get('idEmpresa') and params.get('idEmpresa')[0] != '0' else None
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=35)
+            conn = get_sql_connection(timeout=35)
             cursor = conn.cursor()
-            
+
             # Ejecutar SPC_REGISTRO_RUTA
             if id_empresa:
                 sql = "EXEC SPC_REGISTRO_RUTA @COD_PAIS = ?, @DESDE = ?, @HASTA = ?, @IDEMPRESA = ?"
@@ -695,8 +735,9 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         id_empresa = int(params.get('idEmpresa', [14])[0])
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=10)
+            conn = get_sql_connection(timeout=20)
             cursor = conn.cursor()
+
             sql = "EXEC SPC_DINAMICA_CUADRILLAS @EMPRESA = ?"
             cursor.execute(sql, (id_empresa,))
 
@@ -732,8 +773,9 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         id_empresa = str(params.get('idEmpresa', ['14'])[0])
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=25)
+            conn = get_sql_connection(timeout=25)
             cursor = conn.cursor()
+
             sql = "EXEC SPC_CUADRO_PREDIO_CUARTEL @IDEMPRESA = ?"
             cursor.execute(sql, (id_empresa,))
 
@@ -773,8 +815,9 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         id_empresa = int(params.get('idEmpresa', [14])[0])
 
         try:
-            conn = pyodbc.connect(get_connection_string(), timeout=15)
+            conn = get_sql_connection(timeout=15)
             cursor = conn.cursor()
+
             cursor.execute("SELECT IdZona, IdEmpresa, Nombre, COD_CENTROCOSTO, NOM_CENTROCOSTO FROM [Zona] WHERE IdEmpresa = ? ORDER BY IdZona", (id_empresa,))
 
             columns = [col[0] for col in cursor.description]
@@ -854,7 +897,7 @@ def main():
 
     port = find_free_port()
     server_address = ('127.0.0.1', port)
-    httpd = HTTPServer(server_address, CustomHTTPHandler)
+    httpd = ThreadingHTTPServer(server_address, CustomHTTPHandler)
     url = f"http://127.0.0.1:{port}/index.html"
 
     # Iniciar servidor HTTP en segundo plano
@@ -882,6 +925,7 @@ def main():
                     ICON_SMALL = 0
                     ICON_BIG = 1
 
+                    SW_MAXIMIZE = 3
                     found = False
                     def enum_cb(hwnd, lparam):
                         nonlocal found
@@ -895,6 +939,7 @@ def main():
                                     ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_sm)
                                 if hicon_big:
                                     ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
+                                ctypes.windll.user32.ShowWindow(hwnd, SW_MAXIMIZE)
                                 found = True
                         return True
 
@@ -918,7 +963,8 @@ def main():
             min_size=(1024, 650),
             resizable=True,
             text_select=True,
-            confirm_close=False
+            confirm_close=False,
+            maximized=True
         )
         webview.start(gui='edgechromium', debug=False)
         print("\nAplicación cerrada por el usuario.")
@@ -929,7 +975,7 @@ def main():
         use_webview = False
 
     if not use_webview:
-        # Fallback a Edge App Mode (ventana independiente sin barras ni pestañas de navegador)
+        # Fallback a Edge App Mode (ventana independiente maximizada sin barras ni pestañas)
         import subprocess
         opened = False
         edge_paths = [
@@ -939,7 +985,7 @@ def main():
         for ep in edge_paths:
             if os.path.exists(ep):
                 try:
-                    subprocess.Popen([ep, f"--app={url}", "--window-size=1360,880"])
+                    subprocess.Popen([ep, f"--app={url}", "--start-maximized"])
                     opened = True
                     break
                 except Exception:

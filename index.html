@@ -3,1709 +3,291 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Consolidador de Personal, Labores y Marcaciones | RRHH Pro</title>
-  <meta name="description" content="Plataforma SaaS ejecutiva para procesar, cruzar y exportar automáticamente el consolidado de personal con los 23 campos exactos requeridos.">
+  <title>Unifrutti | Sistema de Control de Asistencia y Transporte</title>
+  <meta name="description" content="Sistema empresarial de control y consolidación de asistencia, labores y transporte para Unifrutti Perú.">
   
-  <!-- Google Fonts with local fallback -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <link rel="icon" type="image/png" href="img/logo.png">
-  <link rel="stylesheet" href="css/styles.css?v=20260820_1200">
+  <link rel="stylesheet" href="css/styles.css?v=20260907_functional">
 </head>
-<body>
+<body class="desktop-app-body">
 
-  <!-- Ambient Background Glow -->
-  <div class="ambient-glow glow-top-left" aria-hidden="true"></div>
-  <div class="ambient-glow glow-bottom-right" aria-hidden="true"></div>
-
-  <!-- Header -->
-  <header class="app-header">
-    <div class="header-container">
-      <div class="logo-group">
-        <div class="logo-img-wrapper" title="Unifrutti Group">
-          <img src="img/logo.png" alt="Unifrutti" class="app-logo-img">
-        </div>
-        <div class="logo-text">
-          <div class="logo-title-row">
-            <h1>Consolidador de Personal & Marcaciones</h1>
-            <span class="pro-badge">UNIFRUTTI</span>
-            <span class="db-status-badge db-status-clickable" id="db-status-badge" title="Conexión SQL Server: Haz clic para cambiar contraseña o configurar parámetros">
-              <span class="db-dot"></span> SQL Server Conectado
-            </span>
+  <!-- Main Application Layout (Sidebar + Workplace) -->
+  <div class="app-layout" id="app-layout">
+    
+    <!-- Left Dark Sidebar (Solo Elementos Funcionales) -->
+    <aside class="app-sidebar" id="app-sidebar" aria-label="Navegación Lateral">
+      <!-- Sidebar Brand Capsule -->
+      <div class="sidebar-header">
+        <div class="sidebar-brand-card">
+          <div class="sidebar-logo-container">
+            <img src="img/logo.png" alt="Unifrutti" class="sidebar-logo-img">
           </div>
-          <p>Cruce automatizado de personal, labores y asistencia con 23 campos exactos</p>
+          <div class="sidebar-brand-text">
+            <span class="sidebar-brand-title">Unifrutti Perú</span>
+            <span class="sidebar-brand-subtitle">GESTIÓN ASISTENCIAS</span>
+          </div>
         </div>
+        <button type="button" class="btn-sidebar-collapse" id="btn-sidebar-collapse" title="Colapsar / Expandir menú (Ctrl+B)" aria-label="Colapsar menú">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
       </div>
 
-      <div class="header-actions">
-        <!-- Direct SQL Database Configuration Button -->
-        <button id="btn-db-config" class="btn btn-secondary btn-sm" title="Configurar Parámetros y Contraseña de SQL Server" aria-label="Configuración SQL">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <!-- Functional Navigation Modules -->
+      <div class="sidebar-content">
+        <div class="sidebar-section-title">MÓDULOS PRINCIPALES</div>
+
+        <button type="button" class="sidebar-nav-item active" id="nav-control-asistencia" title="Vista principal de asistencias y labores">
+          <svg class="sidebar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <line x1="3" y1="9" x2="21" y2="9"></line>
+            <line x1="9" y1="21" x2="9" y2="9"></line>
+          </svg>
+          <span class="sidebar-label">Control Asistencia</span>
+        </button>
+
+        <button type="button" class="sidebar-nav-item" id="nav-config-bd" title="Configuración de servidor y credenciales SQL Server">
+          <svg class="sidebar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
             <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
           </svg>
-          <span>⚙️ Conexión BD</span>
+          <span class="sidebar-label">Configuración BD</span>
         </button>
 
-        <!-- Global Empresa Picker -->
-        <div class="empresa-picker" id="empresa-picker-container" title="Empresa seleccionada para todas las consultas SQL (Maestro, Labores, Marcaciones, Rutas, Cuadrillas)">
-          <div class="empresa-picker-label">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M3 21h18M3 7v14M21 7v14M6 7V3h12v4M9 11h.01M15 11h.01M9 15h.01M15 15h.01"></path>
-            </svg>
-            <span>Empresa:</span>
-          </div>
-          <select id="global-empresa-select" class="select-empresa-header" aria-label="Seleccionar Empresa SQL">
-            <option value="14" selected>14 - VERFRUT S.A.C.</option>
-            <option value="9">9 - RAPEL S.A.C.</option>
-            <option value="12">12 - ALGARROBOS PIURA</option>
-            <option value="1">1 - EL PORVENIR</option>
-            <option value="2">2 - EL DURAZNO</option>
-            <option value="3">3 - LOS PARRONES</option>
-            <option value="4">4 - QUILAMUTA</option>
-            <option value="7">7 - PILARES VERDES</option>
-            <option value="8">8 - VERFRUT CHILE</option>
-            <option value="23">23 - AVANTI S.A.C.</option>
-            <option value="31">31 - BOMAREA S.R.L.</option>
-            <option value="custom">✏️ Otra Empresa (ID)...</option>
-          </select>
-          <input type="number" id="global-empresa-custom" class="input-empresa-custom" placeholder="ID" style="display: none;" min="1" max="999" aria-label="ID Empresa personalizado">
-        </div>
-
-        <!-- Direct SQL Load All Button in Header -->
-        <button id="btn-load-all-sql" class="btn btn-primary btn-sm" title="Sincronizar Trabajadores, Labores, Marcaciones, Buses y Cuadrillas directamente desde SQL Server según la Empresa seleccionada">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-          </svg>
-          <span>⚡ Sincronizar Todo (SQL)</span>
-        </button>
-
-        <!-- Descargar Excel Header Button -->
-        <button id="btn-export-excel-header" class="btn btn-success btn-sm" title="Descargar reporte consolidado en archivo Excel (.xlsx)">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          <span>📥 Descargar Excel</span>
-        </button>
-
-        <button id="btn-load-demo" class="btn btn-secondary btn-sm" title="Cargar los 5 archivos demo con un clic (Atajo: Ctrl+D)">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-          </svg>
-          <span>Datos Demo</span>
-        </button>
-
-        <button id="btn-shortcuts" class="btn btn-secondary btn-sm btn-icon-only" title="Atajos de teclado" aria-label="Ver atajos de teclado">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
-            <path d="M6 8h.001M10 8h.001M14 8h.001M18 8h.001M8 12h.001M12 12h.001M16 12h.001M6 16h12"></path>
-          </svg>
-        </button>
-
-        <button id="btn-help" class="btn btn-secondary btn-sm btn-icon-only" title="Guía e instrucciones" aria-label="Abrir guía de uso">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <button type="button" class="sidebar-nav-item" id="nav-ayuda-guia" title="Abrir documentación, reglas de asistencia y guía del usuario">
+          <svg class="sidebar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"></circle>
             <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
             <line x1="12" y1="17" x2="12.01" y2="17"></line>
           </svg>
-        </button>
-
-        <button id="btn-sound-toggle" class="btn btn-secondary btn-sm btn-icon-only" title="Sonido de notificación (Activado)" aria-label="Alternar sonido">
-          <svg class="btn-icon sound-on-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-          </svg>
-          <svg class="btn-icon sound-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <line x1="23" y1="9" x2="17" y2="15"></line>
-            <line x1="17" y1="9" x2="23" y2="15"></line>
-          </svg>
-        </button>
-
-        <!-- Dark / Light Theme Switcher -->
-        <button id="btn-theme-toggle" class="btn-theme-toggle" title="Cambiar a modo oscuro / claro" aria-label="Alternar tema">
-          <span class="theme-icon sun-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="5"></circle>
-              <line x1="12" y1="1" x2="12" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="23"></line>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-              <line x1="1" y1="12" x2="3" y2="12"></line>
-              <line x1="21" y1="12" x2="23" y2="12"></line>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-            </svg>
-          </span>
-          <span class="theme-icon moon-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-          </span>
+          <span class="sidebar-label">Guía y Ayuda</span>
         </button>
       </div>
-    </div>
-  </header>
 
-  <!-- Main Container -->
-  <main class="main-container">
-
-    <!-- Step Wizard -->
-    <nav class="step-wizard" aria-label="Progreso del proceso">
-      <div class="step-item active" id="step-1">
-        <div class="step-number">
-          <span class="num-text">1</span>
-          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </div>
-        <div class="step-text">
-          <span class="step-title">Carga de Datos</span>
-          <span class="step-desc" id="step-1-desc">SQL Server + Marcaciones</span>
-        </div>
-      </div>
-
-      <div class="step-connector"><div class="connector-progress"></div></div>
-
-      <div class="step-item" id="step-2">
-        <div class="step-number">
-          <span class="num-text">2</span>
-          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </div>
-        <div class="step-text">
-          <span class="step-title">Mapeo & Cruce</span>
-          <span class="step-desc">DNI, Labores, Buses & Cuadrillas</span>
-        </div>
-      </div>
-
-      <div class="step-connector"><div class="connector-progress"></div></div>
-
-      <div class="step-item" id="step-3">
-        <div class="step-number">
-          <span class="num-text">3</span>
-          <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-        </div>
-        <div class="step-text">
-          <span class="step-title">Consolidado Final</span>
-          <span class="step-desc">Exploración & Exportación</span>
-        </div>
-      </div>
-    </nav>
-
-    <!-- Upload Grid (5 Excel Files / Direct Database) -->
-    <section class="cards-grid" aria-label="Carga de archivos y conexión de datos">
-      
-      <!-- Card 1: Trabajadores (Direct SQL Server Connection + Fallback Upload) -->
-      <article class="upload-card card-theme-blue card-has-sql" id="card-1">
-        <header class="card-header">
-          <div class="card-badge-num">1</div>
-          <div class="card-titles">
-            <div class="card-title-row">
-              <h2>Trabajadores</h2>
-              <span class="card-tag tag-required">Requerido</span>
-            </div>
-            <p>Maestro de personal desde SQL Server (o Excel)</p>
-          </div>
-        </header>
-
-        <!-- SQL Server Direct Fetch Action Banner -->
-        <div class="sql-action-banner">
-          <button type="button" id="btn-load-sql" class="btn btn-sql-primary" title="Consultar SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-            <span>Cargar desde SQL Server</span>
-          </button>
-          <button type="button" id="btn-open-sql-params" class="btn-sql-config" title="Configurar parámetros SQL (Empresa, Mes, Año, Zona)" aria-label="Parámetros SQL">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </button>
-        </div>
-
-        <div class="divider-text">
-          <span>ó sube un archivo Excel</span>
-        </div>
-
-        <div class="dropzone" id="dropzone-1">
-          <input type="file" id="file-input-1" class="dropzone-input" accept=".xlsx, .xls, .csv">
-          <div class="dropzone-icon-wrapper">
-            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-          </div>
-          <span class="dropzone-label">Arrastra o haz clic aquí</span>
-          <span class="dropzone-sub">Excel con datos del maestro de personal</span>
-        </div>
-
-        <div class="file-info-box" id="file-info-1">
-          <div class="file-info-details">
-            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <polyline points="9 15 12 18 15 15"></polyline>
-            </svg>
-            <div class="file-info-text">
-              <div class="file-name">archivo.xlsx</div>
-              <div class="file-meta">0 KB • 0 filas</div>
-            </div>
-          </div>
-          <div class="file-box-actions">
-            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="1" aria-label="Previsualizar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
-            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Collapsible Column Configuration -->
-        <button type="button" class="btn-toggle-config" id="toggle-config-1" aria-expanded="false">
-          <span>Configurar Columnas</span>
-          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-
-        <div class="card-config" id="card-config-1">
-          <div class="field-group sheet-select-group" id="sheet-group-1" style="display: none;">
-            <label for="sheet-select-1">Hoja del Libro Excel:</label>
-            <select id="sheet-select-1" class="select-input"></select>
-          </div>
-          <div class="field-group">
-            <label for="key-select-1">Columna Clave (DNI / Código):</label>
-            <select id="key-select-1" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="paterno-select-1">Columna Ap. Paterno:</label>
-            <select id="paterno-select-1" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="materno-select-1">Columna Ap. Materno:</label>
-            <select id="materno-select-1" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="nombres-select-1">Columna Nombres / Completo:</label>
-            <select id="nombres-select-1" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-        </div>
-      </article>
-
-      <!-- Card 2: Último Día Laborado & Labores (SQL Server Direct Fetch + Fallback Upload) -->
-      <article class="upload-card card-theme-emerald card-has-sql" id="card-2">
-        <header class="card-header">
-          <div class="card-badge-num">2</div>
-          <div class="card-titles">
-            <div class="card-title-row">
-              <h2>Último Día & Labores</h2>
-              <span class="card-tag tag-required">Requerido</span>
-            </div>
-            <p>Labores, fecha, actividad y motivo desde SQL Server (o Excel)</p>
-          </div>
-        </header>
-
-        <!-- SQL Server Direct Fetch Action Banner for Card 2 -->
-        <div class="sql-action-banner">
-          <button type="button" id="btn-load-sql-2" class="btn btn-sql-primary btn-sql-emerald" title="Consultar SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-            <span>Cargar desde SQL Server</span>
-          </button>
-          <button type="button" id="btn-open-sql-params-2" class="btn-sql-config" title="Configurar parámetros SQL (Empresa, Mes, Año)" aria-label="Parámetros SQL Labores">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </button>
-        </div>
-
-        <div class="divider-text">
-          <span>ó sube un archivo Excel</span>
-        </div>
-
-        <div class="dropzone" id="dropzone-2">
-          <input type="file" id="file-input-2" class="dropzone-input" accept=".xlsx, .xls, .csv">
-          <div class="dropzone-icon-wrapper">
-            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-          </div>
-          <span class="dropzone-label">Arrastra o haz clic aquí</span>
-          <span class="dropzone-sub">Excel con labores y actividad / motivo</span>
-        </div>
-
-        <div class="file-info-box" id="file-info-2">
-          <div class="file-info-details">
-            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <polyline points="9 15 12 18 15 15"></polyline>
-            </svg>
-            <div class="file-info-text">
-              <div class="file-name">archivo.xlsx</div>
-              <div class="file-meta">0 KB • 0 filas</div>
-            </div>
-          </div>
-          <div class="file-box-actions">
-            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="2" aria-label="Previsualizar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
-            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Collapsible Column Configuration -->
-        <button type="button" class="btn-toggle-config" id="toggle-config-2" aria-expanded="false">
-          <span>Configurar Columnas</span>
-          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-
-        <div class="card-config" id="card-config-2">
-          <div class="field-group sheet-select-group" id="sheet-group-2" style="display: none;">
-            <label for="sheet-select-2">Hoja del Libro Excel:</label>
-            <select id="sheet-select-2" class="select-input"></select>
-          </div>
-          <div class="field-group">
-            <label for="key-select-2">Columna Clave (Rut / DNI):</label>
-            <select id="key-select-2" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="act-select-2">Columna ACTIVIDAD:</label>
-            <select id="act-select-2" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="labor-select-2">Columna LABOR:</label>
-            <select id="labor-select-2" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="cuadrilla-select-2">Columna IdCuadrilla:</label>
-            <select id="cuadrilla-select-2" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="turno-select-2">Columna TURNO / Hora Inicio:</label>
-            <select id="turno-select-2" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-        </div>
-      </article>
-
-      <!-- Card 3: Marcaciones (SQL Server Direct Fetch + Fallback Upload) -->
-      <article class="upload-card card-theme-sky card-has-sql" id="card-3">
-        <header class="card-header">
-          <div class="card-badge-num">3</div>
-          <div class="card-titles">
-            <div class="card-title-row">
-              <h2>Marcaciones</h2>
-              <span class="card-tag tag-required">Requerido</span>
-            </div>
-            <p>Marcaciones y buses desde SQL Server (o Excel)</p>
-          </div>
-        </header>
-
-        <!-- SQL Server Direct Fetch Action Banner for Card 3 -->
-        <div class="sql-action-banner">
-          <button type="button" id="btn-load-sql-3" class="btn btn-sql-primary btn-sql-sky" title="Consultar SPC_LOGIN_MARCACIONES (Condición 3 días)">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-            <span>Cargar desde SQL Server (3 días)</span>
-          </button>
-          <button type="button" id="btn-open-sql-params-3" class="btn-sql-config" title="Configurar parámetros SQL Marcaciones (Fecha, Rango de días, Empresa)" aria-label="Parámetros SQL Marcaciones">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </button>
-        </div>
-
-        <div class="divider-text">
-          <span>ó sube un archivo Excel</span>
-        </div>
-
-        <div class="dropzone" id="dropzone-3">
-          <input type="file" id="file-input-3" class="dropzone-input" accept=".xlsx, .xls, .csv">
-          <div class="dropzone-icon-wrapper">
-            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </div>
-          <span class="dropzone-label">Arrastra o haz clic aquí</span>
-          <span class="dropzone-sub">Excel con los registros de marcación</span>
-        </div>
-
-        <div class="file-info-box" id="file-info-3">
-          <div class="file-info-details">
-            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <polyline points="9 15 12 18 15 15"></polyline>
-            </svg>
-            <div class="file-info-text">
-              <div class="file-name">archivo.xlsx</div>
-              <div class="file-meta">0 KB • 0 filas</div>
-            </div>
-          </div>
-          <div class="file-box-actions">
-            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="3" aria-label="Previsualizar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
-            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Collapsible Column Configuration -->
-        <button type="button" class="btn-toggle-config" id="toggle-config-3" aria-expanded="false">
-          <span>Configurar Columnas</span>
-          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-
-        <div class="card-config" id="card-config-3">
-          <div class="field-group sheet-select-group" id="sheet-group-3" style="display: none;">
-            <label for="sheet-select-3">Hoja del Libro Excel:</label>
-            <select id="sheet-select-3" class="select-input"></select>
-          </div>
-          <div class="field-group">
-            <label for="key-select-3">Columna Clave (Documento / DNI):</label>
-            <select id="key-select-3" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="nom-est-select-3">Columna NOMBRE_ESTACION (Placa):</label>
-            <select id="nom-est-select-3" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="tipo-est-select-3">Columna TIPO_ESTACION (Filtro BUS):</label>
-            <select id="tipo-est-select-3" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-        </div>
-      </article>
-
-      <!-- Card 4: Catálogo de Buses y Rutas (Direct SQL Fetch + Fallback Upload) -->
-      <article class="upload-card card-theme-amber card-has-sql" id="card-4">
-        <header class="card-header">
-          <div class="card-badge-num">4</div>
-          <div class="card-titles">
-            <div class="card-title-row">
-              <h2>Buses & Rutas</h2>
-              <span class="card-tag tag-optional">Opcional</span>
-            </div>
-            <p>Patente, Código Bus (Campo) y Ruta desde SQL (o Excel)</p>
-          </div>
-        </header>
-
-        <!-- SQL Server Direct Fetch Action Banner for Card 4 -->
-        <div class="sql-action-banner">
-          <button type="button" id="btn-load-sql-4" class="btn btn-sql-primary btn-sql-amber" title="Consultar SPC_REGISTRO_RUTA (Buses y Rutas)">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-            <span>Cargar desde SQL Server</span>
-          </button>
-          <button type="button" id="btn-open-sql-params-4" class="btn-sql-config" title="Configurar parámetros SQL Buses y Rutas (País, Fechas, Empresa)" aria-label="Parámetros SQL Buses">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-            </svg>
-          </button>
-        </div>
-
-        <div class="divider-text">
-          <span>ó sube un archivo Excel</span>
-        </div>
-
-        <div class="dropzone" id="dropzone-4">
-          <input type="file" id="file-input-4" class="dropzone-input" accept=".xlsx, .xls, .csv">
-          <div class="dropzone-icon-wrapper">
-            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="1" y="3" width="22" height="13" rx="2" ry="2"></rect>
-              <path d="M16 8h2"></path>
-              <path d="M6 8h2"></path>
-              <circle cx="5.5" cy="18.5" r="2.5"></circle>
-              <circle cx="18.5" cy="18.5" r="2.5"></circle>
-            </svg>
-          </div>
-          <span class="dropzone-label">Arrastra o haz clic aquí</span>
-          <span class="dropzone-sub">Excel con Patente, Codigo Campo y Ruta</span>
-        </div>
-
-        <div class="file-info-box" id="file-info-4">
-          <div class="file-info-details">
-            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <polyline points="9 15 12 18 15 15"></polyline>
-            </svg>
-            <div class="file-info-text">
-              <div class="file-name">archivo.xlsx</div>
-              <div class="file-meta">0 KB • 0 filas</div>
-            </div>
-          </div>
-          <div class="file-box-actions">
-            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="4" aria-label="Previsualizar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
-            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Collapsible Column Configuration -->
-        <button type="button" class="btn-toggle-config" id="toggle-config-4" aria-expanded="false">
-          <span>Configurar Columnas</span>
-          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-
-        <div class="card-config" id="card-config-4">
-          <div class="field-group sheet-select-group" id="sheet-group-4" style="display: none;">
-            <label for="sheet-select-4">Hoja del Libro Excel:</label>
-            <select id="sheet-select-4" class="select-input"></select>
-          </div>
-          <div class="field-group">
-            <label for="patente-select-4">Columna Patente / Placa:</label>
-            <select id="patente-select-4" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="cod-bus-select-4">Columna Código Bus (Codigo Campo):</label>
-            <select id="cod-bus-select-4" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="ruta-select-4">Columna Ruta (Descripcion Ruta):</label>
-            <select id="ruta-select-4" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-        </div>
-      </article>
-
-      <!-- Card 5: Catálogo de Cuadrillas & Encargados (Direct SQL Fetch + Fallback Upload) -->
-      <article class="upload-card card-theme-purple card-has-sql" id="card-5">
-        <header class="card-header">
-          <div class="card-badge-num">5</div>
-          <div class="card-titles">
-            <div class="card-title-row">
-              <h2>Cuadrillas</h2>
-              <span class="card-tag tag-optional">Opcional</span>
-            </div>
-            <p>IDCUADRILLA, Descripción y Encargado desde SQL (o Excel)</p>
-          </div>
-        </header>
-
-        <!-- SQL Server Direct Fetch Action Banner for Card 5 -->
-        <div class="sql-action-banner">
-          <button type="button" id="btn-load-sql-5" class="btn btn-sql-primary btn-sql-purple" title="Consultar SPC_DINAMICA_CUADRILLAS">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-            <span>Cargar desde SQL Server</span>
-          </button>
-        </div>
-
-        <div class="divider-text">
-          <span>ó sube un archivo Excel</span>
-        </div>
-
-        <div class="dropzone" id="dropzone-5">
-          <input type="file" id="file-input-5" class="dropzone-input" accept=".xlsx, .xls, .csv">
-          <div class="dropzone-icon-wrapper">
-            <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-          </div>
-          <span class="dropzone-label">Arrastra o haz clic aquí</span>
-          <span class="dropzone-sub">Excel con IDCUADRILLA y Encargado</span>
-        </div>
-
-        <div class="file-info-box" id="file-info-5">
-          <div class="file-info-details">
-            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <polyline points="9 15 12 18 15 15"></polyline>
-            </svg>
-            <div class="file-info-text">
-              <div class="file-name">archivo.xlsx</div>
-              <div class="file-meta">0 KB • 0 filas</div>
-            </div>
-          </div>
-          <div class="file-box-actions">
-            <button type="button" class="btn-preview-file" title="Previsualizar primeras filas" data-file-index="5" aria-label="Previsualizar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </button>
-            <button type="button" class="btn-remove-file" title="Eliminar archivo" aria-label="Eliminar archivo">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Collapsible Column Configuration -->
-        <button type="button" class="btn-toggle-config" id="toggle-config-5" aria-expanded="false">
-          <span>Configurar Columnas</span>
-          <svg class="chevron-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </button>
-
-        <div class="card-config" id="card-config-5">
-          <div class="field-group sheet-select-group" id="sheet-group-5" style="display: none;">
-            <label for="sheet-select-5">Hoja del Libro Excel:</label>
-            <select id="sheet-select-5" class="select-input"></select>
-          </div>
-          <div class="field-group">
-            <label for="idcuadrilla-select-5">Columna IDCUADRILLA:</label>
-            <select id="idcuadrilla-select-5" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="desc-cuadrilla-select-5">Columna Descripción:</label>
-            <select id="desc-cuadrilla-select-5" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label for="nombre-encargado-select-5">Columna Nombre Encargado:</label>
-            <select id="nombre-encargado-select-5" class="select-input">
-              <option value="">(Cargue archivo primero)</option>
-            </select>
-          </div>
-        </div>
-      </article>
-
-    </section>
-
-    <!-- Action & Rule Banner -->
-    <div class="actions-container">
-      <div class="rule-summary">
-        <div class="rule-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 11l3 3L22 4"></path>
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-          </svg>
-        </div>
-        <div class="rule-text">
-          <h3>Regla de Evaluación de Estado del Personal</h3>
-          <div class="rule-pills-row">
-            <span class="rule-pill rule-pill-active">
-              <span class="pill-dot"></span> <strong>ACTIVO</strong>: Con marcación de asistencia o digitación = NO
-            </span>
-            <span class="rule-pill rule-pill-absent">
-              <span class="pill-dot"></span> <strong>AUSENTE</strong>: Sin marcación y sin inasistencia justificada
-            </span>
-            <span class="rule-pill rule-pill-leave">
-              <span class="pill-dot"></span> <strong>LICENCIAS / SPL / VACACIONES</strong>: Según motivo de ausencia
-            </span>
+      <!-- Sidebar User Profile Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-user-card" id="sidebar-user-card-clickable" style="cursor: pointer;" title="Clic para verificar usuario y editar credenciales de conexión SQL">
+          <div class="user-avatar-circle">G</div>
+          <div class="user-meta-info">
+            <span class="user-name">Gabriel Panta</span>
+            <span class="user-org">Unifrutti Perú</span>
           </div>
         </div>
       </div>
+    </aside>
 
-      <div class="actions-buttons">
-        <button id="btn-reset-all" class="btn btn-secondary">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-            <path d="M3 3v5h5"></path>
-          </svg>
-          <span>Limpiar Todo</span>
-        </button>
-
-        <button id="btn-process" class="btn btn-primary" disabled>
-          <svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-          </svg>
-          <span class="btn-text">Procesar y Consolidar</span>
-          <span class="shortcut-badge">Ctrl + Enter</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Results Section -->
-    <section class="results-section" id="results-section" aria-label="Resultados de Consolidación">
-      
-      <div class="section-header">
-        <div class="section-title">
-          <div class="section-title-badge">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-            Consolidado Generado
-          </div>
-          <h2>Base Consolidada de Personal (23 Campos)</h2>
-          <p>Visualiza, busca, filtra, ordena y descarga el reporte consolidado listo para auditoría y gerencia.</p>
+    <!-- Main Content Panel -->
+    <main class="main-content-panel">
+      <!-- Header with Title & Functional Action Buttons -->
+      <header class="app-workspace-header">
+        <div class="workspace-header-title-block">
+          <h1 class="workspace-title">Control de Asistencia & Transporte</h1>
+          <p class="workspace-subtitle">
+            <span id="header-data-status">Ningún archivo cargado</span> | Servidor SQL: <strong class="sql-server-name">vfstbd01 / bsis_rem_afr</strong>
+          </p>
         </div>
 
-        <div class="export-actions">
-          <button id="btn-copy-table" class="btn btn-secondary btn-sm" title="Copiar filas visibles al portapapeles en formato Excel">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            <span>Copiar</span>
+        <!-- Action Buttons (100% Funcionales) -->
+        <div class="workspace-header-actions">
+          <button type="button" class="btn-app-action btn-sync-sql" id="btn-header-sync-sql" title="Sincroniza las 5 fuentes directamente desde SQL Server y procesa el cruce de 24 columnas automáticamente">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>⚡ Sincronizar SQL</span>
           </button>
 
-          <button id="btn-print-table" class="btn btn-secondary btn-sm" title="Imprimir o exportar como PDF">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 6 2 18 2 18 9"></polyline>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-              <rect x="6" y="14" width="12" height="8"></rect>
-            </svg>
-            <span>Imprimir</span>
+          <button type="button" class="btn-app-action btn-process-cruce" id="btn-header-process" title="El cruce se ejecuta de manera 100% automática al sincronizar. Este botón permite recalcular si ajustas parámetros o filtros">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>🔄 Recalcular Cruce</span>
           </button>
 
-          <button id="btn-export-csv" class="btn btn-secondary btn-sm" title="Descargar como CSV estructurado con UTF-8">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            <span>Exportar CSV</span>
+          <button type="button" class="btn-app-action btn-export-rep" id="btn-header-export-excel" title="Descargar reporte Excel consolidado (.xlsx)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Exportar Reporte</span>
           </button>
 
-          <button id="btn-export-excel" class="btn btn-success" title="Descargar archivo Excel con formato y anchos automáticos">
-            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            <span>Descargar Excel (.xlsx)</span>
+          <button type="button" class="btn-app-action btn-params-sql" id="btn-header-sql-params" title="Configurar empresa, mes, año y parámetros de consulta SQL">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Parámetros SQL</span>
+          </button>
+
+                    <button type="button" class="btn-app-action btn-user-config" id="btn-header-user-config" title="Verificar usuario y editar credenciales de SQL Server">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Usuario & BD</span>
+          </button>
+
+          <!-- Theme Switcher -->
+          <button id="btn-theme-toggle" class="btn-theme-toggle" title="Alternar tema oscuro / claro" aria-label="Alternar tema">
+            <span class="theme-icon sun-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>
+            <span class="theme-icon moon-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Quick SQL Parameters Toolbar -->
+      <div class="workspace-quick-params-bar">
+        <div class="quick-param-item">
+          <span class="quick-param-label">🏢 Empresa:</span>
+          <select id="quick-param-empresa" class="quick-param-select quick-param-select-empresa" title="Seleccionar Empresa a consultar en SQL Server">
+            <option value="14" selected>14 - SOCIEDAD EXPORTADORA VERFRUT S.A.C.</option>
+            <option value="9">9 - SOCIEDAD AGRÍCOLA RAPEL S.A.C.</option>
+            <option value="1">1 - SOCIEDAD AGRICOLA EL PORVENIR S.A.</option>
+            <option value="2">2 - EL DURAZNO</option>
+            <option value="3">3 - LOS PARRONES</option>
+            <option value="4">4 - QUILAMUTA</option>
+            <option value="5">5 - INVERSIONES RVD LIMITADA</option>
+            <option value="7">7 - AGRICOLA PILARES VERDES SPA</option>
+            <option value="8">8 - SOC. EXPORTADORA VERFRUT SPA</option>
+            <option value="11">11 - INMOBILIARIA FARALEUFU LIMITADA</option>
+            <option value="12">12 - ALGARROBOS PIURA SAC</option>
+            <option value="16">16 - AGRICOLA PJM LIMITADA</option>
+            <option value="17">17 - AGRICOLA VERCELING CHILE LIMITADA</option>
+            <option value="19">19 - AGRICOLA EL PEÑASCO SPA</option>
+            <option value="20">20 - SKY WINGS SPA</option>
+            <option value="21">21 - AGRICOLA EL REMANSO LTDA</option>
+            <option value="22">22 - BODEGAS LOS LIRIOS SPA</option>
+            <option value="23">23 - AGRICOLA AVANTI S.A.C.</option>
+            <option value="31">31 - BOMAREA S.R.L</option>
+            <option value="32">32 - INVERSIONES MOSQUETA S.A.C.</option>
+            <option value="33">33 - INVERSIONES PIRONA S.A.C.</option>
+            <option value="34">34 - INVERSIONES LEFKADA S.A.C.</option>
+            <option value="35">35 - INVERSIONES HEFEI S.A.C.</option>
+          </select>
+        </div>
+
+        <div class="quick-param-item">
+          <span class="quick-param-label">📅 Periodo:</span>
+          <select id="quick-param-mes" class="quick-param-select" title="Mes de consulta">
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8" selected>Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+          <input type="number" id="quick-param-anio" class="quick-param-input" value="2026" min="2020" max="2035" style="width: 65px;" title="Año de consulta">
+        </div>
+
+        <div class="quick-param-item">
+          <span class="quick-param-label">🕒 Marcaciones:</span>
+          <select id="quick-param-dias" class="quick-param-select" title="Días hacia atrás para consultar marcaciones biométricas">
+            <option value="1">1 día (Hoy)</option>
+            <option value="2">Últimos 2 días</option>
+            <option value="3" selected>Últimos 3 días (Recomendado)</option>
+            <option value="5">Últimos 5 días</option>
+            <option value="7">Últimos 7 días</option>
+          </select>
+        </div>
+
+        <div class="quick-param-item" style="margin-left: auto;">
+          <button type="button" class="btn btn-sm btn-secondary" id="btn-quick-sync-params" style="height: 28px; padding: 0 10px; font-size: 0.78rem; font-weight: 600;" title="Configurar parámetros avanzados de sincronización">
+            ⚙️ Más Parámetros
           </button>
         </div>
       </div>
 
-      <!-- Proportional Distribution Bar -->
-      <div class="distribution-card">
-        <div class="distribution-header">
-          <span class="distribution-title">Distribución del Estado del Personal</span>
-          <span class="distribution-subtitle" id="distribution-sub">100% de la dotación evaluada</span>
-        </div>
-        <div class="distribution-bar-track">
-          <div class="dist-segment dist-active" id="dist-active" style="width: 0%" title="Activos"></div>
-          <div class="dist-segment dist-absent" id="dist-absent" style="width: 0%" title="Ausentes"></div>
-          <div class="dist-segment dist-leave" id="dist-leave" style="width: 0%" title="Licencias / Permisos / Vacaciones"></div>
-        </div>
-        <div class="distribution-legend">
-          <span class="legend-item"><span class="legend-dot dot-active"></span> Activos: <strong id="pct-active">0%</strong></span>
-          <span class="legend-item"><span class="legend-dot dot-absent"></span> Ausentes: <strong id="pct-absent">0%</strong></span>
-          <span class="legend-item"><span class="legend-dot dot-leave"></span> Licencias/SPL: <strong id="pct-leave">0%</strong></span>
-        </div>
+      <!-- Status Banner -->
+      <div class="workspace-status-banner">
+        <span class="status-indicator-dot"></span>
+        <span class="status-banner-text" id="sync-status-text">Estado: Listo para sincronizar</span>
       </div>
 
-      <!-- Metrics Cards (Clickable to Filter) -->
-      <div class="metrics-grid">
-        <div class="metric-card metric-interactive" data-filter-target="ALL" title="Clic para ver todos los trabajadores">
-          <div class="metric-icon-box metric-blue">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-          </div>
-          <div class="metric-content">
-            <div class="metric-value-row">
-              <div class="metric-value" id="metric-total">0</div>
-              <span class="metric-badge badge-neutral">100%</span>
-            </div>
-            <div class="metric-label">Total Trabajadores</div>
-          </div>
+      <!-- Filter Toolbar -->
+      <div class="workspace-filter-toolbar">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="table-search" class="filter-search-input" placeholder="Buscar por nombre, DNI, código, placa, ruta, cuartel..." autocomplete="off">
         </div>
 
-        <div class="metric-card metric-interactive" data-filter-target="ACTIVE" title="Clic para filtrar solo trabajadores Activos">
-          <div class="metric-icon-box metric-green">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-          </div>
-          <div class="metric-content">
-            <div class="metric-value-row">
-              <div class="metric-value" id="metric-active">0</div>
-              <span class="metric-badge badge-success" id="kpi-pct-active">0%</span>
-            </div>
-            <div class="metric-label">Activos (Marcación / Digitado)</div>
-          </div>
+        <div class="filter-dropdown-wrapper">
+          <select id="filter-cuartel" class="filter-select" title="Filtrar por Zona o Fundo">
+            <option value="">Todas las Zonas / Fundos</option>
+          </select>
         </div>
 
-        <div class="metric-card metric-interactive" data-filter-target="ABSENT" title="Clic para filtrar solo trabajadores Ausentes">
-          <div class="metric-icon-box metric-amber">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-          </div>
-          <div class="metric-content">
-            <div class="metric-value-row">
-              <div class="metric-value" id="metric-absent">0</div>
-              <span class="metric-badge badge-danger" id="kpi-pct-absent">0%</span>
-            </div>
-            <div class="metric-label">Ausentes (Sin Marcación)</div>
-          </div>
+        <div class="filter-dropdown-wrapper">
+          <select id="filter-ruta" class="filter-select" title="Filtrar por Ruta de Transporte">
+            <option value="">Todas las Rutas</option>
+          </select>
         </div>
 
-        <div class="metric-card metric-interactive" data-filter-target="LEAVE" title="Clic para filtrar solo Licencias / SPL / Vacaciones">
-          <div class="metric-icon-box metric-red">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-          </div>
-          <div class="metric-content">
-            <div class="metric-value-row">
-              <div class="metric-value" id="metric-leave">0</div>
-              <span class="metric-badge badge-warning" id="kpi-pct-leave">0%</span>
-            </div>
-            <div class="metric-label">Licencias / SPL / Vacaciones</div>
-          </div>
-        </div>
+        <button type="button" class="btn-filter-toggle" id="btn-filter-no-transporte" title="Filtrar solo trabajadores sin bus o placa asignada">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>Solo sin transporte</span>
+        </button>
+
+        <button type="button" class="btn-filter-clear" id="btn-clear-filters" title="Restablecer todos los filtros aplicados">
+          Limpiar
+        </button>
       </div>
 
-      <!-- Data Table Panel -->
-      <div class="table-panel">
-        <div class="table-toolbar">
-          
-          <!-- Search Bar -->
-          <div class="search-box">
-            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            <input type="text" id="table-search" class="search-input" placeholder="Buscar por DNI, nombres, cargo, labor, ruta, placa, estado..." aria-label="Buscar en la tabla">
-            <button type="button" id="btn-clear-search" class="btn-clear-search" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">&times;</button>
-            <span class="search-kbd-hint">Ctrl + K</span>
-          </div>
-
-          <!-- State Filter Chips -->
-          <div class="table-filters" role="group" aria-label="Filtros por estado">
-            <button class="filter-chip active" data-filter="ALL">
-              <span>Todos</span>
-              <span class="chip-count" id="count-chip-all">0</span>
-            </button>
-            <button class="filter-chip" data-filter="ACTIVE">
-              <span class="chip-dot dot-active"></span>
-              <span>Activos</span>
-              <span class="chip-count" id="count-chip-active">0</span>
-            </button>
-            <button class="filter-chip" data-filter="ABSENT">
-              <span class="chip-dot dot-absent"></span>
-              <span>Ausentes</span>
-              <span class="chip-count" id="count-chip-absent">0</span>
-            </button>
-            <button class="filter-chip" data-filter="LEAVE">
-              <span class="chip-dot dot-leave"></span>
-              <span>Licencias/SPL</span>
-              <span class="chip-count" id="count-chip-leave">0</span>
-            </button>
-          </div>
-
-          <!-- Extra Tools (Columns Visibility & Page Size) -->
-          <div class="toolbar-tools">
-            
-            <!-- Column Visibility Dropdown -->
-            <div class="columns-dropdown-wrapper">
-              <button id="btn-toggle-columns" class="btn btn-secondary btn-sm" aria-expanded="false" title="Mostrar u ocultar columnas de la tabla">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7m0-18H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7m0-18v18"></path>
-                </svg>
-                <span>Columnas</span>
-                <svg class="chevron-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-              </button>
-
-              <div class="columns-dropdown-menu" id="columns-dropdown-menu">
-                <div class="columns-presets">
-                  <button type="button" class="btn-preset" data-preset="all">Ver Todas (24)</button>
-                  <button type="button" class="btn-preset" data-preset="summary">Resumen</button>
-                  <button type="button" class="btn-preset" data-preset="attendance">Asistencia</button>
-                  <button type="button" class="btn-preset" data-preset="transport">Transporte</button>
-                </div>
-                <div class="columns-list" id="columns-checkbox-list">
-                  <!-- Dynamically populated checkbox list -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Page Size Selector -->
-            <div class="page-size-selector">
-              <label for="select-page-size">Filas:</label>
-              <select id="select-page-size" class="select-input-sm">
-                <option value="10">10</option>
-                <option value="15" selected>15</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="99999">Todas</option>
-              </select>
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="table-info-bar">
-          <span class="info-text">💡 <em>Haz clic en cualquier fila para ver el expediente completo del trabajador. Haz clic en las cabeceras para ordenar.</em></span>
-        </div>
-
-        <div class="table-wrapper">
-          <table class="data-table" id="consolidated-table">
+      <!-- Main Desktop Table Container -->
+      <div class="workspace-table-container">
+        <div class="table-scroll-area">
+          <table class="desktop-data-table" id="consolidated-table">
             <thead id="table-head">
-              <!-- Dynamically rendered headers with sort buttons -->
+              <!-- Dynamically populated table headers -->
             </thead>
             <tbody id="table-body">
-              <!-- Dynamically rendered rows -->
+              <tr>
+                <td colspan="24" class="table-empty-notice">
+                  <div class="empty-state-card">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5; margin-bottom: 0.5rem;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                    <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main);">No hay registros cargados</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Haga clic en <strong>"⚡ Sincronizar SQL"</strong> para consultar y consolidar las asistencias directamente desde SQL Server.</div>
+                  </div>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
 
-        <div class="table-footer">
-          <div class="pagination-info">
-            Mostrando <strong id="page-start">0</strong> - <strong id="page-end">0</strong> de <strong id="page-total">0</strong> registros
+        <!-- Table Info Footer -->
+        <div class="table-info-footer">
+          <div class="table-info-left">
+            Mostrando <strong id="page-start">0</strong> - <strong id="page-end">0</strong> de <strong id="page-total">0</strong> registros procesados
           </div>
-          <div class="pagination-controls">
-            <button id="btn-first-page" class="btn-page" title="Primera página" disabled>&laquo;</button>
-            <button id="btn-prev-page" class="btn-page" title="Página anterior" disabled>&larr; Anterior</button>
-            <span id="page-num-display" class="page-display">Pág. 1 de 1</span>
-            <button id="btn-next-page" class="btn-page" title="Página siguiente" disabled>Siguiente &rarr;</button>
-            <button id="btn-last-page" class="btn-page" title="Última página" disabled>&raquo;</button>
+          <div class="table-info-right" id="table-footer-status">
+            Listo para procesar.
+          </div>
+          <div class="table-pagination-compact">
+            <button type="button" id="btn-first-page" class="btn-page-compact" disabled title="Primera página">«</button>
+            <button type="button" id="btn-prev-page" class="btn-page-compact" disabled title="Página anterior">‹</button>
+            <span id="page-num-display" class="page-num-compact">Pág. 0 de 0</span>
+            <button type="button" id="btn-next-page" class="btn-page-compact" disabled title="Página siguiente">›</button>
+            <button type="button" id="btn-last-page" class="btn-page-compact" disabled title="Última página">»</button>
           </div>
         </div>
       </div>
-
-    </section>
-
-  </main>
-
-  <!-- Unified Global SQL Sync Parameters Modal (Sincronizar Todo) -->
-  <div class="modal-overlay" id="modal-sql-sync-all" role="dialog" aria-modal="true" aria-labelledby="sql-sync-all-title">
-    <div class="modal-content modal-content-xl">
-      <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <div class="metric-icon-box metric-blue" style="width: 36px; height: 36px; background: linear-gradient(135deg, #2563eb, #0284c7); color: #fff;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-          </div>
-          <div>
-            <h3 id="sql-sync-all-title" style="margin: 0; font-size: 1.15rem; font-weight: 800;">⚡ Sincronización Completa SQL Server</h3>
-            <p style="margin: 0; font-size: 0.76rem; color: var(--text-muted);">
-              Servidor <code>vfstbd01</code> &bull; BD <code>bsis_rem_afr</code> &bull; Revisa o ajusta los parámetros de cada fuente antes de ejecutar
-            </p>
-          </div>
-        </div>
-        <button type="button" class="btn-close" id="btn-close-sql-sync-all" aria-label="Cerrar ventana">&times;</button>
-      </div>
-
-      <div class="modal-body" style="padding: 1.25rem 1.5rem; max-height: calc(88vh - 120px);">
-        <!-- Master Controls Bar -->
-        <div class="sync-all-master-bar">
-          <div class="sync-master-header-row">
-            <div class="sync-master-title">
-              <span>🏢 Configuración Global de Empresa y Periodo</span>
-            </div>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-sync-all-calc-dates" style="font-size: 0.74rem; padding: 0.35rem 0.65rem;" title="Calcular automáticamente fechas de corte fin de mes y 3 días para marcaciones">
-                📅 Auto Fechas (Corte y 3 días)
-              </button>
-            </div>
-          </div>
-
-          <div class="sync-master-controls">
-            <div class="field-group">
-              <label for="sync-all-master-empresa" style="font-size: 0.74rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; display: block;">
-                Empresa Maestra (@IdEmpresa):
-              </label>
-              <div style="display: flex; gap: 0.4rem;">
-                <select id="sync-all-master-empresa" class="select-input" style="font-weight: 600;">
-                  <option value="14" selected>14 - SOCIEDAD EXPORTADORA VERFRUT S. A. C.</option>
-                  <option value="9">9 - SOCIEDAD AGRÍCOLA RAPEL S. A. C.</option>
-                  <option value="12">12 - ALGARROBOS PIURA SAC</option>
-                  <option value="23">23 - AGRICOLA AVANTI S.A.C.</option>
-                  <option value="31">31 - BOMAREA S.R.L</option>
-                  <option value="1">1 - SOCIEDAD AGRICOLA EL PORVENIR S.A.</option>
-                  <option value="2">2 - EL DURAZNO</option>
-                  <option value="3">3 - LOS PARRONES</option>
-                  <option value="4">4 - QUILAMUTA</option>
-                  <option value="7">7 - AGRICOLA PILARES VERDES SPA</option>
-                  <option value="8">8 - SOC. EXPORTADORA VERFRUT SPA</option>
-                  <option value="custom">✏️ Otra Empresa (ID)...</option>
-                </select>
-                <input type="number" id="sync-all-master-empresa-custom" class="select-input" placeholder="ID" style="display: none; width: 70px;" min="1" max="999">
-              </div>
-            </div>
-
-            <div class="field-group">
-              <label for="sync-all-master-mes" style="font-size: 0.74rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; display: block;">
-                Mes (@mes):
-              </label>
-              <select id="sync-all-master-mes" class="select-input">
-                <option value="1">1 - Enero</option>
-                <option value="2">2 - Febrero</option>
-                <option value="3">3 - Marzo</option>
-                <option value="4">4 - Abril</option>
-                <option value="5">5 - Mayo</option>
-                <option value="6">6 - Junio</option>
-                <option value="7">7 - Julio</option>
-                <option value="8" selected>8 - Agosto</option>
-                <option value="9">9 - Setiembre</option>
-                <option value="10">10 - Octubre</option>
-                <option value="11">11 - Noviembre</option>
-                <option value="12">12 - Diciembre</option>
-              </select>
-            </div>
-
-            <div class="field-group">
-              <label for="sync-all-master-anio" style="font-size: 0.74rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.25rem; display: block;">
-                Año (@año):
-              </label>
-              <input type="number" id="sync-all-master-anio" class="select-input" value="2026" min="2000" max="2099" required>
-            </div>
-
-            <div>
-              <button type="button" id="btn-sync-all-apply-master" class="btn btn-primary btn-sm" style="height: 34px; font-size: 0.76rem;" title="Propagar empresa y periodo a todas las consultas de abajo">
-                🔄 Aplicar a Todo
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <form id="form-sql-sync-all">
-          <div class="sync-all-grid">
-            <!-- 1. Trabajadores -->
-            <div class="sync-card sync-card-blue" id="sync-card-1">
-              <div class="sync-card-header">
-                <div class="sync-card-title-wrap">
-                  <input type="checkbox" id="sync-all-include-1" class="sync-card-checkbox" checked title="Incluir en la sincronización">
-                  <label for="sync-all-include-1" style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
-                    <span>👥 1. Trabajadores</span>
-                  </label>
-                </div>
-                <span class="sync-proc-badge">SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS</span>
-              </div>
-              <div class="sync-card-fields">
-                <div class="field-group">
-                  <label for="sync-all-p1-empresa">Empresa (@IdEmpresa):</label>
-                  <input type="number" id="sync-all-p1-empresa" class="select-input" value="14" required>
-                </div>
-                <div class="field-group">
-                  <label for="sync-all-p1-activo">Estado (@activo):</label>
-                  <select id="sync-all-p1-activo" class="select-input">
-                    <option value="1" selected>1 (Solo Activos)</option>
-                    <option value="0">0 (Inactivos)</option>
-                  </select>
-                </div>
-                <div class="field-group">
-                  <label for="sync-all-p1-mes">Mes (@mes):</label>
-                  <select id="sync-all-p1-mes" class="select-input">
-                    <option value="1">1 - Ene</option>
-                    <option value="2">2 - Feb</option>
-                    <option value="3">3 - Mar</option>
-                    <option value="4">4 - Abr</option>
-                    <option value="5">5 - May</option>
-                    <option value="6">6 - Jun</option>
-                    <option value="7">7 - Jul</option>
-                    <option value="8" selected>8 - Ago</option>
-                    <option value="9">9 - Set</option>
-                    <option value="10">10 - Oct</option>
-                    <option value="11">11 - Nov</option>
-                    <option value="12">12 - Dic</option>
-                  </select>
-                </div>
-                <div class="field-group">
-                  <label for="sync-all-p1-anio">Año (@año):</label>
-                  <input type="number" id="sync-all-p1-anio" class="select-input" value="2026" required>
-                </div>
-              </div>
-              <div class="sync-card-fields full-row">
-                <div class="field-group">
-                  <label for="sync-all-p1-fechaini">Fecha Corte (@fechaini DD/MM/AAAA):</label>
-                  <input type="text" id="sync-all-p1-fechaini" class="select-input" value="31/8/2026" placeholder="DD/MM/AAAA" required>
-                </div>
-              </div>
-            </div>
-
-            <!-- 2. Último Día & Labores -->
-            <div class="sync-card sync-card-emerald" id="sync-card-2">
-              <div class="sync-card-header">
-                <div class="sync-card-title-wrap">
-                  <input type="checkbox" id="sync-all-include-2" class="sync-card-checkbox" checked title="Incluir en la sincronización">
-                  <label for="sync-all-include-2" style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
-                    <span>📋 2. Último Día & Labores</span>
-                  </label>
-                </div>
-                <span class="sync-proc-badge">SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR</span>
-              </div>
-              <div class="sync-card-fields full-row">
-                <div class="field-group">
-                  <label for="sync-all-p2-empresa">Empresa (@IDEMPRESA):</label>
-                  <input type="number" id="sync-all-p2-empresa" class="select-input" value="14" required>
-                </div>
-              </div>
-              <div class="sync-card-fields">
-                <div class="field-group">
-                  <label for="sync-all-p2-mes">Mes (@MES):</label>
-                  <select id="sync-all-p2-mes" class="select-input">
-                    <option value="1">1 - Ene</option>
-                    <option value="2">2 - Feb</option>
-                    <option value="3">3 - Mar</option>
-                    <option value="4">4 - Abr</option>
-                    <option value="5">5 - May</option>
-                    <option value="6">6 - Jun</option>
-                    <option value="7">7 - Jul</option>
-                    <option value="8" selected>8 - Ago</option>
-                    <option value="9">9 - Set</option>
-                    <option value="10">10 - Oct</option>
-                    <option value="11">11 - Nov</option>
-                    <option value="12">12 - Dic</option>
-                  </select>
-                </div>
-                <div class="field-group">
-                  <label for="sync-all-p2-anio">Año (@ANO):</label>
-                  <input type="number" id="sync-all-p2-anio" class="select-input" value="2026" required>
-                </div>
-              </div>
-            </div>
-
-            <!-- 3. Marcaciones -->
-            <div class="sync-card sync-card-sky" id="sync-card-3">
-              <div class="sync-card-header">
-                <div class="sync-card-title-wrap">
-                  <input type="checkbox" id="sync-all-include-3" class="sync-card-checkbox" checked title="Incluir en la sincronización">
-                  <label for="sync-all-include-3" style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
-                    <span>⏱️ 3. Marcaciones Asistencia</span>
-                  </label>
-                </div>
-                <span class="sync-proc-badge">SPC_LOGIN_MARCACIONES</span>
-              </div>
-              <div class="sync-card-fields">
-                <div class="field-group">
-                  <label for="sync-all-p3-empresa">Empresa (@IdEmpresa):</label>
-                  <input type="number" id="sync-all-p3-empresa" class="select-input" value="14" required>
-                </div>
-                <div class="field-group">
-                  <label for="sync-all-p3-sw">sw_contrato:</label>
-                  <select id="sync-all-p3-sw" class="select-input">
-                    <option value="0" selected>0 (General)</option>
-                    <option value="1">1</option>
-                  </select>
-                </div>
-              </div>
-              <div class="sync-card-fields">
-                <div class="field-group">
-                  <label for="sync-all-p3-desde">Fecha Desde (@Fecha):</label>
-                  <input type="text" id="sync-all-p3-desde" class="select-input" value="18/08/2026" placeholder="DD/MM/AAAA" required>
-                </div>
-                <div class="field-group">
-                  <label for="sync-all-p3-hasta">Fecha Hasta (@FechaHasta):</label>
-                  <input type="text" id="sync-all-p3-hasta" class="select-input" value="20/08/2026" placeholder="DD/MM/AAAA" required>
-                </div>
-              </div>
-            </div>
-
-            <!-- 4. Buses y Rutas -->
-            <div class="sync-card sync-card-amber" id="sync-card-4">
-              <div class="sync-card-header">
-                <div class="sync-card-title-wrap">
-                  <input type="checkbox" id="sync-all-include-4" class="sync-card-checkbox" checked title="Incluir en la sincronización">
-                  <label for="sync-all-include-4" style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
-                    <span>🚌 4. Buses y Rutas</span>
-                  </label>
-                </div>
-                <span class="sync-proc-badge">SPC_REGISTRO_RUTA</span>
-              </div>
-              <div class="sync-card-fields">
-                <div class="field-group">
-                  <label for="sync-all-p4-codpais">País (@COD_PAIS):</label>
-                  <input type="text" id="sync-all-p4-codpais" class="select-input" value="PE" required>
-                </div>
-                <div class="field-group">
-                  <label for="sync-all-p4-empresa">Empresa (@IDEMPRESA):</label>
-                  <input type="number" id="sync-all-p4-empresa" class="select-input" value="14" placeholder="0 = Todas" required>
-                </div>
-              </div>
-              <div class="sync-card-fields">
-                <div class="field-group">
-                  <label for="sync-all-p4-desde">Desde (@DESDE):</label>
-                  <input type="text" id="sync-all-p4-desde" class="select-input" value="18/08/2026" placeholder="DD/MM/AAAA" required>
-                </div>
-                <div class="field-group">
-                  <label for="sync-all-p4-hasta">Hasta (@HASTA):</label>
-                  <input type="text" id="sync-all-p4-hasta" class="select-input" value="20/08/2026" placeholder="DD/MM/AAAA" required>
-                </div>
-              </div>
-            </div>
-
-            <!-- 5. Cuadrillas -->
-            <div class="sync-card sync-card-purple" id="sync-card-5" style="grid-column: 1 / -1;">
-              <div class="sync-card-header">
-                <div class="sync-card-title-wrap">
-                  <input type="checkbox" id="sync-all-include-5" class="sync-card-checkbox" checked title="Incluir en la sincronización">
-                  <label for="sync-all-include-5" style="cursor: pointer; display: flex; align-items: center; gap: 0.4rem;">
-                    <span>👥 5. Cuadrillas y Supervisores</span>
-                  </label>
-                </div>
-                <span class="sync-proc-badge">SPC_DINAMICA_CUADRILLAS</span>
-              </div>
-              <div class="sync-card-fields">
-                <div class="field-group">
-                  <label for="sync-all-p5-empresa">Empresa (@EMPRESA):</label>
-                  <input type="number" id="sync-all-p5-empresa" class="select-input" value="14" required>
-                </div>
-                <div class="field-group" style="display: flex; align-items: flex-end;">
-                  <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0; padding-bottom: 0.35rem;">
-                    ℹ️ Carga el catálogo dinámico de supervisores y nombres de cuadrilla para vincular con las labores.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="sync-all-footer">
-            <div class="sync-all-summary-badge" id="sync-all-summary-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span id="sync-all-summary-count">5 fuentes listas para sincronizar</span>
-            </div>
-
-            <div style="display: flex; gap: 0.75rem; align-items: center;">
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-sync-all">
-                Cancelar
-              </button>
-              <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-sync-all" style="padding: 0.5rem 1.25rem; font-weight: 700;">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-                </svg>
-                <span>⚡ Iniciar Sincronización</span>
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+    </main>
   </div>
 
-  <!-- SQL Parameters Modal for Card 1 (Trabajadores) -->
-  <div class="modal-overlay" id="modal-sql-params" role="dialog" aria-modal="true" aria-labelledby="sql-params-title">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <div class="metric-icon-box metric-blue" style="width: 32px; height: 32px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-          </div>
-          <h3 id="sql-params-title">Parámetros SQL: Maestro Trabajadores</h3>
-        </div>
-        <button type="button" class="btn-close" id="btn-close-sql-params" aria-label="Cerrar ventana">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-          Procedimiento: <code>SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS</code> en <code>vfstbd01.bsis_rem_afr</code>
-        </p>
-
-        <form id="form-sql-params" style="display: flex; flex-direction: column; gap: 0.85rem;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div class="field-group">
-              <label for="sql-param-empresa">Empresa (@IdEmpresa):</label>
-              <select id="sql-param-empresa" class="select-input">
-                <option value="14" selected>14 - VERFRUT S.A.C.</option>
-                <option value="9">9 - RAPEL S.A.C.</option>
-                <option value="12">12 - ALGARROBOS PIURA</option>
-                <option value="1">1 - EL PORVENIR</option>
-                <option value="2">2 - EL DURAZNO</option>
-                <option value="3">3 - LOS PARRONES</option>
-                <option value="4">4 - QUILAMUTA</option>
-                <option value="7">7 - PILARES VERDES</option>
-                <option value="8">8 - VERFRUT CHILE</option>
-                <option value="23">23 - AVANTI S.A.C.</option>
-                <option value="31">31 - BOMAREA S.R.L.</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label for="sql-param-activo">Activo:</label>
-              <select id="sql-param-activo" class="select-input">
-                <option value="1" selected>1 (Solo Activos)</option>
-                <option value="0">0 (Inactivos)</option>
-              </select>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div class="field-group">
-              <label for="sql-param-mes">Mes (1 - 12):</label>
-              <select id="sql-param-mes" class="select-input">
-                <option value="1">1 - Enero</option>
-                <option value="2">2 - Febrero</option>
-                <option value="3">3 - Marzo</option>
-                <option value="4">4 - Abril</option>
-                <option value="5">5 - Mayo</option>
-                <option value="6">6 - Junio</option>
-                <option value="7">7 - Julio</option>
-                <option value="8" selected>8 - Agosto</option>
-                <option value="9">9 - Setiembre</option>
-                <option value="10">10 - Octubre</option>
-                <option value="11">11 - Noviembre</option>
-                <option value="12">12 - Diciembre</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label for="sql-param-anio">Año:</label>
-              <input type="number" id="sql-param-anio" class="select-input" value="2026" required>
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label for="sql-param-fechaini">Fecha Corte (@fechaini DD/MM/AAAA):</label>
-            <input type="text" id="sql-param-fechaini" class="select-input" value="31/8/2026" required>
-          </div>
-
-          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.5rem;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params">Cancelar</button>
-            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Consultar y Cargar
-            </button>
-          </div>
-        </form>
-      </div>
+  <!-- Desktop App Statusbar (Fixed at bottom) -->
+  <footer class="app-statusbar">
+    <div class="statusbar-left">
+      <span class="statusbar-online-dot"></span>
+      <span>Sistema: <strong>En Línea</strong></span>
+      <span class="statusbar-separator">|</span>
+      <span>Módulo Activo: <strong>ASISTENCIA</strong></span>
     </div>
-  </div>
-
-  <!-- SQL Parameters Modal for Card 2 (Último Día & Labores) -->
-  <div class="modal-overlay" id="modal-sql-params-2" role="dialog" aria-modal="true" aria-labelledby="sql-params-2-title">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <div class="metric-icon-box metric-green" style="width: 32px; height: 32px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-          </div>
-          <h3 id="sql-params-2-title">Parámetros SQL: Último Día & Labores</h3>
-        </div>
-        <button type="button" class="btn-close" id="btn-close-sql-params-2" aria-label="Cerrar ventana">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-          Procedimiento: <code>SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR</code> en <code>vfstbd01.bsis_rem_afr</code>
-        </p>
-
-        <form id="form-sql-params-2" style="display: flex; flex-direction: column; gap: 0.85rem;">
-          <div class="field-group">
-            <label for="sql-param-2-empresa">Empresa (@IDEMPRESA):</label>
-            <select id="sql-param-2-empresa" class="select-input">
-              <option value="14" selected>14 - VERFRUT S.A.C.</option>
-              <option value="9">9 - RAPEL S.A.C.</option>
-              <option value="12">12 - ALGARROBOS PIURA</option>
-              <option value="1">1 - EL PORVENIR</option>
-              <option value="2">2 - EL DURAZNO</option>
-              <option value="3">3 - LOS PARRONES</option>
-              <option value="4">4 - QUILAMUTA</option>
-              <option value="7">7 - PILARES VERDES</option>
-              <option value="8">8 - VERFRUT CHILE</option>
-              <option value="23">23 - AVANTI S.A.C.</option>
-              <option value="31">31 - BOMAREA S.R.L.</option>
-            </select>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div class="field-group">
-              <label for="sql-param-2-mes">Mes (1 - 12):</label>
-              <select id="sql-param-2-mes" class="select-input">
-                <option value="1">1 - Enero</option>
-                <option value="2">2 - Febrero</option>
-                <option value="3">3 - Marzo</option>
-                <option value="4">4 - Abril</option>
-                <option value="5">5 - Mayo</option>
-                <option value="6">6 - Junio</option>
-                <option value="7">7 - Julio</option>
-                <option value="8" selected>8 - Agosto</option>
-                <option value="9">9 - Setiembre</option>
-                <option value="10">10 - Octubre</option>
-                <option value="11">11 - Noviembre</option>
-                <option value="12">12 - Diciembre</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label for="sql-param-2-anio">Año:</label>
-              <input type="number" id="sql-param-2-anio" class="select-input" value="2026" required>
-            </div>
-          </div>
-
-          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.5rem;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params-2">Cancelar</button>
-            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params-2">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Consultar y Cargar
-            </button>
-          </div>
-        </form>
-      </div>
+    <div class="statusbar-right">
+      <span>BD: <strong>vfstbd01/bsis_rem_afr (PE)</strong></span>
+      <span class="statusbar-separator">|</span>
+      <span>Registros: <strong id="statusbar-record-count">0 / 0</strong></span>
     </div>
-  </div>
+  </footer>
 
-  <!-- SQL Parameters Modal for Card 3 (Marcaciones) -->
-  <div class="modal-overlay" id="modal-sql-params-3" role="dialog" aria-modal="true" aria-labelledby="sql-params-3-title">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div style="display: flex; align-items: center; gap: 0.6rem;">
-          <div class="metric-icon-box metric-sky" style="width: 32px; height: 32px; background: rgba(2, 132, 199, 0.12); color: #0284c7;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </div>
-          <h3 id="sql-params-3-title">Parámetros SQL: Marcaciones</h3>
-        </div>
-        <button type="button" class="btn-close" id="btn-close-sql-params-3" aria-label="Cerrar ventana">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-          Procedimiento: <code>SPC_LOGIN_MARCACIONES</code> en <code>vfstbd01.bsis_rem_afr</code>
-        </p>
-
-        <form id="form-sql-params-3" style="display: flex; flex-direction: column; gap: 0.85rem;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div class="field-group">
-              <label for="sql-param-3-desde">Fecha Desde (@DESDE / @Fecha):</label>
-              <input type="text" id="sql-param-3-desde" class="select-input" value="18/08/2026" placeholder="DD/MM/AAAA" required>
-            </div>
-            <div class="field-group">
-              <label for="sql-param-3-hasta">Fecha Hasta (@HASTA / @FechaHasta):</label>
-              <input type="text" id="sql-param-3-hasta" class="select-input" value="20/08/2026" placeholder="DD/MM/AAAA" required>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div class="field-group">
-              <label for="sql-param-3-empresa">Empresa (@IdEmpresa):</label>
-              <select id="sql-param-3-empresa" class="select-input">
-                <option value="14" selected>14 - VERFRUT S.A.C.</option>
-                <option value="9">9 - RAPEL S.A.C.</option>
-                <option value="12">12 - ALGARROBOS PIURA</option>
-                <option value="1">1 - EL PORVENIR</option>
-                <option value="2">2 - EL DURAZNO</option>
-                <option value="3">3 - LOS PARRONES</option>
-                <option value="4">4 - QUILAMUTA</option>
-                <option value="7">7 - PILARES VERDES</option>
-                <option value="8">8 - VERFRUT CHILE</option>
-                <option value="23">23 - AVANTI S.A.C.</option>
-                <option value="31">31 - BOMAREA S.R.L.</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label for="sql-param-3-sw">sw_contrato:</label>
-              <select id="sql-param-3-sw" class="select-input">
-                <option value="0" selected>0 (General)</option>
-                <option value="1">1</option>
-              </select>
-            </div>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-calc-3days" style="font-size: 0.75rem;">
-              📅 Auto: Hoy y 2 días atrás (3 días)
-            </button>
-            <div style="display: flex; gap: 0.6rem;">
-              <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params-3">Cancelar</button>
-              <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params-3">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                Consultar y Cargar
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- SQL Query Parameters Modal - Card 4: Buses y Rutas (SPC_REGISTRO_RUTA) -->
-  <div class="modal-overlay" id="modal-sql-params-4" role="dialog" aria-modal="true" aria-labelledby="sql-params-title-4">
-    <div class="modal-content modal-content-sm">
-      <div class="modal-header">
-        <div class="modal-header-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-          </svg>
-        </div>
-        <div>
-          <h3 id="sql-params-title-4">Parámetros SQL: Buses y Rutas</h3>
-          <p class="modal-subtitle">Procedimiento: <code>SPC_REGISTRO_RUTA</code></p>
-        </div>
-        <button type="button" class="btn-close" id="btn-close-sql-params-4" aria-label="Cerrar modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <form id="form-sql-params-4" class="sql-params-form">
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="sql-param-4-codpais">Código País (@COD_PAIS):</label>
-              <input type="text" id="sql-param-4-codpais" class="select-input" value="PE" placeholder="PE" required>
-            </div>
-            <div class="form-group">
-              <label for="sql-param-4-empresa">Empresa (@IDEMPRESA):</label>
-              <select id="sql-param-4-empresa" class="select-input">
-                <option value="0">0 (Todas las empresas)</option>
-                <option value="14" selected>14 - VERFRUT S.A.C.</option>
-                <option value="9">9 - RAPEL S.A.C.</option>
-                <option value="12">12 - ALGARROBOS PIURA</option>
-                <option value="1">1 - EL PORVENIR</option>
-                <option value="2">2 - EL DURAZNO</option>
-                <option value="3">3 - LOS PARRONES</option>
-                <option value="4">4 - QUILAMUTA</option>
-                <option value="7">7 - PILARES VERDES</option>
-                <option value="8">8 - VERFRUT CHILE</option>
-                <option value="23">23 - AVANTI S.A.C.</option>
-                <option value="31">31 - BOMAREA S.R.L.</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="sql-param-4-desde">Fecha Desde (@DESDE):</label>
-              <input type="text" id="sql-param-4-desde" class="select-input" value="16-08-2026" placeholder="DD-MM-YYYY" required>
-            </div>
-            <div class="form-group">
-              <label for="sql-param-4-hasta">Fecha Hasta (@HASTA):</label>
-              <input type="text" id="sql-param-4-hasta" class="select-input" value="31-08-2026" placeholder="DD-MM-YYYY" required>
-            </div>
-          </div>
-
-          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.8rem;">
-            <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-params-4">Cancelar</button>
-            <button type="submit" class="btn btn-primary btn-sm" id="btn-submit-sql-params-4">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-              Consultar y Cargar
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Worker Dossier / Detail Modal -->
   <div class="modal-overlay" id="modal-dossier" role="dialog" aria-modal="true" aria-labelledby="dossier-title">
     <div class="modal-content modal-content-lg">
       <div class="modal-header">
@@ -1732,7 +314,7 @@
     <div class="modal-content modal-content-xl">
       <div class="modal-header">
         <div>
-          <h3 id="preview-title">Vista Previa del Archivo Excel</h3>
+          <h3 id="preview-title">Vista Previa de Datos de la Fuente</h3>
           <p id="preview-subtitle" class="preview-subtitle">Mostrando las primeras 10 filas de muestra</p>
         </div>
         <button type="button" class="btn-close" id="btn-close-preview" aria-label="Cerrar vista previa">&times;</button>
@@ -1763,8 +345,8 @@
             <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>K</kbd> ó <kbd>/</kbd></span>
           </div>
           <div class="shortcut-row">
-            <span class="shortcut-desc">Cargar datos demo de ejemplo</span>
-            <span class="shortcut-keys"><kbd>Ctrl</kbd> + <kbd>D</kbd></span>
+            <span class="shortcut-desc">Sincronizar fuentes SQL</span>
+            <span class="shortcut-keys"><kbd>F5</kbd></span>
           </div>
           <div class="shortcut-row">
             <span class="shortcut-desc">Cerrar modales o limpiar búsqueda</span>
@@ -1849,6 +431,12 @@
                 <option value="{SQL Server Native Client 11.0}">{SQL Server Native Client 11.0}</option>
               </select>
             </div>
+            <div class="form-group" style="grid-column: 1 / -1; display: flex; align-items: center; gap: 0.6rem; margin-top: 0.35rem; background: rgba(2, 132, 199, 0.06); padding: 0.6rem 0.85rem; border-radius: 6px; border: 1px solid rgba(2, 132, 199, 0.15);">
+              <input type="checkbox" id="db-config-trusted" style="width: 17px; height: 17px; cursor: pointer;">
+              <label for="db-config-trusted" style="font-weight: 500; font-size: 0.84rem; cursor: pointer; margin-bottom: 0; color: var(--text-main);">
+                Usar Autenticación Integrada de Windows (Trusted_Connection)
+              </label>
+            </div>
           </div>
 
           <!-- Caja de Feedback de Prueba de Conexión -->
@@ -1889,7 +477,7 @@
         <button type="button" class="btn-close" id="btn-close-modal" aria-label="Cerrar ventana">&times;</button>
       </div>
       <div class="modal-body">
-        <p>Esta herramienta procesa y concatena automáticamente los datos de trabajadores desde SQL Server o Excel generando exactamente los <strong>23 campos solicitados</strong>:</p>
+        <p>Esta herramienta sincroniza y consolida automáticamente los datos de trabajadores directamente desde SQL Server (VFSTBD01) generando exactamente los <strong>23 campos solicitados</strong>:</p>
         
         <h4>Estructura de las 23 Columnas del Consolidado:</h4>
         <ol class="columns-ordered-list">
@@ -1940,6 +528,251 @@
   <script src="exceljs.min.js"></script>
   <script src="xlsx.full.min.js"></script>
   <!-- Main Application Logic -->
-  <script src="js/app.js?v=20260820_1200"></script>
+  <script src="js/app.js?v=20260907_1215"></script>
+  <!-- Sidebar & Navigation Menu Controller -->
+  
+
+  <!-- ==========================================================================
+       MODAL: MONITOR DE AVANCE DE SINCRONIZACIÓN SQL EN VIVO
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-sync-live-monitor" role="dialog" aria-modal="true" aria-labelledby="sync-monitor-title">
+    <div class="modal-content modal-content-lg sync-monitor-modal">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 32px; height: 32px; border-radius: 6px; background: #0284c7; color: #fff; display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div>
+            <h3 id="sync-monitor-title" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">Monitor de Sincronización SQL en Vivo</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Servidor de Producción: <strong style="color: #0284c7;">vfstbd01 (bsis_rem_afr)</strong></span>
+          </div>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-sync-monitor" aria-label="Cerrar monitor" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div class="modal-body sync-monitor-body" style="padding: 1.25rem 1.5rem;">
+        <!-- Chips de Parámetros Activos -->
+        <div class="sync-active-params-chip" id="sync-monitor-params-chip">
+          <span>🏢 Empresa: <strong id="monitor-chip-empresa">14 - VERFRUT S.A.C.</strong></span>
+          <span>📅 Periodo: <strong id="monitor-chip-periodo">Agosto / 2026</strong></span>
+          <span>🕒 Marcaciones: <strong id="monitor-chip-dias">Últimos 3 días</strong></span>
+        </div>
+
+        <!-- Barra de Progreso General -->
+        <div class="sync-progress-bar-container">
+          <div class="sync-progress-header">
+            <span class="sync-progress-status-label" id="sync-monitor-overall-status">Iniciando consultas SQL...</span>
+            <span class="sync-progress-pct" id="sync-monitor-pct" style="color: #0284c7; font-weight: 700;">0%</span>
+          </div>
+          <div class="sync-progress-track">
+            <div class="sync-progress-fill" id="sync-monitor-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Lista de las 5 Consultas Paso a Paso -->
+        <div class="sync-steps-list">
+          <!-- 1. Trabajadores -->
+          <div class="sync-step-item" id="sync-step-1">
+            <div class="sync-step-icon">
+              <span id="sync-step-icon-1">⚪</span>
+            </div>
+            <div class="sync-step-info">
+              <div class="sync-step-title">
+                <strong>1. Ficha de Trabajadores Activos</strong>
+                <code>SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS</code>
+              </div>
+              <div class="sync-step-meta" id="sync-step-meta-1">Población activa, DNI, nombres, apellidos y régimen laboral</div>
+            </div>
+            <div class="sync-step-badge" id="sync-step-badge-1">En espera</div>
+          </div>
+
+          <!-- 2. Labores -->
+          <div class="sync-step-item" id="sync-step-2">
+            <div class="sync-step-icon">
+              <span id="sync-step-icon-2">⚪</span>
+            </div>
+            <div class="sync-step-info">
+              <div class="sync-step-title">
+                <strong>2. Labores y Asistencia (Último Día)</strong>
+                <code>SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR</code>
+              </div>
+              <div class="sync-step-meta" id="sync-step-meta-2">Último día trabajado, labor, cuartel, sector y cuadrilla</div>
+            </div>
+            <div class="sync-step-badge" id="sync-step-badge-2">En espera</div>
+          </div>
+
+          <!-- 3. Marcaciones -->
+          <div class="sync-step-item" id="sync-step-3">
+            <div class="sync-step-icon">
+              <span id="sync-step-icon-3">⚪</span>
+            </div>
+            <div class="sync-step-info">
+              <div class="sync-step-title">
+                <strong>3. Marcaciones Biométricas de Reloj</strong>
+                <code>SPC_LOGIN_MARCACIONES</code>
+              </div>
+              <div class="sync-step-meta" id="sync-step-meta-3">Marcaciones de entrada, salida, estaciones y buses</div>
+            </div>
+            <div class="sync-step-badge" id="sync-step-badge-3">En espera</div>
+          </div>
+
+          <!-- 4. Buses -->
+          <div class="sync-step-item" id="sync-step-4">
+            <div class="sync-step-icon">
+              <span id="sync-step-icon-4">⚪</span>
+            </div>
+            <div class="sync-step-info">
+              <div class="sync-step-title">
+                <strong>4. Rutas y Transporte de Buses</strong>
+                <code>SPC_REGISTRO_RUTA</code>
+              </div>
+              <div class="sync-step-meta" id="sync-step-meta-4">Asignación de patentes, código de bus y descripción de ruta</div>
+            </div>
+            <div class="sync-step-badge" id="sync-step-badge-4">En espera</div>
+          </div>
+
+          <!-- 5. Cuadrillas -->
+          <div class="sync-step-item" id="sync-step-5">
+            <div class="sync-step-icon">
+              <span id="sync-step-icon-5">⚪</span>
+            </div>
+            <div class="sync-step-info">
+              <div class="sync-step-title">
+                <strong>5. Cuadrillas de Campo</strong>
+                <code>SPC_DINAMICA_CUADRILLAS</code>
+              </div>
+              <div class="sync-step-meta" id="sync-step-meta-5">Cuadrillas activas, código y nombres de encargados</div>
+            </div>
+            <div class="sync-step-badge" id="sync-step-badge-5">En espera</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer sync-monitor-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background: var(--bg-surface);">
+        <span class="sync-timer-label" id="sync-monitor-timer" style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">Tiempo transcurrido: 0.0s</span>
+        <button type="button" class="btn btn-primary" id="btn-sync-monitor-view-results" style="display: none; padding: 0.5rem 1.25rem;">
+          <span>🎉 Ver Datos Consolidados</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: PARÁMETROS COMPLETOS DE SINCRONIZACIÓN SQL
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-sync-params-config" role="dialog" aria-modal="true" aria-labelledby="sync-params-config-title">
+    <div class="modal-content modal-content-md">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 32px; height: 32px; border-radius: 6px; background: #f59e0b; color: #fff; display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <div>
+            <h3 id="sync-params-config-title" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">Parámetros de Sincronización SQL</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Ajusta empresa, mes, año y ventana de marcaciones</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-sync-params-config" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+        <form id="form-sync-params-config">
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="adv-param-empresa" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">🏢 Empresa (@IdEmpresa):</label>
+            <select id="adv-param-empresa" class="select-input" style="width: 100%; height: 36px;">
+              <option value="14" selected>14 - SOCIEDAD EXPORTADORA VERFRUT S.A.C.</option>
+              <option value="9">9 - SOCIEDAD AGRÍCOLA RAPEL S.A.C.</option>
+              <option value="1">1 - SOCIEDAD AGRICOLA EL PORVENIR S.A.</option>
+              <option value="2">2 - EL DURAZNO</option>
+              <option value="3">3 - LOS PARRONES</option>
+              <option value="4">4 - QUILAMUTA</option>
+              <option value="5">5 - INVERSIONES RVD LIMITADA</option>
+              <option value="7">7 - AGRICOLA PILARES VERDES SPA</option>
+              <option value="8">8 - SOC. EXPORTADORA VERFRUT SPA</option>
+              <option value="11">11 - INMOBILIARIA FARALEUFU LIMITADA</option>
+              <option value="12">12 - ALGARROBOS PIURA SAC</option>
+              <option value="16">16 - AGRICOLA PJM LIMITADA</option>
+              <option value="17">17 - AGRICOLA VERCELING CHILE LIMITADA</option>
+              <option value="19">19 - AGRICOLA EL PEÑASCO SPA</option>
+              <option value="20">20 - SKY WINGS SPA</option>
+              <option value="21">21 - AGRICOLA EL REMANSO LTDA</option>
+              <option value="22">22 - BODEGAS LOS LIRIOS SPA</option>
+              <option value="23">23 - AGRICOLA AVANTI S.A.C.</option>
+              <option value="31">31 - BOMAREA S.R.L</option>
+              <option value="32">32 - INVERSIONES MOSQUETA S.A.C.</option>
+              <option value="33">33 - INVERSIONES PIRONA S.A.C.</option>
+              <option value="34">34 - INVERSIONES LEFKADA S.A.C.</option>
+              <option value="35">35 - INVERSIONES HEFEI S.A.C.</option>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label for="adv-param-mes" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">📅 Mes de Consulta (@mes):</label>
+              <select id="adv-param-mes" class="select-input" style="width: 100%; height: 36px;">
+                <option value="1">1 - Enero</option>
+                <option value="2">2 - Febrero</option>
+                <option value="3">3 - Marzo</option>
+                <option value="4">4 - Abril</option>
+                <option value="5">5 - Mayo</option>
+                <option value="6">6 - Junio</option>
+                <option value="7">7 - Julio</option>
+                <option value="8" selected>8 - Agosto</option>
+                <option value="9">9 - Septiembre</option>
+                <option value="10">10 - Octubre</option>
+                <option value="11">11 - Noviembre</option>
+                <option value="12">12 - Diciembre</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="adv-param-anio" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Año de Consulta (@año):</label>
+              <input type="number" id="adv-param-anio" class="select-input" value="2026" min="2020" max="2035" style="width: 100%; height: 36px;" required>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label for="adv-param-fechaini" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Fecha Corte (@fechaini):</label>
+              <input type="text" id="adv-param-fechaini" class="select-input" value="31/8/2026" placeholder="DD/MM/AAAA" style="width: 100%; height: 36px;" required>
+            </div>
+            <div class="form-group">
+              <label for="adv-param-activo" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Estado (@activo):</label>
+              <select id="adv-param-activo" class="select-input" style="width: 100%; height: 36px;">
+                <option value="1" selected>Solo Activos (Recomendado)</option>
+                <option value="0">Todos (Activos e Inactivos)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="adv-param-dias" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">🕒 Ventana de Marcaciones Biométricas:</label>
+            <select id="adv-param-dias" class="select-input" style="width: 100%; height: 36px;">
+              <option value="1">1 día (Hoy)</option>
+              <option value="2">Últimos 2 días</option>
+              <option value="3" selected>Últimos 3 días (Recomendado)</option>
+              <option value="5">Últimos 5 días</option>
+              <option value="7">Últimos 7 días</option>
+            </select>
+            <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Se consultan automáticamente los registros biométricos hasta hoy para la empresa activa.</span>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-sync-params-config">Cancelar</button>
+            <button type="button" class="btn btn-secondary" id="btn-save-sync-params-only" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #0284c7; color: #fff; border-color: #0284c7;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              <span>💾 Guardar Parámetros</span>
+            </button>
+            <button type="button" class="btn btn-primary" id="btn-save-and-sync-params" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>⚡ Guardar y Sincronizar</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
+
+

@@ -22,6 +22,6 @@ scratch/
 *.xlsx
 *.xls
 *.csv
-!test_user_exact_columns.xlsx
+
 # Local DB config
 sql_config.json

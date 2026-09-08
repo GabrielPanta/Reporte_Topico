@@ -656,6 +656,9 @@
     currentPage: 1,
     pageSize: 15,
     activeFilter: 'ALL',
+    filterCuartel: '',
+    filterRuta: '',
+    filterSinTransporte: false,
     searchTerm: '',
     sortColumn: 'RutTrabajador',
     sortDirection: 'asc',
@@ -667,12 +670,12 @@
   const elements = {
     // Header & Actions
     btnThemeToggle: document.getElementById('btn-theme-toggle'),
-    btnLoadDemo: document.getElementById('btn-load-demo'),
+    btnLoadDemo: document.getElementById('nav-demo-data') || document.getElementById('btn-load-demo'),
     btnShortcuts: document.getElementById('btn-shortcuts'),
     btnHelp: document.getElementById('btn-help'),
-    btnProcess: document.getElementById('btn-process'),
+    btnProcess: document.getElementById('btn-header-process') || document.getElementById('btn-process'),
     btnResetAll: document.getElementById('btn-reset-all'),
-    btnExportExcel: document.getElementById('btn-export-excel'),
+    btnExportExcel: document.getElementById('btn-header-export-excel') || document.getElementById('btn-export-excel'),
     btnExportCsv: document.getElementById('btn-export-csv'),
     btnCopyTable: document.getElementById('btn-copy-table'),
     btnPrintTable: document.getElementById('btn-print-table'),
@@ -737,10 +740,10 @@
 
     // Results Section, Actions & Distribution
     resultsSection: document.getElementById('results-section'),
-    btnExportExcelHeader: document.getElementById('btn-export-excel-header'),
+    btnExportExcelHeader: document.getElementById('btn-header-export-excel') || document.getElementById('btn-export-excel-header'),
     btnExportExcel: document.getElementById('btn-export-excel'),
     btnExportCsv: document.getElementById('btn-export-csv'),
-    btnPrint: document.getElementById('btn-print'),
+    btnPrint: document.getElementById('btn-print') || document.getElementById('btn-print-table'),
     distActive: document.getElementById('dist-active'),
     distAbsent: document.getElementById('dist-absent'),
     distLeave: document.getElementById('dist-leave'),
@@ -757,7 +760,7 @@
 
     // Table, Search & Filter Controls
     tableSearch: document.getElementById('table-search'),
-    btnClearSearch: document.getElementById('btn-clear-search'),
+    btnClearSearch: document.getElementById('btn-clear-search') || document.getElementById('btn-clear-filters'),
     filterChips: document.querySelectorAll('.filter-chip'),
     countChipAll: document.getElementById('count-chip-all'),
     countChipActive: document.getElementById('count-chip-active'),
@@ -850,7 +853,7 @@
     syncAllP5Empresa: document.getElementById('sync-all-p5-empresa'),
 
     // Direct SQL Database Configuration Modal
-    btnDbConfig: document.getElementById('btn-db-config'),
+    btnDbConfig: document.getElementById('btn-header-user-config') || document.getElementById('nav-config-bd') || document.getElementById('btn-db-config'),
     modalSqlDbConfig: document.getElementById('modal-sql-db-config'),
     btnCloseSqlDbConfig: document.getElementById('btn-close-sql-db-config'),
     btnCancelSqlDbConfig: document.getElementById('btn-cancel-sql-db-config'),
@@ -868,13 +871,13 @@
     btnResetDbConfig: document.getElementById('btn-reset-db-config'),
 
     btnLoadSql: document.getElementById('btn-load-sql'),
-    btnLoadSqlHeader: document.getElementById('btn-load-sql-header'),
+    btnLoadSqlHeader: document.getElementById('btn-header-sync-sql') || document.getElementById('btn-load-sql-header'),
     btnOpenSqlParams: document.getElementById('btn-open-sql-params'),
     modalSqlParams: document.getElementById('modal-sql-params'),
     btnCloseSqlParams: document.getElementById('btn-close-sql-params'),
     btnCancelSqlParams: document.getElementById('btn-cancel-sql-params'),
     formSqlParams: document.getElementById('form-sql-params'),
-    dbStatusBadge: document.getElementById('db-status-badge'),
+    dbStatusBadge: document.getElementById('statusbar-db-status') || document.getElementById('db-status-badge'),
     sqlParamEmpresa: document.getElementById('sql-param-empresa'),
     sqlParamActivo: document.getElementById('sql-param-activo'),
     sqlParamMes: document.getElementById('sql-param-mes'),
@@ -1338,9 +1341,31 @@
 
   function extractFromRow(row, aliasList) {
     if (!row) return '';
+
+    // Fast Path O(1): Coincidencia directa en el objeto
+    for (const alias of aliasList) {
+      const v = row[alias];
+      if (v !== undefined && v !== null && String(v).trim() !== '') {
+        return formatCellValue(v);
+      }
+    }
+
     const rowKeys = Object.keys(row);
 
-    // Pase 1: Coincidencia exacta
+    // Fast Path O(K): Coincidencia case-insensitive directa
+    for (const alias of aliasList) {
+      const aLow = alias.toLowerCase();
+      for (const k of rowKeys) {
+        if (k.toLowerCase() === aLow) {
+          const v = row[k];
+          if (v !== undefined && v !== null && String(v).trim() !== '') {
+            return formatCellValue(v);
+          }
+        }
+      }
+    }
+
+    // Pase 1: Coincidencia exacta normalizada
     for (const alias of aliasList) {
       const cleanAlias = cleanHeader(alias);
       for (const key of rowKeys) {
@@ -1555,13 +1580,14 @@
 
   // Initialize
   function init() {
-    initTheme();
-    setupEventListeners();
-    setupDropzones();
-    setupCardConfigToggles();
-    setupColumnVisibilityMenu();
-    loadSqlDatabaseConfig();
-    checkSqlConnection();
+    try { initTheme(); } catch (e) { console.error('Error initTheme:', e); }
+    try { initializeDynamicDateParams(); } catch (e) { console.error('Error initializeDynamicDateParams:', e); }
+    try { setupEventListeners(); } catch (e) { console.error('Error setupEventListeners:', e); }
+    try { setupDropzones(); } catch (e) { console.error('Error setupDropzones:', e); }
+    try { setupCardConfigToggles(); } catch (e) { console.error('Error setupCardConfigToggles:', e); }
+    try { setupColumnVisibilityMenu(); } catch (e) { console.error('Error setupColumnVisibilityMenu:', e); }
+    try { loadSqlDatabaseConfig(); } catch (e) { console.error('Error loadSqlDatabaseConfig:', e); }
+    try { checkSqlConnection(); } catch (e) { console.error('Error checkSqlConnection:', e); }
   }
 
   // Theme Management
@@ -1585,23 +1611,24 @@
 
   // Check SQL Server Connection Status
   async function checkSqlConnection() {
-    if (!elements.dbStatusBadge) return;
+    const badge = elements.dbStatusBadge || document.getElementById('statusbar-db-status') || document.getElementById('db-status-badge');
+    if (!badge) return;
     try {
       const resp = await fetch('/api/test-sql');
       const data = await resp.json();
       if (data.success) {
-        elements.dbStatusBadge.innerHTML = '<span class="db-dot"></span> SQL Server Conectado';
-        elements.dbStatusBadge.classList.remove('disconnected');
-        elements.dbStatusBadge.title = 'SQL Server Conectado: Haz clic para cambiar contraseña o parámetros';
+        badge.innerHTML = '<span class="db-dot"></span> SQL Server Conectado';
+        badge.classList.remove('disconnected');
+        badge.title = 'SQL Server Conectado: Haz clic para cambiar contraseña o parámetros';
       } else {
-        elements.dbStatusBadge.innerHTML = '<span class="db-dot" style="background-color: var(--danger-500); box-shadow: 0 0 6px var(--danger-500);"></span> SQL Desconectado';
-        elements.dbStatusBadge.classList.add('disconnected');
-        elements.dbStatusBadge.title = `SQL Server Desconectado (${data.error || 'Verifica contraseña'}): Haz clic para configurar`;
+        badge.innerHTML = '<span class="db-dot" style="background-color: var(--danger-500); box-shadow: 0 0 6px var(--danger-500);"></span> SQL Desconectado';
+        badge.classList.add('disconnected');
+        badge.title = `SQL Server Desconectado (${data.error || 'Verifica contraseña'}): Haz clic para configurar`;
       }
     } catch (e) {
-      if (elements.dbStatusBadge) {
-        elements.dbStatusBadge.innerHTML = '<span class="db-dot" style="background-color: var(--warning-500); box-shadow: 0 0 6px var(--warning-500);"></span> Modo Local';
-        elements.dbStatusBadge.title = 'Modo Local / Servidor de fondo no accesible';
+      if (badge) {
+        badge.innerHTML = '<span class="db-dot" style="background-color: var(--warning-500); box-shadow: 0 0 6px var(--warning-500);"></span> Modo Local';
+        badge.title = 'Modo Local / Servidor de fondo no accesible';
       }
     }
   }
@@ -1614,13 +1641,36 @@
       const data = await resp.json();
       if (data.success && data.config) {
         const c = data.config;
-        if (elements.dbConfigDriver) elements.dbConfigDriver.value = c.driver || '{SQL Server}';
-        if (elements.dbConfigServer) elements.dbConfigServer.value = c.server || 'vfstbd01';
-        if (elements.dbConfigDatabase) elements.dbConfigDatabase.value = c.database || 'bsis_rem_afr';
-        if (elements.dbConfigUid) elements.dbConfigUid.value = c.uid || 'gpanta';
-        if (elements.dbConfigPwd) elements.dbConfigPwd.value = c.pwd || '';
-        if (elements.dbConfigWsid) elements.dbConfigWsid.value = c.wsid || 'VFRPTS03';
-        if (elements.dbConfigStatusBox) elements.dbConfigStatusBox.style.display = 'none';
+        const driverInput = elements.dbConfigDriver || document.getElementById('db-config-driver');
+        const serverInput = elements.dbConfigServer || document.getElementById('db-config-server');
+        const dbInput = elements.dbConfigDatabase || document.getElementById('db-config-database');
+        const uidInput = elements.dbConfigUid || document.getElementById('db-config-uid');
+        const pwdInput = elements.dbConfigPwd || document.getElementById('db-config-pwd');
+        const wsidInput = elements.dbConfigWsid || document.getElementById('db-config-wsid');
+        const trustedCheck = document.getElementById('db-config-trusted');
+        const statusBox = elements.dbConfigStatusBox || document.getElementById('db-config-status-box');
+
+        if (driverInput) driverInput.value = c.driver || '{SQL Server}';
+        if (serverInput) serverInput.value = c.server || 'vfstbd01';
+        if (dbInput) dbInput.value = c.database || 'bsis_rem_afr';
+        if (uidInput) uidInput.value = c.uid || 'gpanta';
+        if (pwdInput) pwdInput.value = c.pwd || '';
+        if (wsidInput) wsidInput.value = c.wsid || 'VFRPTS03';
+        if (trustedCheck) trustedCheck.checked = (c.trusted_connection === 'yes' || c.trusted_connection === true);
+        if (statusBox) statusBox.style.display = 'none';
+
+        // Actualizar visualmente la tarjeta de usuario en la barra lateral
+        const userCardName = document.querySelector('#sidebar-user-card-clickable .user-name');
+        if (userCardName && c.uid) {
+          userCardName.textContent = c.uid === 'gpanta' ? 'Gabriel Panta' : c.uid;
+        }
+        const userCardOrg = document.querySelector('#sidebar-user-card-clickable .user-org');
+        if (userCardOrg && c.uid) {
+          userCardOrg.textContent = `Unifrutti (${c.uid})`;
+        }
+        document.querySelectorAll('.sql-server-name').forEach(el => {
+          el.textContent = `${c.server || 'vfstbd01'} / ${c.database || 'bsis_rem_afr'}`;
+        });
 
         if (elements.dbStatusBadge) {
           elements.dbStatusBadge.title = `Conexión SQL Server (${c.server} / ${c.database}): Haz clic para cambiar contraseña o parámetros`;
@@ -1633,16 +1683,24 @@
 
   // Test SQL Database Connection in real-time
   async function testSqlDatabaseConnection() {
-    const btn = elements.btnTestDbConfig;
-    const box = elements.dbConfigStatusBox;
+    const btn = elements.btnTestDbConfig || document.getElementById('btn-test-db-config');
+    const box = elements.dbConfigStatusBox || document.getElementById('db-config-status-box');
+    const driverInput = elements.dbConfigDriver || document.getElementById('db-config-driver');
+    const serverInput = elements.dbConfigServer || document.getElementById('db-config-server');
+    const dbInput = elements.dbConfigDatabase || document.getElementById('db-config-database');
+    const uidInput = elements.dbConfigUid || document.getElementById('db-config-uid');
+    const pwdInput = elements.dbConfigPwd || document.getElementById('db-config-pwd');
+    const wsidInput = elements.dbConfigWsid || document.getElementById('db-config-wsid');
+    const trustedCheck = document.getElementById('db-config-trusted');
 
     const payload = {
-      driver: elements.dbConfigDriver ? elements.dbConfigDriver.value : '{SQL Server}',
-      server: elements.dbConfigServer ? elements.dbConfigServer.value.trim() : 'vfstbd01',
-      database: elements.dbConfigDatabase ? elements.dbConfigDatabase.value.trim() : 'bsis_rem_afr',
-      uid: elements.dbConfigUid ? elements.dbConfigUid.value.trim() : 'gpanta',
-      pwd: elements.dbConfigPwd ? elements.dbConfigPwd.value : '',
-      wsid: elements.dbConfigWsid ? elements.dbConfigWsid.value.trim() : 'VFRPTS03'
+      driver: driverInput ? driverInput.value : '{SQL Server}',
+      server: serverInput ? serverInput.value.trim() : 'vfstbd01',
+      database: dbInput ? dbInput.value.trim() : 'bsis_rem_afr',
+      uid: uidInput ? uidInput.value.trim() : 'gpanta',
+      pwd: pwdInput ? pwdInput.value : '',
+      wsid: wsidInput ? wsidInput.value.trim() : 'VFRPTS03',
+      trusted_connection: (trustedCheck && trustedCheck.checked) ? 'yes' : 'no'
     };
 
     try {
@@ -1701,16 +1759,24 @@
 
   // Save SQL Database Configuration permanently
   async function saveSqlDatabaseConfig() {
-    const btn = elements.btnSaveDbConfig;
-    const box = elements.dbConfigStatusBox;
+    const btn = elements.btnSaveDbConfig || document.getElementById('btn-save-db-config');
+    const box = elements.dbConfigStatusBox || document.getElementById('db-config-status-box');
+    const driverInput = elements.dbConfigDriver || document.getElementById('db-config-driver');
+    const serverInput = elements.dbConfigServer || document.getElementById('db-config-server');
+    const dbInput = elements.dbConfigDatabase || document.getElementById('db-config-database');
+    const uidInput = elements.dbConfigUid || document.getElementById('db-config-uid');
+    const pwdInput = elements.dbConfigPwd || document.getElementById('db-config-pwd');
+    const wsidInput = elements.dbConfigWsid || document.getElementById('db-config-wsid');
+    const trustedCheck = document.getElementById('db-config-trusted');
 
     const payload = {
-      driver: elements.dbConfigDriver ? elements.dbConfigDriver.value : '{SQL Server}',
-      server: elements.dbConfigServer ? elements.dbConfigServer.value.trim() : 'vfstbd01',
-      database: elements.dbConfigDatabase ? elements.dbConfigDatabase.value.trim() : 'bsis_rem_afr',
-      uid: elements.dbConfigUid ? elements.dbConfigUid.value.trim() : 'gpanta',
-      pwd: elements.dbConfigPwd ? elements.dbConfigPwd.value : '',
-      wsid: elements.dbConfigWsid ? elements.dbConfigWsid.value.trim() : 'VFRPTS03'
+      driver: driverInput ? driverInput.value : '{SQL Server}',
+      server: serverInput ? serverInput.value.trim() : 'vfstbd01',
+      database: dbInput ? dbInput.value.trim() : 'bsis_rem_afr',
+      uid: uidInput ? uidInput.value.trim() : 'gpanta',
+      pwd: pwdInput ? pwdInput.value : '',
+      wsid: wsidInput ? wsidInput.value.trim() : 'VFRPTS03',
+      trusted_connection: (trustedCheck && trustedCheck.checked) ? 'yes' : 'no'
     };
 
     if (!payload.server || !payload.database || !payload.uid) {
@@ -1734,7 +1800,22 @@
       if (data.success) {
         showToast('💾 Configuración de SQL Server guardada correctamente.', 'success');
         playSuccessSound('chime');
-        closeModal(elements.modalSqlDbConfig);
+        const modal = elements.modalSqlDbConfig || document.getElementById('modal-sql-db-config');
+        if (modal) closeModal(modal);
+
+        // Actualizar visualmente la interfaz
+        const userCardName = document.querySelector('#sidebar-user-card-clickable .user-name');
+        if (userCardName && payload.uid) {
+          userCardName.textContent = payload.uid === 'gpanta' ? 'Gabriel Panta' : payload.uid;
+        }
+        const userCardOrg = document.querySelector('#sidebar-user-card-clickable .user-org');
+        if (userCardOrg && payload.uid) {
+          userCardOrg.textContent = `Unifrutti (${payload.uid})`;
+        }
+        document.querySelectorAll('.sql-server-name').forEach(el => {
+          el.textContent = `${payload.server} / ${payload.database}`;
+        });
+
         checkSqlConnection();
       } else {
         throw new Error(data.error || 'No se pudo guardar la configuración.');
@@ -1756,17 +1837,27 @@
 
   // Reset to default config values in modal
   function resetSqlDatabaseConfig() {
-    if (elements.dbConfigDriver) elements.dbConfigDriver.value = '{SQL Server}';
-    if (elements.dbConfigServer) elements.dbConfigServer.value = 'vfstbd01';
-    if (elements.dbConfigDatabase) elements.dbConfigDatabase.value = 'bsis_rem_afr';
-    if (elements.dbConfigUid) elements.dbConfigUid.value = 'gpanta';
-    if (elements.dbConfigPwd) elements.dbConfigPwd.value = 'Pantagabriel#98';
-    if (elements.dbConfigWsid) elements.dbConfigWsid.value = 'VFRPTS03';
-    if (elements.dbConfigStatusBox) elements.dbConfigStatusBox.style.display = 'none';
+    const driverInput = elements.dbConfigDriver || document.getElementById('db-config-driver');
+    const serverInput = elements.dbConfigServer || document.getElementById('db-config-server');
+    const dbInput = elements.dbConfigDatabase || document.getElementById('db-config-database');
+    const uidInput = elements.dbConfigUid || document.getElementById('db-config-uid');
+    const pwdInput = elements.dbConfigPwd || document.getElementById('db-config-pwd');
+    const wsidInput = elements.dbConfigWsid || document.getElementById('db-config-wsid');
+    const trustedCheck = document.getElementById('db-config-trusted');
+    const statusBox = elements.dbConfigStatusBox || document.getElementById('db-config-status-box');
+
+    if (driverInput) driverInput.value = '{SQL Server}';
+    if (serverInput) serverInput.value = 'vfstbd01';
+    if (dbInput) dbInput.value = 'bsis_rem_afr';
+    if (uidInput) uidInput.value = 'gpanta';
+    if (pwdInput) pwdInput.value = 'Pantagabriel#98';
+    if (wsidInput) wsidInput.value = 'VFRPTS03';
+    if (trustedCheck) trustedCheck.checked = true;
+    if (statusBox) statusBox.style.display = 'none';
     showToast('Valores predeterminados cargados en el formulario. Haz clic en "Guardar y Aplicar" para confirmar.', 'info');
   }
 
-  // Helper: Obtener ID de Empresa Activa
+    // Helper: Obtener ID de Empresa Activa
   function getSelectedEmpresaId() {
     if (elements.globalEmpresaSelect) {
       const val = elements.globalEmpresaSelect.value;
@@ -2081,9 +2172,10 @@
 
       const range = getDefault3DaysRange();
       const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParam3Empresa ? elements.sqlParam3Empresa.value : getSelectedEmpresaId());
+      // Usar rango dinámico calculado de 3 días para evitar bloqueos por fechas históricas lejanas
       const p = customParams || {
-        fechaDesde: elements.sqlParam3Desde ? elements.sqlParam3Desde.value : range.desde,
-        fechaHasta: elements.sqlParam3Hasta ? elements.sqlParam3Hasta.value : range.hasta,
+        fechaDesde: range.desde,
+        fechaHasta: range.hasta,
         idEmpresa: activeEmp,
         sw_contrato: (elements.sqlParam3Sw && elements.sqlParam3Sw.value) || '0'
       };
@@ -2211,6 +2303,64 @@
     updateSyncAllSummaryCount();
   }
 
+  // Helper: Sincronizar selectores de empresa en toda la aplicación
+  function syncAllCompanyInputs(empresaId) {
+    if (!empresaId) return;
+    const val = String(empresaId);
+    const selectors = [
+      '#quick-param-empresa',
+      '#adv-param-empresa',
+      '#sql-param-empresa',
+      '#sql-param-2-empresa',
+      '#sql-param-3-empresa',
+      '#sql-param-4-empresa',
+      '#sync-all-master-empresa',
+      '#sync-all-p1-empresa',
+      '#sync-all-p2-empresa',
+      '#sync-all-p3-empresa',
+      '#sync-all-p4-empresa',
+      '#sync-all-p5-empresa',
+      '#global-empresa-select'
+    ];
+    selectors.forEach(sel => {
+      const el = document.querySelector(sel);
+      if (el) el.value = val;
+    });
+
+    const chipEmp = document.getElementById('monitor-chip-empresa');
+    if (chipEmp) {
+      const qEmp = document.getElementById('quick-param-empresa');
+      if (qEmp && qEmp.selectedIndex >= 0) {
+        chipEmp.textContent = qEmp.options[qEmp.selectedIndex].text;
+      } else {
+        chipEmp.textContent = `Empresa ${val}`;
+      }
+    }
+  }
+
+  // Helper: Actualizar texto de chips informativos del monitor y toolbar
+  function updateSyncChips() {
+    const quickEmp = document.getElementById('quick-param-empresa');
+    const quickMes = document.getElementById('quick-param-mes');
+    const quickAnio = document.getElementById('quick-param-anio');
+    const quickDias = document.getElementById('quick-param-dias');
+
+    const chipEmp = document.getElementById('monitor-chip-empresa');
+    const chipPer = document.getElementById('monitor-chip-periodo');
+    const chipDias = document.getElementById('monitor-chip-dias');
+
+    if (chipEmp && quickEmp && quickEmp.selectedIndex >= 0) {
+      chipEmp.textContent = quickEmp.options[quickEmp.selectedIndex].text;
+    }
+    if (chipPer && quickMes && quickAnio) {
+      const mesName = (quickMes.selectedIndex >= 0) ? quickMes.options[quickMes.selectedIndex].text : `Mes ${quickMes.value}`;
+      chipPer.textContent = `${mesName} / ${quickAnio.value}`;
+    }
+    if (chipDias && quickDias && quickDias.selectedIndex >= 0) {
+      chipDias.textContent = quickDias.options[quickDias.selectedIndex].text;
+    }
+  }
+
   // Helper: Cálculo de fechas de corte y rangos por mes/año
   function calculateAndSetSyncAllDates(mesNum, anioNum) {
     if (isNaN(mesNum) || isNaN(anioNum)) return;
@@ -2226,6 +2376,8 @@
     const fechaini = `${lastDay}/${mesNum}/${anioNum}`;
     if (elements.syncAllP1Fechaini) elements.syncAllP1Fechaini.value = fechaini;
     if (elements.sqlParamFechaini) elements.sqlParamFechaini.value = fechaini;
+    const advFechaini = document.getElementById('adv-param-fechaini');
+    if (advFechaini) advFechaini.value = fechaini;
 
     // Rango de 3 días para marcaciones (Hoy y 2 días atrás)
     const range3d = getDefault3DaysRange();
@@ -2233,6 +2385,40 @@
     if (elements.syncAllP3Hasta) elements.syncAllP3Hasta.value = range3d.hasta;
     if (elements.syncAllP4Desde) elements.syncAllP4Desde.value = range3d.desde;
     if (elements.syncAllP4Hasta) elements.syncAllP4Hasta.value = range3d.hasta;
+    if (elements.sqlParam3Desde) elements.sqlParam3Desde.value = range3d.desde;
+    if (elements.sqlParam3Hasta) elements.sqlParam3Hasta.value = range3d.hasta;
+  }
+
+  // Detección e inicialización dinámica del Mes, Año y Parámetros en tiempo real
+  function initializeDynamicDateParams() {
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+
+    const quickMes = document.getElementById('quick-param-mes');
+    const quickAnio = document.getElementById('quick-param-anio');
+    if (quickMes) quickMes.value = String(currentMonth);
+    if (quickAnio) quickAnio.value = String(currentYear);
+
+    const advMes = document.getElementById('adv-param-mes');
+    const advAnio = document.getElementById('adv-param-anio');
+    if (advMes) advMes.value = String(currentMonth);
+    if (advAnio) advAnio.value = String(currentYear);
+
+    if (elements.sqlParamMes) elements.sqlParamMes.value = String(currentMonth);
+    if (elements.sqlParamAnio) elements.sqlParamAnio.value = String(currentYear);
+    if (elements.sqlParam2Mes) elements.sqlParam2Mes.value = String(currentMonth);
+    if (elements.sqlParam2Anio) elements.sqlParam2Anio.value = String(currentYear);
+
+    if (elements.syncAllMasterMes) elements.syncAllMasterMes.value = String(currentMonth);
+    if (elements.syncAllMasterAnio) elements.syncAllMasterAnio.value = String(currentYear);
+    if (elements.syncAllP1Mes) elements.syncAllP1Mes.value = String(currentMonth);
+    if (elements.syncAllP1Anio) elements.syncAllP1Anio.value = String(currentYear);
+    if (elements.syncAllP2Mes) elements.syncAllP2Mes.value = String(currentMonth);
+    if (elements.syncAllP2Anio) elements.syncAllP2Anio.value = String(currentYear);
+
+    calculateAndSetSyncAllDates(currentMonth, currentYear);
+    updateSyncChips();
   }
 
   // Helper: Ejecuta la sincronización en paralelo con los parámetros específicos de cada consulta
@@ -2284,51 +2470,304 @@
     }
   }
 
-  // Load All Sources from SQL Server in Parallel (5 Fuentes)
+    // Load All Sources from SQL Server con Monitor de Avance en Vivo y Gestión de Parámetros
   async function loadAllFromSqlServer() {
+    const btnHeader = document.getElementById('btn-header-sync-sql') || elements.btnLoadSqlHeader;
     const btnAll = elements.btnLoadAllSql;
-    if (btnAll) {
-      btnAll.disabled = true;
-      btnAll.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Sincronizando 5 Fuentes...</span>';
+    const statusText = document.getElementById('sync-status-text');
+
+    // Validación de protocolo
+    if (window.location.protocol === 'file:') {
+      if (statusText) {
+        statusText.innerHTML = '<span style="color:#eab308;font-weight:600;">⚠️ Para sincronizar en vivo con SQL Server (vfstbd01), ejecute ConsolidadorRRHH.exe</span>';
+      }
+      showToast('Para sincronizar en tiempo real con SQL Server, por favor inicie la aplicación desde ConsolidadorRRHH.exe. También puede usar "🧪 Cargar Datos Demo" para operar offline.', 'warning', 7000);
+      return;
     }
 
-    showToast('Iniciando sincronización completa de las 5 fuentes desde SQL Server...', 'info');
+    // Modal del Monitor de Avance
+    const modalMonitor = document.getElementById('modal-sync-live-monitor');
+    const chipEmpresa = document.getElementById('monitor-chip-empresa');
+    const chipPeriodo = document.getElementById('monitor-chip-periodo');
+    const chipDias = document.getElementById('monitor-chip-dias');
+    const monitorOverall = document.getElementById('sync-monitor-overall-status');
+    const monitorPct = document.getElementById('sync-monitor-pct');
+    const monitorFill = document.getElementById('sync-monitor-fill');
+    const monitorTimer = document.getElementById('sync-monitor-timer');
+    const btnViewResults = document.getElementById('btn-sync-monitor-view-results');
+    const btnCloseMonitor = document.getElementById('btn-close-sync-monitor');
 
-    const results = await Promise.allSettled([
-      loadFromSqlServer(),
-      loadUltimoDiaFromSqlServer(),
-      loadMarcacionesFromSqlServer(),
-      loadBusesFromSqlServer(),
-      loadCuadrillasFromSqlServer()
-    ]);
+    // Obtener parámetros activos desde la barra rápida o los selectores
+    const selEmp = document.getElementById('quick-param-empresa') || elements.globalEmpresaSelect;
+    const selMes = document.getElementById('quick-param-mes') || elements.sqlParamMes;
+    const inputAnio = document.getElementById('quick-param-anio') || elements.sqlParamAnio;
+    const selDias = document.getElementById('quick-param-dias');
 
-    if (btnAll) {
-      btnAll.disabled = false;
-      btnAll.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>⚡ Sincronizar Todo (SQL)</span>';
-    }
+    const activeEmpId = (selEmp && selEmp.value) ? selEmp.value : (getSelectedEmpresaId() || '14');
+    const activeEmpText = (selEmp && selEmp.options && selEmp.selectedIndex >= 0) ? selEmp.options[selEmp.selectedIndex].text : `Empresa ${activeEmpId}`;
+    const activeMes = (selMes && selMes.value) ? selMes.value : '8';
+    const activeMesText = (selMes && selMes.options && selMes.selectedIndex >= 0) ? selMes.options[selMes.selectedIndex].text : `Mes ${activeMes}`;
+    const activeAnio = (inputAnio && inputAnio.value) ? inputAnio.value : '2026';
+    const activeDias = (selDias && selDias.value) ? parseInt(selDias.value) : 3;
 
-    const successful = results.filter(r => r.status === 'fulfilled').length;
-    checkProcessingReadiness();
-    if (successful >= 3) {
-      playSuccessSound('chime');
-      showToast('🎉 ¡Las fuentes de datos fueron sincronizadas desde SQL Server! Procesando consolidación...', 'success');
-      setTimeout(() => {
-        if (state.file1.data && state.file2.data && state.file3.data) {
-          handleProcessData();
+    // Calcular fecha corte para SPC_FICHA_TRABAJADOR
+    let lastDay = 31;
+    if (activeMes === '2') lastDay = 28;
+    else if (['4', '6', '9', '11'].includes(activeMes)) lastDay = 30;
+    const fechainiCorte = `${lastDay}/${activeMes}/${activeAnio}`;
+
+    // Actualizar chips informativos en el modal
+    if (chipEmpresa) chipEmpresa.textContent = activeEmpText;
+    if (chipPeriodo) chipPeriodo.textContent = `${activeMesText} / ${activeAnio}`;
+    if (chipDias) chipDias.textContent = `Últimos ${activeDias} días`;
+
+    // Helper para actualizar estado de un paso en el modal
+    function setStepProgress(stepNum, status, badgeText, metaText) {
+      const stepRow = document.getElementById(`sync-step-${stepNum}`);
+      const iconEl = document.getElementById(`sync-step-icon-${stepNum}`);
+      const badgeEl = document.getElementById(`sync-step-badge-${stepNum}`);
+      const metaEl = document.getElementById(`sync-step-meta-${stepNum}`);
+
+      if (stepRow) {
+        stepRow.className = `sync-step-item ${status}`;
+      }
+      if (iconEl) {
+        if (status === 'running') {
+          iconEl.innerHTML = '<svg class="process-spin-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>';
+        } else if (status === 'completed') {
+          iconEl.innerHTML = '<span style="color:#16a34a; font-size: 1.1rem; font-weight: bold;">✓</span>';
+        } else if (status === 'error') {
+          iconEl.innerHTML = '<span style="color:#dc2626; font-size: 1.1rem; font-weight: bold;">✗</span>';
+        } else {
+          iconEl.innerHTML = '<span style="color:#94a3b8; font-size: 0.9rem;">⚪</span>';
         }
-      }, 350);
+      }
+      if (badgeEl) {
+        badgeEl.textContent = badgeText;
+        badgeEl.className = `sync-step-badge ${status === 'running' ? 'running' : status === 'completed' ? 'done' : status === 'error' ? 'error' : ''}`;
+      }
+      if (metaEl && metaText) {
+        metaEl.textContent = metaText;
+      }
+    }
+
+    // Helper para actualizar barra general
+    function setOverallProgress(pct, message) {
+      if (monitorPct) monitorPct.textContent = `${pct}%`;
+      if (monitorFill) monitorFill.style.width = `${pct}%`;
+      if (monitorOverall) monitorOverall.textContent = message;
+      if (statusText) statusText.innerHTML = `<span style="color:#0284c7;font-weight:600;">⏳ [${pct}%] ${message}</span>`;
+    }
+
+    // Resetear los 5 pasos
+    for (let s = 1; s <= 5; s++) {
+      setStepProgress(s, 'pending', 'En espera');
+    }
+    if (btnViewResults) btnViewResults.style.display = 'none';
+    setOverallProgress(5, 'Iniciando conexión con base de datos vfstbd01...');
+
+    // Abrir modal de avance visual
+    if (modalMonitor) openModal(modalMonitor);
+
+    // Timer de tiempo transcurrido
+    const startTime = Date.now();
+    const timerInterval = setInterval(() => {
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      if (monitorTimer) monitorTimer.textContent = `Tiempo transcurrido: ${elapsed}s`;
+    }, 100);
+
+    const spinSvg = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>';
+    const defaultHeaderBtnHtml = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>⚡ Sincronizar SQL</span>';
+
+    try {
+      if (btnHeader) {
+        btnHeader.disabled = true;
+        btnHeader.innerHTML = `${spinSvg} <span>Sincronizando...</span>`;
+      }
+      if (btnAll) {
+        btnAll.disabled = true;
+        btnAll.innerHTML = `${spinSvg} <span>Sincronizando 5 Fuentes...</span>`;
+      }
+
+      // Iniciar las 5 consultas en PARALELO para máxima velocidad
+      for (let s = 1; s <= 5; s++) {
+        setStepProgress(s, 'running', 'Consultando...');
+      }
+      setOverallProgress(20, 'Consultando las 5 fuentes SQL en paralelo desde vfstbd01...');
+
+      let completedTasks = 0;
+      const updateParallelProgress = () => {
+        completedTasks++;
+        const pct = Math.min(20 + completedTasks * 15, 90);
+        setOverallProgress(pct, `Consultando fuentes SQL en paralelo... (${completedTasks}/5 listas)`);
+      };
+
+      // Tarea 1: Trabajadores Activos
+      const task1 = loadFromSqlServer({
+        idEmpresa: activeEmpId,
+        activo: '1',
+        mes: activeMes,
+        anio: activeAnio,
+        fechaini: fechainiCorte
+      }).then(r1 => {
+        const cnt1 = (r1 && r1.count) || (state.file1.data ? state.file1.data.length : 0);
+        setStepProgress(1, 'completed', `${cnt1.toLocaleString()} trab.`, `${cnt1.toLocaleString()} trabajadores activos cargados`);
+        updateParallelProgress();
+        return r1;
+      }).catch(e1 => {
+        console.warn('Error en Trabajadores:', e1);
+        setStepProgress(1, 'error', 'Error', e1.message);
+        updateParallelProgress();
+        return null;
+      });
+
+      // Tarea 2: Labores y Asistencia
+      const task2 = loadUltimoDiaFromSqlServer({
+        idEmpresa: activeEmpId,
+        mes: activeMes,
+        anio: activeAnio
+      }).then(r2 => {
+        const cnt2 = (r2 && r2.count) || (state.file2.data ? state.file2.data.length : 0);
+        setStepProgress(2, 'completed', `${cnt2.toLocaleString()} labores`, `${cnt2.toLocaleString()} registros de labores cargados`);
+        updateParallelProgress();
+        return r2;
+      }).catch(e2 => {
+        console.warn('Error en Labores:', e2);
+        setStepProgress(2, 'error', 'Error', e2.message);
+        updateParallelProgress();
+        return null;
+      });
+
+      // Tarea 3: Marcaciones Biométricas
+      const task3 = loadMarcacionesFromSqlServer({
+        idEmpresa: activeEmpId,
+        dias: activeDias,
+        sw_contrato: '0'
+      }).then(r3 => {
+        const cnt3 = (r3 && r3.count) || (state.file3.data ? state.file3.data.length : 0);
+        setStepProgress(3, 'completed', `${cnt3.toLocaleString()} marc.`, `${cnt3.toLocaleString()} marcaciones biométricas cargadas`);
+        updateParallelProgress();
+        return r3;
+      }).catch(e3 => {
+        console.warn('Error en Marcaciones:', e3);
+        setStepProgress(3, 'error', 'Error', e3.message);
+        updateParallelProgress();
+        return null;
+      });
+
+      // Tarea 4: Buses y Rutas
+      const task4 = loadBusesFromSqlServer({
+        idEmpresa: activeEmpId,
+        codPais: 'PE'
+      }).then(r4 => {
+        const cnt4 = (r4 && r4.count) || (state.file4.data ? state.file4.data.length : 0);
+        setStepProgress(4, 'completed', `${cnt4.toLocaleString()} rutas`, `${cnt4.toLocaleString()} registros de transporte cargados`);
+        updateParallelProgress();
+        return r4;
+      }).catch(e4 => {
+        console.warn('Error en Buses:', e4);
+        setStepProgress(4, 'error', 'Error', e4.message);
+        updateParallelProgress();
+        return null;
+      });
+
+      // Tarea 5: Cuadrillas
+      const task5 = loadCuadrillasFromSqlServer({
+        idEmpresa: activeEmpId
+      }).then(r5 => {
+        const cnt5 = (r5 && r5.count) || (state.file5.data ? state.file5.data.length : 0);
+        setStepProgress(5, 'completed', `${cnt5.toLocaleString()} cuad.`, `${cnt5.toLocaleString()} cuadrillas activas cargadas`);
+        updateParallelProgress();
+        return r5;
+      }).catch(e5 => {
+        console.warn('Error en Cuadrillas:', e5);
+        setStepProgress(5, 'error', 'Error', e5.message);
+        updateParallelProgress();
+        return null;
+      });
+
+      // Esperar a que las 5 consultas en paralelo terminen
+      await Promise.allSettled([task1, task2, task3, task4, task5]);
+
+      // ==========================================
+      // FINALIZACIÓN Y CRUCE AUTOMÁTICO
+      // ==========================================
+      setOverallProgress(95, 'Consolidando y procesando cruce de 23 campos...');
+      // Ceder brevemente el control al navegador para actualizar la barra visual
+      await new Promise(resolve => setTimeout(resolve, 50));
+      checkProcessingReadiness();
+
+      if (state.file1.data && state.file1.data.length > 0) {
+        handleProcessData();
+        playSuccessSound('chime');
+
+        const totalCons = state.consolidatedData ? state.consolidatedData.length : state.file1.data.length;
+        if (monitorOverall) {
+          monitorOverall.innerHTML = `<span style="color:#16a34a; font-weight:700;">✓ ¡Sincronización y cruce completados! ${totalCons.toLocaleString()} registros consolidados en tabla.</span>`;
+        }
+        if (statusText) {
+          statusText.innerHTML = `<span style="color:#16a34a; font-weight:600;">✓ Sincronizado desde SQL Server (${totalCons.toLocaleString()} trabajadores consolidados en ${activeEmpText})</span>`;
+        }
+        showToast(`🎉 ¡Sincronización y cruce completados! ${totalCons.toLocaleString()} trabajadores consolidados.`, 'success');
+
+        // Cerrar automáticamente el monitor después de 1 segundo para mostrar directamente la tabla de resultados
+        setTimeout(() => {
+          if (modalMonitor) closeModal(modalMonitor);
+          const tbl = document.getElementById('consolidated-table');
+          if (tbl) tbl.scrollIntoView({ behavior: 'smooth' });
+        }, 1100);
+
+        if (btnViewResults) {
+          btnViewResults.style.display = 'inline-flex';
+          btnViewResults.onclick = () => {
+            if (modalMonitor) closeModal(modalMonitor);
+            const tbl = document.getElementById('consolidated-table');
+            if (tbl) tbl.scrollIntoView({ behavior: 'smooth' });
+          };
+        }
+      } else {
+        if (monitorOverall) {
+          monitorOverall.innerHTML = '<span style="color:#dc2626; font-weight:700;">✗ No se obtuvieron registros de trabajadores. Verifique los parámetros.</span>';
+        }
+        showToast('No se obtuvieron registros de trabajadores. Verifique empresa y periodo.', 'error');
+      }
+    } catch (err) {
+      console.error('Error durante loadAllFromSqlServer:', err);
+      if (monitorOverall) {
+        monitorOverall.innerHTML = `<span style="color:#dc2626; font-weight:700;">✗ Error de conexión SQL: ${err.message}</span>`;
+      }
+      showToast(`Error al sincronizar con SQL Server: ${err.message}`, 'error');
+    } finally {
+      clearInterval(timerInterval);
+      const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      if (monitorTimer) monitorTimer.textContent = `Tiempo total: ${totalElapsed}s`;
+
+      if (btnHeader) {
+        btnHeader.disabled = false;
+        btnHeader.innerHTML = defaultHeaderBtnHtml;
+      }
+      if (btnAll) {
+        btnAll.disabled = false;
+        btnAll.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>⚡ Sincronizar Todo (SQL)</span>';
+      }
+
+      if (btnCloseMonitor) {
+        btnCloseMonitor.onclick = () => {
+          if (modalMonitor) closeModal(modalMonitor);
+        };
+      }
     }
   }
 
   // Setup Event Listeners
   function setupEventListeners() {
-    elements.btnProcess.addEventListener('click', handleProcessData);
-    elements.btnExportExcel.addEventListener('click', () => exportData('xlsx'));
-    elements.btnExportCsv.addEventListener('click', () => exportData('csv'));
-    elements.btnCopyTable.addEventListener('click', copyTableToClipboard);
-    elements.btnPrintTable.addEventListener('click', () => window.print());
-    elements.btnLoadDemo.addEventListener('click', loadDemoData);
-    elements.btnResetAll.addEventListener('click', resetAll);
+    if (elements.btnProcess) elements.btnProcess.addEventListener('click', handleProcessData);
+    if (elements.btnExportExcel) elements.btnExportExcel.addEventListener('click', () => exportData('xlsx'));
+    if (elements.btnExportCsv) elements.btnExportCsv.addEventListener('click', () => exportData('csv'));
+    if (elements.btnCopyTable) elements.btnCopyTable.addEventListener('click', copyTableToClipboard);
+    if (elements.btnPrintTable) elements.btnPrintTable.addEventListener('click', () => window.print());
+    if (elements.btnLoadDemo) elements.btnLoadDemo.addEventListener('click', loadDemoData);
+    if (elements.btnResetAll) elements.btnResetAll.addEventListener('click', resetAll);
     // Sound Toggle
     if (elements.btnSoundToggle) {
       elements.btnSoundToggle.addEventListener('click', () => {
@@ -2346,12 +2785,12 @@
     }
 
     // Modals
-    elements.btnHelp.addEventListener('click', () => openModal(elements.modalHelp));
-    elements.btnCloseModal.addEventListener('click', () => closeModal(elements.modalHelp));
-    elements.btnShortcuts.addEventListener('click', () => openModal(elements.modalShortcuts));
-    elements.btnCloseShortcuts.addEventListener('click', () => closeModal(elements.modalShortcuts));
-    elements.btnClosePreview.addEventListener('click', () => closeModal(elements.modalPreview));
-    elements.btnCloseDossier.addEventListener('click', () => closeModal(elements.modalDossier));
+    if (elements.btnHelp) elements.btnHelp.addEventListener('click', () => openModal(elements.modalHelp));
+    if (elements.btnCloseModal) elements.btnCloseModal.addEventListener('click', () => closeModal(elements.modalHelp));
+    if (elements.btnShortcuts) elements.btnShortcuts.addEventListener('click', () => openModal(elements.modalShortcuts));
+    if (elements.btnCloseShortcuts) elements.btnCloseShortcuts.addEventListener('click', () => closeModal(elements.modalShortcuts));
+    if (elements.btnClosePreview) elements.btnClosePreview.addEventListener('click', () => closeModal(elements.modalPreview));
+    if (elements.btnCloseDossier) elements.btnCloseDossier.addEventListener('click', () => closeModal(elements.modalDossier));
 
     // Global Empresa Selector Events
     if (elements.globalEmpresaSelect) {
@@ -2698,31 +3137,39 @@
     });
 
     // Search & Filter
-    elements.tableSearch.addEventListener('input', (e) => {
-      state.searchTerm = e.target.value.toLowerCase().trim();
-      elements.btnClearSearch.classList.toggle('visible', state.searchTerm.length > 0);
-      state.currentPage = 1;
-      applyFilters();
-    });
-
-    elements.btnClearSearch.addEventListener('click', () => {
-      elements.tableSearch.value = '';
-      state.searchTerm = '';
-      elements.btnClearSearch.classList.remove('visible');
-      state.currentPage = 1;
-      applyFilters();
-    });
-
-    // Filter Chips
-    elements.filterChips.forEach(chip => {
-      chip.addEventListener('click', () => {
-        elements.filterChips.forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        state.activeFilter = chip.dataset.filter;
+    if (elements.tableSearch) {
+      elements.tableSearch.addEventListener('input', (e) => {
+        state.searchTerm = e.target.value.toLowerCase().trim();
+        if (elements.btnClearSearch) {
+          elements.btnClearSearch.classList.toggle('visible', state.searchTerm.length > 0);
+        }
         state.currentPage = 1;
         applyFilters();
       });
-    });
+    }
+
+    if (elements.btnClearSearch) {
+      elements.btnClearSearch.addEventListener('click', () => {
+        if (elements.tableSearch) elements.tableSearch.value = '';
+        state.searchTerm = '';
+        elements.btnClearSearch.classList.remove('visible');
+        state.currentPage = 1;
+        applyFilters();
+      });
+    }
+
+    // Filter Chips
+    if (elements.filterChips) {
+      elements.filterChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          elements.filterChips.forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          state.activeFilter = chip.dataset.filter;
+          state.currentPage = 1;
+          applyFilters();
+        });
+      });
+    }
 
     // Interactive KPI Cards (Click to filter)
     document.querySelectorAll('.metric-interactive').forEach(card => {
@@ -2735,35 +3182,45 @@
     });
 
     // Page Size Selector
-    elements.selectPageSize.addEventListener('change', (e) => {
-      state.pageSize = parseInt(e.target.value, 10);
-      state.currentPage = 1;
-      renderTable();
-    });
+    if (elements.selectPageSize) {
+      elements.selectPageSize.addEventListener('change', (e) => {
+        state.pageSize = parseInt(e.target.value, 10);
+        state.currentPage = 1;
+        renderTable();
+      });
+    }
 
     // Pagination Buttons
-    elements.btnFirstPage.addEventListener('click', () => {
-      state.currentPage = 1;
-      renderTable();
-    });
-    elements.btnPrevPage.addEventListener('click', () => {
-      if (state.currentPage > 1) {
-        state.currentPage--;
+    if (elements.btnFirstPage) {
+      elements.btnFirstPage.addEventListener('click', () => {
+        state.currentPage = 1;
         renderTable();
-      }
-    });
-    elements.btnNextPage.addEventListener('click', () => {
-      const maxPage = Math.ceil(state.filteredData.length / state.pageSize) || 1;
-      if (state.currentPage < maxPage) {
-        state.currentPage++;
+      });
+    }
+    if (elements.btnPrevPage) {
+      elements.btnPrevPage.addEventListener('click', () => {
+        if (state.currentPage > 1) {
+          state.currentPage--;
+          renderTable();
+        }
+      });
+    }
+    if (elements.btnNextPage) {
+      elements.btnNextPage.addEventListener('click', () => {
+        const maxPage = Math.ceil(state.filteredData.length / state.pageSize) || 1;
+        if (state.currentPage < maxPage) {
+          state.currentPage++;
+          renderTable();
+        }
+      });
+    }
+    if (elements.btnLastPage) {
+      elements.btnLastPage.addEventListener('click', () => {
+        const maxPage = Math.ceil(state.filteredData.length / state.pageSize) || 1;
+        state.currentPage = maxPage;
         renderTable();
-      }
-    });
-    elements.btnLastPage.addEventListener('click', () => {
-      const maxPage = Math.ceil(state.filteredData.length / state.pageSize) || 1;
-      state.currentPage = maxPage;
-      renderTable();
-    });
+      });
+    }
 
     // Export & Action Buttons
     if (elements.btnExportExcelHeader) {
@@ -2830,11 +3287,21 @@
   }
 
   function openModal(modal) {
-    if (modal) modal.classList.add('active');
+    if (!modal) return;
+    modal.classList.add('active');
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('opacity', '1', 'important');
+    modal.style.setProperty('visibility', 'visible', 'important');
+    modal.style.setProperty('pointer-events', 'auto', 'important');
   }
 
   function closeModal(modal) {
-    if (modal) modal.classList.remove('active');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.style.setProperty('display', 'none', 'important');
+    modal.style.setProperty('opacity', '0', 'important');
+    modal.style.setProperty('visibility', 'hidden', 'important');
+    modal.style.setProperty('pointer-events', 'none', 'important');
   }
 
   function closeAllModals() {
@@ -2942,6 +3409,7 @@
   }
 
   function setupSingleDropzone(zone, input, fileIndex) {
+    if (!zone || !input) return;
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
       zone.addEventListener(eventName, preventDefaults, false);
     });
@@ -3284,21 +3752,23 @@
   function updateFileCardUI(fileIndex, file, rowCount) {
     const card = elements[`card${fileIndex}`];
     const infoBox = elements[`fileInfo${fileIndex}`];
-    const nameEl = infoBox.querySelector('.file-name');
-    const metaEl = infoBox.querySelector('.file-meta');
-    const removeBtn = infoBox.querySelector('.btn-remove-file');
-
-    card.classList.add('loaded');
-    infoBox.classList.add('active');
-    nameEl.textContent = file.name;
-    metaEl.textContent = `${formatBytes(file.size)} • ${rowCount.toLocaleString()} filas`;
+    if (card) card.classList.add('loaded');
+    if (infoBox) {
+      infoBox.classList.add('active');
+      const nameEl = infoBox.querySelector('.file-name');
+      const metaEl = infoBox.querySelector('.file-meta');
+      const removeBtn = infoBox.querySelector('.btn-remove-file');
+      if (nameEl && file) nameEl.textContent = file.name;
+      if (metaEl) metaEl.textContent = `${formatBytes(file ? file.size : 0)} • ${(rowCount || 0).toLocaleString()} filas`;
+      if (removeBtn) {
+        removeBtn.onclick = (e) => {
+          e.stopPropagation();
+          resetSingleFile(fileIndex);
+        };
+      }
+    }
 
     populateSelects(fileIndex);
-
-    removeBtn.onclick = (e) => {
-      e.stopPropagation();
-      resetSingleFile(fileIndex);
-    };
   }
 
   // Populate Selects
@@ -3466,7 +3936,7 @@
 
     card.classList.remove('loaded');
     infoBox.classList.remove('active');
-    input.value = '';
+    if (input) input.value = '';
 
     const sheetGroup = elements[`sheetGroup${fileIndex}`];
     const sheetSelect = elements[`sheetSelect${fileIndex}`];
@@ -3482,25 +3952,34 @@
     for (let i = 1; i <= 5; i++) resetSingleFile(i);
     state.consolidatedData = [];
     state.filteredData = [];
-    elements.resultsSection.classList.remove('active');
-    elements.step1.classList.add('active');
-    elements.step1.classList.remove('completed');
-    elements.step2.classList.remove('active', 'completed');
-    elements.step3.classList.remove('active', 'completed');
+    if (elements.resultsSection) elements.resultsSection.classList.remove('active');
+    if (elements.step1) {
+      elements.step1.classList.add('active');
+      elements.step1.classList.remove('completed');
+    }
+    if (elements.step2) elements.step2.classList.remove('active', 'completed');
+    if (elements.step3) elements.step3.classList.remove('active', 'completed');
     showToast('Todos los datos han sido restablecidos', 'info');
   }
 
   // Check processing readiness
   function checkProcessingReadiness() {
     const ready = state.file1.data && state.file2.data && state.file3.data;
-    elements.btnProcess.disabled = !ready;
-    if (ready) {
-      elements.step1.classList.add('completed');
-      elements.step2.classList.add('active');
-    } else {
-      elements.step1.classList.add('active');
-      elements.step1.classList.remove('completed');
-      elements.step2.classList.remove('active');
+    if (elements.btnProcess) elements.btnProcess.disabled = !ready;
+    if (elements.step1) {
+      if (ready) {
+        elements.step1.classList.add('completed');
+      } else {
+        elements.step1.classList.add('active');
+        elements.step1.classList.remove('completed');
+      }
+    }
+    if (elements.step2) {
+      if (ready) {
+        elements.step2.classList.add('active');
+      } else {
+        elements.step2.classList.remove('active');
+      }
     }
 
     let loadedCount = 0;
@@ -3514,96 +3993,99 @@
 
   // Core Consolidation Engine
   function handleProcessData() {
-    if (!state.file1.data || !state.file2.data || !state.file3.data) {
-      showToast('Por favor carga los 3 archivos principales requeridos', 'error');
+    if (!state.file1.data || state.file1.data.length === 0) {
+      showToast('Por favor sincronice con "⚡ Sincronizar SQL" o cargue datos demo primero', 'info');
+      return;
+    }
+    // Si file2 o file3 aún no tienen datos, inicializar estructuras seguras para permitir consolidación
+    if (!state.file2.data) {
+      state.file2 = { data: [], headers: [], keyCol: 'RutTrabajador', sheetNames: ['SQL_Result'], selectedSheet: 'SQL_Result' };
+    }
+    if (!state.file3.data) {
+      state.file3 = { data: [], headers: [], keyCol: 'RutTrabajador', sheetNames: ['SQL_Result'], selectedSheet: 'SQL_Result' };
+    }
+
+    const keyCol1 = (elements.keySelect1 && elements.keySelect1.value) || state.file1.keyCol || 'RutTrabajador';
+    const keyCol2 = (elements.keySelect2 && elements.keySelect2.value) || (state.file2 && state.file2.keyCol) || 'RUT/DNI';
+    const actCol2 = (elements.actSelect2 && elements.actSelect2.value) || (state.file2 && state.file2.actCol) || 'ACTIVIDAD';
+    const laborCol2 = (elements.laborSelect2 && elements.laborSelect2.value) || (state.file2 && state.file2.laborCol) || 'LABOR';
+    const turnoCol2 = (elements.turnoSelect2 && elements.turnoSelect2.value) || (state.file2 && state.file2.turnoCol) || 'HoraInicio';
+    const keyCol3 = (elements.keySelect3 && elements.keySelect3.value) || (state.file3 && state.file3.keyCol) || 'RutTrabajador';
+
+    if (!keyCol1) {
+      showToast('Por favor selecciona la columna clave de trabajadores', 'error');
       return;
     }
 
-    const keyCol1 = elements.keySelect1.value || state.file1.keyCol;
-    const keyCol2 = elements.keySelect2.value || state.file2.keyCol;
-    const actCol2 = elements.actSelect2.value || state.file2.actCol;
-    const laborCol2 = (elements.laborSelect2 && elements.laborSelect2.value) || state.file2.laborCol;
-    const turnoCol2 = (elements.turnoSelect2 && elements.turnoSelect2.value) || state.file2.turnoCol;
-    const keyCol3 = elements.keySelect3.value || state.file3.keyCol;
-
-    if (!keyCol1 || !keyCol2 || !keyCol3) {
-      showToast('Por favor selecciona las columnas clave de vinculación', 'error');
-      return;
-    }
-
-    // Step 1: Index File 3 (Marcaciones & Placas de Bus)
+    // Step 1: Index File 3 (Marcaciones & Placas de Bus) - Optimizado O(1)
     const markingsIndex = new Map();
     const markingsBusPlacasIndex = new Map();
 
-    const nomEstCol3 = (elements.nomEstSelect3 && elements.nomEstSelect3.value) || state.file3.nomEstCol;
-    const tipoEstCol3 = (elements.tipoEstSelect3 && elements.tipoEstSelect3.value) || state.file3.tipoEstCol;
+    const f3Sample = (state.file3 && state.file3.data && state.file3.data[0]) || {};
+    const f3Headers = Object.keys(f3Sample);
+
+    let nomEstCol3 = (elements.nomEstSelect3 && elements.nomEstSelect3.value) || state.file3.nomEstCol;
+    let tipoEstCol3 = (elements.tipoEstSelect3 && elements.tipoEstSelect3.value) || state.file3.tipoEstCol;
+
+    if (!nomEstCol3 || f3Sample[nomEstCol3] === undefined) {
+      nomEstCol3 = f3Headers.find(h => {
+        const c = cleanHeader(h);
+        return c.includes('nombreestacion') || c === 'estacion' || c.includes('nomest') || c.includes('placa');
+      }) || 'NOMBRE_ESTACION';
+    }
+    if (!tipoEstCol3 || f3Sample[tipoEstCol3] === undefined) {
+      tipoEstCol3 = f3Headers.find(h => {
+        const c = cleanHeader(h);
+        return c.includes('tipoestacion') || c === 'tipo' || c.includes('tipoest');
+      }) || 'TIPO_ESTACION';
+    }
 
     state.file3.data.forEach(row => {
-      const key = cleanHeader(row[keyCol3]);
-      if (key) {
-        const count = markingsIndex.get(key) || 0;
-        markingsIndex.set(key, count + 1);
+      const rawKey = row[keyCol3];
+      if (!rawKey) return;
+      const key = cleanHeader(rawKey);
+      if (!key) return;
 
-        let nomEstVal = (nomEstCol3 && row[nomEstCol3] !== undefined) ? formatCellValue(row[nomEstCol3]) : '';
-        let tipoEstVal = (tipoEstCol3 && row[tipoEstCol3] !== undefined) ? formatCellValue(row[tipoEstCol3]) : '';
+      markingsIndex.set(key, (markingsIndex.get(key) || 0) + 1);
 
-        if (!nomEstVal || !tipoEstVal) {
-          for (const [colName, val] of Object.entries(row)) {
-            const cleanCol = cleanHeader(colName);
-            if (!tipoEstVal && (cleanCol.includes('tipoestacion') || cleanCol === 'tipo' || cleanCol.includes('tipoest'))) {
-              tipoEstVal = formatCellValue(val);
-            }
-            if (!nomEstVal && (cleanCol.includes('nombreestacion') || cleanCol === 'estacion' || cleanCol.includes('nomest') || cleanCol.includes('placa'))) {
-              nomEstVal = formatCellValue(val);
-            }
-          }
-        }
-
-        const isBus = String(tipoEstVal || '').trim().toUpperCase().includes('BUS');
-        if (isBus && nomEstVal) {
-          const cleanPlaca = String(nomEstVal).trim();
-          if (cleanPlaca) {
-            const existingPlacas = markingsBusPlacasIndex.get(key) || [];
-            if (!existingPlacas.includes(cleanPlaca)) {
-              existingPlacas.push(cleanPlaca);
-              markingsBusPlacasIndex.set(key, existingPlacas);
-            }
+      const tipoEstVal = String(row[tipoEstCol3] || '').trim().toUpperCase();
+      if (tipoEstVal.includes('BUS')) {
+        const cleanPlaca = String(row[nomEstCol3] || '').trim();
+        if (cleanPlaca) {
+          const existingPlacas = markingsBusPlacasIndex.get(key) || [];
+          if (!existingPlacas.includes(cleanPlaca)) {
+            existingPlacas.push(cleanPlaca);
+            markingsBusPlacasIndex.set(key, existingPlacas);
           }
         }
       }
     });
 
-    // Step 2: Index File 4 (Catálogo de Buses y Rutas - Indexación Multiclave)
+    // Step 2: Index File 4 (Catálogo de Buses y Rutas - Indexación Multiclave) - Optimizado O(1)
     const busesCatalogMap = new Map();
     if (state.file4.data && state.file4.data.length > 0) {
-      const patenteCol4 = (elements.patenteSelect4 && elements.patenteSelect4.value) || state.file4.patenteCol;
-      const codBusCol4 = (elements.codBusSelect4 && elements.codBusSelect4.value) || state.file4.codBusCol;
-      const rutaCol4 = (elements.rutaSelect4 && elements.rutaSelect4.value) || state.file4.rutaCol;
+      const f4Sample = state.file4.data[0] || {};
+      const f4Headers = Object.keys(f4Sample);
+      let patenteCol4 = (elements.patenteSelect4 && elements.patenteSelect4.value) || state.file4.patenteCol ||
+        f4Headers.find(h => cleanHeader(h).includes('patente') || cleanHeader(h).includes('placa')) || 'Patente';
+      let codBusCol4 = (elements.codBusSelect4 && elements.codBusSelect4.value) || state.file4.codBusCol ||
+        f4Headers.find(h => cleanHeader(h).includes('codigocampo') || cleanHeader(h).includes('codbus')) || 'Codigo Campo';
+      let rutaCol4 = (elements.rutaSelect4 && elements.rutaSelect4.value) || state.file4.rutaCol ||
+        f4Headers.find(h => cleanHeader(h).includes('descripcionruta') || cleanHeader(h).includes('ruta')) || 'Descripcion Ruta';
 
       state.file4.data.forEach(busRow => {
-        let patenteVal = (patenteCol4 && busRow[patenteCol4] !== undefined) ? formatCellValue(busRow[patenteCol4]) : '';
-        let codBusVal = (codBusCol4 && busRow[codBusCol4] !== undefined) ? formatCellValue(busRow[codBusCol4]) : '';
-        let rutaVal = (rutaCol4 && busRow[rutaCol4] !== undefined) ? formatCellValue(busRow[rutaCol4]) : '';
+        const patenteVal = formatCellValue(busRow[patenteCol4]);
+        const codBusVal = formatCellValue(busRow[codBusCol4]);
+        let rutaVal = formatCellValue(busRow[rutaCol4]);
 
-        if (!patenteVal || !codBusVal || !rutaVal) {
-          for (const [colName, val] of Object.entries(busRow)) {
-            const cleanCol = cleanHeader(colName);
-            if (!patenteVal && (cleanCol === 'patente' || cleanCol.includes('patente') || cleanCol.includes('placa'))) patenteVal = formatCellValue(val);
-            if (!codBusVal && (cleanCol === 'codigocampo' || cleanCol === 'codbus' || cleanCol.includes('codigocampo'))) codBusVal = formatCellValue(val);
-            if (!rutaVal && (cleanCol === 'descripcionruta' || cleanCol === 'ruta' || cleanCol.includes('descripcionruta'))) rutaVal = formatCellValue(val);
-          }
-        }
-
-        // Filtrar falsos positivos de ruta como booleanos o vigencia
         if (rutaVal) {
-          const rLow = String(rutaVal).trim().toLowerCase();
+          const rLow = rutaVal.trim().toLowerCase();
           if (rLow === 'true' || rLow === 'false' || rLow === '0' || rLow === '1' || rLow === 'vigente' || rLow === 'no vigente' || rLow.includes('periodo')) {
             rutaVal = '';
           }
         }
 
         const info = { codBus: codBusVal, ruta: rutaVal, patenteOriginal: patenteVal };
-
         if (patenteVal) {
           const cleanPlate = cleanHeader(patenteVal);
           if (cleanPlate) busesCatalogMap.set(cleanPlate, info);
@@ -3619,26 +4101,22 @@
       });
     }
 
-    // Step 2.5: Index File 5 (Catálogo de Cuadrillas & Encargados)
+    // Step 2.5: Index File 5 (Catálogo de Cuadrillas & Encargados) - Optimizado O(1)
     const cuadrillasCatalogMap = new Map();
     if (state.file5.data && state.file5.data.length > 0) {
-      const idCuadCol5 = (elements.idcuadrillaSelect5 && elements.idcuadrillaSelect5.value) || state.file5.idCuadrillaCol;
-      const descCol5 = (elements.descCuadrillaSelect5 && elements.descCuadrillaSelect5.value) || state.file5.descCol;
-      const nomCol5 = (elements.nombreEncargadoSelect5 && elements.nombreEncargadoSelect5.value) || state.file5.nombreEncargadoCol;
+      const f5Sample = state.file5.data[0] || {};
+      const f5Headers = Object.keys(f5Sample);
+      let idCuadCol5 = (elements.idcuadrillaSelect5 && elements.idcuadrillaSelect5.value) || state.file5.idCuadrillaCol ||
+        f5Headers.find(h => cleanHeader(h).includes('idcuadrilla')) || 'IDCUADRILLA';
+      let descCol5 = (elements.descCuadrillaSelect5 && elements.descCuadrillaSelect5.value) || state.file5.descCol ||
+        f5Headers.find(h => cleanHeader(h).includes('descripcion') || cleanHeader(h).includes('encargado')) || 'Descripcion';
+      let nomCol5 = (elements.nombreEncargadoSelect5 && elements.nombreEncargadoSelect5.value) || state.file5.nombreEncargadoCol ||
+        f5Headers.find(h => cleanHeader(h).includes('nombreencargado')) || 'NombreEncargado';
 
       state.file5.data.forEach(cRow => {
-        let idVal = (idCuadCol5 && cRow[idCuadCol5] !== undefined) ? formatCellValue(cRow[idCuadCol5]) : '';
-        let descVal = (descCol5 && cRow[descCol5] !== undefined) ? formatCellValue(cRow[descCol5]) : '';
-        let nomVal = (nomCol5 && cRow[nomCol5] !== undefined) ? formatCellValue(cRow[nomCol5]) : '';
-
-        if (!idVal || !descVal) {
-          for (const [colName, val] of Object.entries(cRow)) {
-            const cleanCol = cleanHeader(colName);
-            if (!idVal && (cleanCol === 'idcuadrilla' || cleanCol.includes('idcuadrilla'))) idVal = formatCellValue(val);
-            if (!descVal && (cleanCol === 'descripcion' || cleanCol.includes('descripcion') || cleanCol.includes('encargado'))) descVal = formatCellValue(val);
-            if (!nomVal && (cleanCol === 'nombreencargado' || cleanCol.includes('nombreencargado'))) nomVal = formatCellValue(val);
-          }
-        }
+        const idVal = formatCellValue(cRow[idCuadCol5]);
+        const descVal = formatCellValue(cRow[descCol5]);
+        const nomVal = formatCellValue(cRow[nomCol5]);
 
         if (idVal) {
           const cleanId = cleanHeader(idVal);
@@ -3962,6 +4440,30 @@
           consolidatedRow['Zona Labores'] = zonaConsolidada || '';
         } else if (colName === 'SubCentroCosto / Cuartel') {
           consolidatedRow['SubCentroCosto / Cuartel'] = cuartelConsolidado || '';
+        } else if (colName === 'Tiene Digitacion (jornal)') {
+          consolidatedRow['Tiene Digitacion (jornal)'] = (digText === 'SI' || digText === 'SÍ' || digText === '1') ? 'SÍ' : (digText === 'NO' || digText === 'N' ? 'NO' : (digText || 'NO'));
+        } else if (colName === 'RutTrabajador') {
+          consolidatedRow['RutTrabajador'] = formatCellValue(row1[keyCol1] || workerId);
+        } else if (colName === 'CodigoTrabajador') {
+          consolidatedRow['CodigoTrabajador'] = formatCellValue(row1['CodigoTrabajador'] || row1['CodTrabajador'] || row1['Codigo'] || extractValueForColumn(colName, row2, row1, keyCol1));
+        } else if (colName === 'FechaNacimiento') {
+          consolidatedRow['FechaNacimiento'] = formatCellValue(row1['Fec.Nacimiento'] || row1['FechaNacimiento'] || row1['FecNacimiento'] || extractValueForColumn(colName, row2, row1, keyCol1));
+        } else if (colName === 'Sexo') {
+          consolidatedRow['Sexo'] = formatCellValue(row1['Sexo'] || row1['SEXO'] || extractValueForColumn(colName, row2, row1, keyCol1));
+        } else if (colName === 'Edad') {
+          consolidatedRow['Edad'] = formatCellValue(row1['Edad'] || row1['EDAD'] || extractValueForColumn(colName, row2, row1, keyCol1));
+        } else if (colName === 'FechaInicioPeriodo') {
+          consolidatedRow['FechaInicioPeriodo'] = formatCellValue(row1['Fec.Ingreso'] || row1['FechaInicioPeriodo'] || row1['FecIngreso'] || extractValueForColumn(colName, row2, row1, keyCol1));
+        } else if (colName === 'FechaInicioContrato') {
+          consolidatedRow['FechaInicioContrato'] = formatCellValue(row1['Fec.InicioContrato'] || row1['FechaInicioContrato'] || extractValueForColumn(colName, row2, row1, keyCol1));
+        } else if (colName === 'FechaTerminoContrato') {
+          consolidatedRow['FechaTerminoContrato'] = formatCellValue(row1['Fec.TerminoContrato'] || row1['FechaTerminoContrato'] || extractValueForColumn(colName, row2, row1, keyCol1));
+        } else if (colName === 'Oficio') {
+          consolidatedRow['Oficio'] = formatCellValue(row1['Oficio'] || row1['Cargo'] || (row2 && row2['Oficio']) || extractValueForColumn(colName, row2, row1, keyCol1));
+        } else if (colName === 'Regimen') {
+          consolidatedRow['Regimen'] = formatCellValue(row1['Tipo Regimen'] || row1['Regimen'] || row1['REGIMEN'] || extractValueForColumn(colName, row2, row1, keyCol1));
+        } else if (colName === 'HASTA') {
+          consolidatedRow['HASTA'] = formatCellValue(row2 ? (row2['Hasta'] || row2['HASTA'] || row2['Fecha'] || row2['FecUltDia'] || row2['UltimoDia'] || '') : '');
         } else {
           consolidatedRow[colName] = extractValueForColumn(colName, row2, row1, keyCol1);
         }
@@ -3992,8 +4494,14 @@
     renderTable();
 
     elements.resultsSection.classList.add('active');
-    elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
+    if (typeof window.switchViewMode === 'function') {
+      window.switchViewMode('results');
+    } else {
+      elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
 
+    populateFilterDropdowns();
+    updateDesktopUIStatus();
     playSuccessSound('chime');
     showToast(`¡Consolidación exitosa! ${consolidated.length.toLocaleString()} registros procesados.`, 'success');
   }
@@ -4035,7 +4543,7 @@
 
   // Filter & Search Logic
   function applyFilters() {
-    let result = state.consolidatedData;
+    let result = state.consolidatedData || [];
 
     if (state.activeFilter === 'ACTIVE') {
       result = result.filter(r => r['ESTADO'] === 'ACTIVO');
@@ -4043,6 +4551,22 @@
       result = result.filter(r => r['ESTADO'] === 'AUSENTE');
     } else if (state.activeFilter === 'LEAVE') {
       result = result.filter(r => r['ESTADO'] !== 'ACTIVO' && r['ESTADO'] !== 'AUSENTE');
+    }
+
+    if (state.filterCuartel) {
+      result = result.filter(r => (r['Zona Labores'] === state.filterCuartel) || (r['SubCentroCosto / Cuartel'] === state.filterCuartel));
+    }
+
+    if (state.filterRuta) {
+      result = result.filter(r => r['RUTA'] === state.filterRuta);
+    }
+
+    if (state.filterSinTransporte) {
+      result = result.filter(r => {
+        const p = String(r['PLACA'] || '').trim();
+        const b = String(r['CODIGO BUS'] || '').trim();
+        return !p || p === '-' || !b || b === '-';
+      });
     }
 
     if (state.searchTerm) {
@@ -4056,6 +4580,7 @@
     state.filteredData = result;
     sortData();
     renderTable();
+    updateDesktopUIStatus();
   }
 
   // Table Sorting Logic
@@ -4078,21 +4603,36 @@
     });
   }
 
+  const COLUMN_DISPLAY_NAMES = {
+    'ESTADO': 'TIPO DE REPORTE',
+    'HASTA': 'FECHA & HORA',
+    'CodigoTrabajador': 'COD.TRABAJA',
+    'Apellidos y Nombres': 'APELLIDOS Y NOMBRES',
+    'RutTrabajador': 'DNI',
+    'PLACA': 'PLACA / BUS',
+    'RUTA': 'RUTA ASIGNADA',
+    'Zona Labores': 'ZONA',
+    'SubCentroCosto / Cuartel': 'CUARTEL',
+    'Tiene Digitacion (jornal)': 'DIGITACIÓN'
+  };
+
   // Render Table Header with sorting & visibility
   function renderTableHeader() {
     const visibleCols = TARGET_COLUMNS.filter(c => state.visibleColumns.has(c));
 
     elements.tableHead.innerHTML = `
       <tr>
+        <th style="width: 44px; text-align: center;"><input type="checkbox" id="chk-select-all" title="Seleccionar todos" style="cursor: pointer;"></th>
         ${visibleCols.map(col => {
           const isSorted = state.sortColumn === col;
           const sortIcon = isSorted ? (state.sortDirection === 'asc' ? '▲' : '▼') : '▲▼';
           const sortClass = isSorted ? (state.sortDirection === 'asc' ? 'asc' : 'desc') : '';
+          const dispName = COLUMN_DISPLAY_NAMES[col] || col;
 
           return `
-            <th data-column="${escapeHtml(col)}" title="Ordenar por ${escapeHtml(col)}">
+            <th data-column="${escapeHtml(col)}" title="Ordenar por ${escapeHtml(dispName)}">
               <div class="th-content">
-                <span>${escapeHtml(col)}</span>
+                <span>${escapeHtml(dispName)}</span>
                 <span class="sort-indicator ${sortClass}">${sortIcon}</span>
               </div>
             </th>
@@ -4158,6 +4698,7 @@
     let html = '';
     pageItems.forEach((row, idx) => {
       html += `<tr data-row-index="${startIdx + idx}" title="Clic para ver expediente completo">`;
+      html += `<td style="text-align: center; width: 44px;"><input type="checkbox" class="row-checkbox" style="cursor: pointer;"></td>`;
       visibleCols.forEach(col => {
         const val = row[col] !== undefined ? row[col] : '';
 
@@ -4718,5 +5259,464 @@
       .replace(/'/g, '&#039;');
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  
+  // ==========================================================================
+  // UNIFRUTTI ENTERPRISE DESKTOP APP CONTROLLER HELPERS
+  // ==========================================================================
+
+  function updateDesktopUIStatus() {
+    const statusText = document.getElementById('sync-status-text');
+    const headerStatus = document.getElementById('header-data-status');
+    const statusbarRec = document.getElementById('statusbar-record-count');
+    const tableFooterStatus = document.getElementById('table-footer-status');
+
+    const total = state.consolidatedData ? state.consolidatedData.length : 0;
+    const filtered = state.filteredData ? state.filteredData.length : 0;
+
+    if (statusbarRec) {
+      statusbarRec.textContent = `${filtered.toLocaleString()} / ${total.toLocaleString()}`;
+    }
+
+    if (headerStatus) {
+      headerStatus.textContent = total > 0 ? `${total.toLocaleString()} registros consolidados` : 'Ningún archivo cargado';
+    }
+
+    if (statusText) {
+      if (total > 0) {
+        statusText.textContent = `Estado: Listo. ${filtered.toLocaleString()} filas visibles (${total.toLocaleString()} totales en memoria)`;
+      } else if (state.file1.data && state.file1.data.length > 0) {
+        statusText.textContent = `Estado: Datos cargados desde SQL Server (${state.file1.data.length.toLocaleString()} trabajadores). Listo para procesar cruce.`;
+      } else {
+        statusText.textContent = 'Estado: Listo para sincronizar';
+      }
+    }
+
+    if (tableFooterStatus) {
+      tableFooterStatus.textContent = total > 0 ? 'Registros procesados correctamente.' : 'Listo para procesar.';
+    }
+  }
+
+  function populateFilterDropdowns() {
+    const selCuartel = document.getElementById('filter-cuartel');
+    const selRuta = document.getElementById('filter-ruta');
+    if (!state.consolidatedData || state.consolidatedData.length === 0) return;
+
+    if (selCuartel) {
+      const currentVal = selCuartel.value;
+      const zonas = new Set();
+      state.consolidatedData.forEach(r => {
+        if (r['Zona Labores'] && r['Zona Labores'] !== '-') zonas.add(r['Zona Labores']);
+        if (r['SubCentroCosto / Cuartel'] && r['SubCentroCosto / Cuartel'] !== '-') zonas.add(r['SubCentroCosto / Cuartel']);
+      });
+      selCuartel.innerHTML = '<option value="">Todas las Zonas / Fundos</option>';
+      Array.from(zonas).sort().forEach(z => {
+        const opt = document.createElement('option');
+        opt.value = z;
+        opt.textContent = z;
+        if (z === currentVal) opt.selected = true;
+        selCuartel.appendChild(opt);
+      });
+    }
+
+    if (selRuta) {
+      const currentVal = selRuta.value;
+      const rutas = new Set();
+      state.consolidatedData.forEach(r => {
+        if (r['RUTA'] && r['RUTA'] !== '-') rutas.add(r['RUTA']);
+      });
+      selRuta.innerHTML = '<option value="">Todas las Rutas</option>';
+      Array.from(rutas).sort().forEach(rt => {
+        const opt = document.createElement('option');
+        opt.value = rt;
+        opt.textContent = rt;
+        if (rt === currentVal) opt.selected = true;
+        selRuta.appendChild(opt);
+      });
+    }
+  }
+
+  function setupDesktopUI() {
+    const btnSyncSql = document.getElementById('btn-header-sync-sql');
+    const btnProcess = document.getElementById('btn-header-process');
+    const btnExport = document.getElementById('btn-header-export-excel');
+    const btnSqlParams = document.getElementById('btn-header-sql-params');
+    const btnQuickParams = document.getElementById('btn-quick-sync-params');
+    const btnFilterNoTrans = document.getElementById('btn-filter-no-transporte');
+    const selRuta = document.getElementById('filter-ruta');
+    const selCuartel = document.getElementById('filter-cuartel');
+    const btnClearFilters = document.getElementById('btn-clear-filters');
+
+    // Selectores rápidos del Toolbar
+    const quickEmp = document.getElementById('quick-param-empresa');
+    const quickMes = document.getElementById('quick-param-mes');
+    const quickAnio = document.getElementById('quick-param-anio');
+    const quickDias = document.getElementById('quick-param-dias');
+
+    // Sincronizar SQL
+    if (btnSyncSql) {
+      btnSyncSql.addEventListener('click', () => {
+        loadAllFromSqlServer();
+      });
+    }
+
+    // Procesar Cruce (Recalcular si el usuario ajusta parámetros)
+    if (btnProcess) {
+      btnProcess.addEventListener('click', () => {
+        if (!state.file1.data || state.file1.data.length === 0) {
+          showToast('Primero presione "⚡ Sincronizar SQL" para cargar las asistencias.', 'info');
+          return;
+        }
+        showToast('🔄 Recalculando cruce de 23 columnas consolidadas...', 'info');
+        handleProcessData();
+      });
+    }
+
+    // Exportar Reporte Excel
+    if (btnExport) {
+      btnExport.addEventListener('click', () => {
+        if (!state.consolidatedData || state.consolidatedData.length === 0) {
+          if (state.file1.data && state.file1.data.length > 0) {
+            handleProcessData();
+            setTimeout(() => exportData('xlsx'), 400);
+          } else {
+            showToast('Primero sincronice con "⚡ Sincronizar SQL" para generar el reporte.', 'info');
+          }
+        } else {
+          showToast('📥 Generando archivo Excel consolidado...', 'info');
+          exportData('xlsx');
+        }
+      });
+    }
+
+    // Parámetros de Sincronización SQL (Modal de Más Parámetros)
+    const modalParamsConfig = document.getElementById('modal-sync-params-config');
+    const advEmpresa = document.getElementById('adv-param-empresa');
+    const advMes = document.getElementById('adv-param-mes');
+    const advAnio = document.getElementById('adv-param-anio');
+    const advDias = document.getElementById('adv-param-dias');
+    const advFechaini = document.getElementById('adv-param-fechaini');
+    const advActivo = document.getElementById('adv-param-activo');
+    const btnCloseParamsConfig = document.getElementById('btn-close-sync-params-config');
+    const btnCancelParamsConfig = document.getElementById('btn-cancel-sync-params-config');
+    const btnSaveSyncParamsOnly = document.getElementById('btn-save-sync-params-only');
+    const btnSaveAndSyncParams = document.getElementById('btn-save-and-sync-params');
+    const formSyncParamsConfig = document.getElementById('form-sync-params-config');
+
+    // Recalcular automáticamente fecha de corte en el modal cuando cambia mes o año
+    const updateAdvFechaini = () => {
+      if (!advFechaini || !advMes || !advAnio) return;
+      const m = parseInt(advMes.value, 10);
+      const a = parseInt(advAnio.value, 10);
+      let lastDay = 31;
+      if (m === 2) {
+        lastDay = (a % 4 === 0 && (a % 100 !== 0 || a % 400 === 0)) ? 29 : 28;
+      } else if ([4, 6, 9, 11].includes(m)) {
+        lastDay = 30;
+      }
+      advFechaini.value = `${lastDay}/${m}/${a}`;
+    };
+
+    if (advMes) advMes.addEventListener('change', updateAdvFechaini);
+    if (advAnio) advAnio.addEventListener('input', updateAdvFechaini);
+
+    // Eventos al cambiar directamente en la barra rápida del toolbar
+    const handleQuickDateChange = () => {
+      const m = parseInt(quickMes ? quickMes.value : '1', 10);
+      const a = parseInt(quickAnio ? quickAnio.value : '2026', 10);
+      if (isNaN(m) || isNaN(a)) return;
+
+      if (advMes) advMes.value = String(m);
+      if (advAnio) advAnio.value = String(a);
+
+      if (elements.sqlParamMes) elements.sqlParamMes.value = String(m);
+      if (elements.sqlParamAnio) elements.sqlParamAnio.value = String(a);
+      if (elements.sqlParam2Mes) elements.sqlParam2Mes.value = String(m);
+      if (elements.sqlParam2Anio) elements.sqlParam2Anio.value = String(a);
+      if (elements.syncAllMasterMes) elements.syncAllMasterMes.value = String(m);
+      if (elements.syncAllMasterAnio) elements.syncAllMasterAnio.value = String(a);
+
+      calculateAndSetSyncAllDates(m, a);
+      updateSyncChips();
+    };
+
+    if (quickMes) quickMes.addEventListener('change', handleQuickDateChange);
+    if (quickAnio) {
+      quickAnio.addEventListener('change', handleQuickDateChange);
+      quickAnio.addEventListener('input', handleQuickDateChange);
+    }
+    if (quickDias) {
+      quickDias.addEventListener('change', () => {
+        if (advDias) advDias.value = quickDias.value;
+        updateSyncChips();
+      });
+    }
+
+    const openSyncParamsModal = () => {
+      if (advEmpresa && quickEmp) advEmpresa.value = quickEmp.value;
+      if (advMes && quickMes) advMes.value = quickMes.value;
+      if (advAnio && quickAnio) advAnio.value = quickAnio.value;
+      if (advDias && quickDias) advDias.value = quickDias.value;
+
+      updateAdvFechaini();
+
+      if (modalParamsConfig) {
+        openModal(modalParamsConfig);
+      } else if (elements.modalSqlSyncAll) {
+        openModal(elements.modalSqlSyncAll);
+      }
+    };
+
+    if (btnSqlParams) btnSqlParams.addEventListener('click', openSyncParamsModal);
+    if (btnQuickParams) btnQuickParams.addEventListener('click', openSyncParamsModal);
+
+    if (btnCloseParamsConfig && modalParamsConfig) {
+      btnCloseParamsConfig.addEventListener('click', () => closeModal(modalParamsConfig));
+    }
+    if (btnCancelParamsConfig && modalParamsConfig) {
+      btnCancelParamsConfig.addEventListener('click', () => closeModal(modalParamsConfig));
+    }
+
+    const saveParamsOnly = (e) => {
+      if (e) e.preventDefault();
+      try {
+        if (quickEmp && advEmpresa) quickEmp.value = advEmpresa.value;
+        if (quickMes && advMes) quickMes.value = advMes.value;
+        if (quickAnio && advAnio) quickAnio.value = advAnio.value;
+        if (quickDias && advDias) quickDias.value = advDias.value;
+
+        if (advEmpresa) {
+          syncAllCompanyInputs(advEmpresa.value);
+        }
+
+        const m = parseInt((advMes && advMes.value) || '1', 10);
+        const a = parseInt((advAnio && advAnio.value) || String(new Date().getFullYear()), 10);
+        calculateAndSetSyncAllDates(m, a);
+
+        // Si el usuario editó la fecha de corte manualmente en advFechaini, respetarla
+        if (advFechaini && advFechaini.value.trim()) {
+          const customFecha = advFechaini.value.trim();
+          if (elements.syncAllP1Fechaini) elements.syncAllP1Fechaini.value = customFecha;
+          if (elements.sqlParamFechaini) elements.sqlParamFechaini.value = customFecha;
+        }
+
+        updateSyncChips();
+
+        if (modalParamsConfig) closeModal(modalParamsConfig);
+        showToast('✅ Parámetros guardados correctamente.', 'success');
+      } catch (err) {
+        console.error('Error al guardar parámetros:', err);
+        if (modalParamsConfig) closeModal(modalParamsConfig);
+        showToast('Parámetros actualizados.', 'success');
+      }
+    };
+
+    const applyAndSyncParams = (e) => {
+      if (e) e.preventDefault();
+      saveParamsOnly();
+      showToast('Iniciando sincronización con los parámetros guardados...', 'info');
+      loadAllFromSqlServer();
+    };
+
+    if (btnSaveSyncParamsOnly) btnSaveSyncParamsOnly.addEventListener('click', saveParamsOnly);
+    if (btnSaveAndSyncParams) btnSaveAndSyncParams.addEventListener('click', applyAndSyncParams);
+    if (formSyncParamsConfig) formSyncParamsConfig.addEventListener('submit', applyAndSyncParams);
+
+    // Monitor de Sincronización: Cerrar / Ver Resultados
+    const modalSyncMonitor = document.getElementById('modal-sync-live-monitor');
+    const btnCloseSyncMonitor = document.getElementById('btn-close-sync-monitor');
+    const btnViewSyncResults = document.getElementById('btn-sync-monitor-view-results');
+
+    if (btnCloseSyncMonitor && modalSyncMonitor) {
+      btnCloseSyncMonitor.addEventListener('click', () => closeModal(modalSyncMonitor));
+    }
+    if (btnViewSyncResults && modalSyncMonitor) {
+      btnViewSyncResults.addEventListener('click', () => {
+        closeModal(modalSyncMonitor);
+        if (state.consolidatedData && state.consolidatedData.length > 0) {
+          renderTable();
+        }
+      });
+    }
+
+    // Modal de Usuario y Conexión BD (Verificar usuario gpanta y editar credenciales)
+    const openUserConfigModal = async () => {
+      const modal = elements.modalSqlDbConfig || document.getElementById('modal-sql-db-config');
+      if (modal) {
+        openModal(modal);
+        await loadSqlDatabaseConfig();
+      }
+    };
+
+    const btnHeaderUserConfig = document.getElementById('btn-header-user-config');
+    if (btnHeaderUserConfig) {
+      btnHeaderUserConfig.addEventListener('click', openUserConfigModal);
+    }
+
+    const sidebarUserCard = document.getElementById('sidebar-user-card-clickable');
+    if (sidebarUserCard) {
+      sidebarUserCard.addEventListener('click', openUserConfigModal);
+    }
+
+    // Sincronización entre selector de Empresa del toolbar
+    if (quickEmp) {
+      quickEmp.addEventListener('change', (e) => {
+        const val = e.target.value;
+        syncAllCompanyInputs(val);
+        updateSyncChips();
+        showToast(`Empresa seleccionada: ${quickEmp.options[quickEmp.selectedIndex].text}`, 'info');
+      });
+    }
+
+    if (btnFilterNoTrans) {
+      btnFilterNoTrans.addEventListener('click', () => {
+        state.filterSinTransporte = !state.filterSinTransporte;
+        btnFilterNoTrans.classList.toggle('active', state.filterSinTransporte);
+        applyFilters();
+      });
+    }
+
+    if (selRuta) {
+      selRuta.addEventListener('change', (e) => {
+        state.filterRuta = e.target.value;
+        applyFilters();
+      });
+    }
+
+    if (selCuartel) {
+      selCuartel.addEventListener('change', (e) => {
+        state.filterCuartel = e.target.value;
+        applyFilters();
+      });
+    }
+
+    if (btnClearFilters) {
+      btnClearFilters.addEventListener('click', () => {
+        if (elements.tableSearch) elements.tableSearch.value = '';
+        state.searchTerm = '';
+        state.activeFilter = 'ALL';
+        state.filterCuartel = '';
+        state.filterRuta = '';
+        state.filterSinTransporte = false;
+        if (selCuartel) selCuartel.value = '';
+        if (selRuta) selRuta.value = '';
+        if (btnFilterNoTrans) btnFilterNoTrans.classList.remove('active');
+        applyFilters();
+      });
+    }
+
+    // Functional Sidebar navigation buttons
+    const navAsistencia = document.getElementById('nav-control-asistencia');
+    const navConfigBd = document.getElementById('nav-config-bd');
+    const navDemoData = document.getElementById('nav-demo-data');
+    const navAyudaGuia = document.getElementById('nav-ayuda-guia');
+
+    if (navAsistencia) {
+      navAsistencia.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-nav-item').forEach(b => b.classList.remove('active'));
+        navAsistencia.classList.add('active');
+        state.activeFilter = 'ALL';
+        applyFilters();
+      });
+    }
+
+    if (navConfigBd) {
+      navConfigBd.addEventListener('click', openUserConfigModal);
+    }
+
+    if (navDemoData) {
+      navDemoData.addEventListener('click', () => {
+        loadDemoData();
+      });
+    }
+
+    if (navAyudaGuia) {
+      navAyudaGuia.addEventListener('click', () => {
+        if (elements.modalHelp) openModal(elements.modalHelp);
+      });
+    }
+
+    // Functional Sidebar Collapse & Expand Toggle Controller
+    const btnSidebarCollapse = document.getElementById('btn-sidebar-collapse');
+    const btnSidebarToggle = document.getElementById('btn-sidebar-toggle');
+    const toggleSidebar = () => {
+      const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+      try {
+        localStorage.setItem('sidebar_collapsed', isCollapsed ? '1' : '0');
+      } catch (e) {}
+      if (btnSidebarCollapse) {
+        btnSidebarCollapse.setAttribute('aria-expanded', String(!isCollapsed));
+        btnSidebarCollapse.title = isCollapsed ? 'Expandir menú lateral (Ctrl+B)' : 'Colapsar menú lateral (Ctrl+B)';
+      }
+    };
+
+    if (btnSidebarCollapse) {
+      btnSidebarCollapse.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleSidebar();
+      });
+    }
+
+    if (btnSidebarToggle) {
+      btnSidebarToggle.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleSidebar();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    });
+
+    try {
+      if (localStorage.getItem('sidebar_collapsed') === '1') {
+        document.body.classList.add('sidebar-collapsed');
+        if (btnSidebarCollapse) {
+          btnSidebarCollapse.setAttribute('aria-expanded', 'false');
+          btnSidebarCollapse.title = 'Expandir menú lateral (Ctrl+B)';
+        }
+      }
+    } catch (e) {}
+
+    // Backdrop click handlers for new modals
+    [modalParamsConfig, modalSyncMonitor].forEach(modal => {
+      if (!modal) return;
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal(modal);
+      });
+    });
+
+    // Inicializar parámetros dinámicos con el mes y año actual
+    try {
+      initializeDynamicDateParams();
+    } catch (e) {
+      console.error('Error initializeDynamicDateParams in setupDesktopUI:', e);
+    }
+
+    // Initial render of table header so columns display immediately
+    renderTableHeader();
+    updateDesktopUIStatus();
+  }
+
+
+  function startup() {
+    try {
+      init();
+    } catch (e) {
+      console.error('Fatal error during init():', e);
+    }
+    try {
+      setupDesktopUI();
+    } catch (e) {
+      console.error('Fatal error during setupDesktopUI():', e);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startup);
+  } else {
+    startup();
+  }
 })();
