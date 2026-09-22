@@ -132,8 +132,14 @@
     return false;
   }
 
-  // Catálogo de Empresas
+  // Catálogo de Empresas para el Selector (Solo Verfrut y Rapel)
   const EMPRESAS_MAP = {
+    '14': 'SOCIEDAD EXPORTADORA VERFRUT S. A. C.',
+    '9': 'SOCIEDAD AGRÍCOLA RAPEL S. A. C.'
+  };
+
+  // Catálogo general de respaldo para resolución de nombres
+  const ALL_KNOWN_EMPRESAS_MAP = {
     '1': 'SOCIEDAD AGRICOLA EL PORVENIR S.A.',
     '2': 'EL DURAZNO',
     '3': 'LOS PARRONES',
@@ -656,6 +662,7 @@
     currentPage: 1,
     pageSize: 15,
     activeFilter: 'ALL',
+    filterEmpresa: '',
     filterCuartel: '',
     filterRuta: '',
     filterSinTransporte: false,
@@ -1854,16 +1861,53 @@
     showToast('Valores predeterminados cargados en el formulario. Haz clic en "Guardar y Aplicar" para confirmar.', 'info');
   }
 
-    // Helper: Obtener ID de Empresa Activa
-  function getSelectedEmpresaId() {
-    if (elements.globalEmpresaSelect) {
-      const val = elements.globalEmpresaSelect.value;
-      if (val === 'custom') {
-        return (elements.globalEmpresaCustom && elements.globalEmpresaCustom.value.trim()) || '14';
+    // Helper: Obtener lista de IDs de Empresas Seleccionadas (Multi-Empresa)
+  function getSelectedEmpresas() {
+    const listContainer = document.getElementById('quick-empresa-options-list');
+    if (listContainer) {
+      const checkedBoxes = listContainer.querySelectorAll('input[type="checkbox"]:checked');
+      if (checkedBoxes.length > 0) {
+        return Array.from(checkedBoxes).map(cb => cb.value);
       }
-      return val || '14';
     }
-    return '14';
+    const hiddenSelect = document.getElementById('quick-param-empresa');
+    if (hiddenSelect) {
+      const selectedOpts = Array.from(hiddenSelect.selectedOptions || []);
+      if (selectedOpts.length > 0) {
+        return selectedOpts.map(o => o.value);
+      }
+      if (hiddenSelect.value) {
+        return [hiddenSelect.value];
+      }
+    }
+    const advSelect = document.getElementById('adv-param-empresa');
+    if (advSelect) {
+      const selectedOpts = Array.from(advSelect.selectedOptions || []);
+      if (selectedOpts.length > 0) {
+        return selectedOpts.map(o => o.value);
+      }
+    }
+    return ['14'];
+  }
+
+  // Helper: Obtener ID de Empresa Activa (compatibilidad hacia atrás)
+  function getSelectedEmpresaId() {
+    const arr = getSelectedEmpresas();
+    return arr[0] || '14';
+  }
+
+  // Helper: Obtener texto descriptivo de las empresas seleccionadas
+  function getSelectedEmpresasLabel() {
+    const list = getSelectedEmpresas();
+    if (!list || list.length === 0) return 'Sin empresa seleccionada';
+    if (list.length === 1) {
+      const code = list[0];
+      return EMPRESAS_MAP[code] ? `${code} - ${EMPRESAS_MAP[code]}` : `Empresa ${code}`;
+    }
+    if (list.length >= 2 && list.includes('14') && list.includes('9')) {
+      return 'Verfrut + Rapel (Ambas)';
+    }
+    return `${list.length} Empresas (${list.join(', ')})`;
   }
 
   // Helper: Sincronizar selectores de Empresa en todos los modales y campos de consulta
@@ -1906,6 +1950,72 @@
     if (elements.syncAllP5Empresa) elements.syncAllP5Empresa.value = idStr;
   }
 
+  // Helper: Consulta robusta a endpoints SQL con soporte para 1 o múltiples empresas
+  async function fetchSqlWithMultiCompany(endpoint, params) {
+    const queryParams = new URLSearchParams(params);
+    try {
+      const response = await fetch(`${endpoint}?${queryParams.toString()}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data && result.data.length > 0) {
+          return result;
+        }
+      }
+    } catch (e) {
+      console.warn(`Error en fetch directo a ${endpoint}:`, e);
+    }
+
+    // Fallback de contingencia: Si idEmpresa contiene varias empresas, consultar cada una en paralelo y unir
+    const rawEmp = String(params.idEmpresa || '');
+    const ids = rawEmp.split(',').map(x => x.trim()).filter(Boolean);
+    if (ids.length > 1) {
+      const promises = ids.map(id => {
+        const singleParams = { ...params, idEmpresa: id };
+        const q = new URLSearchParams(singleParams);
+        return fetch(`${endpoint}?${q.toString()}`)
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null);
+      });
+      const results = await Promise.all(promises);
+      const combinedData = [];
+      let combinedHeaders = [];
+      results.forEach((res, idx) => {
+        if (res && res.success && Array.isArray(res.data)) {
+          if (!combinedHeaders.length && res.headers) combinedHeaders = res.headers;
+          const currentId = ids[idx];
+          res.data.forEach(item => {
+            if (!item.Empresa) {
+              item.Empresa = EMPRESAS_MAP[currentId] || `EMPRESA ${currentId}`;
+            }
+            if (!item.IdEmpresa) {
+              item.IdEmpresa = currentId;
+            }
+            combinedData.push(item);
+          });
+        }
+      });
+
+      if (combinedData.length > 0) {
+        return {
+          success: true,
+          count: combinedData.length,
+          headers: combinedHeaders,
+          data: combinedData,
+          params: params
+        };
+      }
+    }
+
+    // Si aún así no hay datos, lanzar error con detalle HTTP
+    const finalResp = await fetch(`${endpoint}?${queryParams.toString()}`);
+    if (!finalResp.ok) {
+      const errData = await finalResp.json().catch(() => ({}));
+      throw new Error(errData.error || `Error del servidor HTTP ${finalResp.status}`);
+    }
+    const finalJson = await finalResp.json();
+    return finalJson;
+  }
+
   // Load Workers Directly from SQL Server (Archivo 1)
   async function loadFromSqlServer(customParams = null) {
     const btn1 = elements.btnLoadSql;
@@ -1921,8 +2031,8 @@
         btnHeader.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Consultando...</span>';
       }
 
-      const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParamEmpresa ? elements.sqlParamEmpresa.value : getSelectedEmpresaId());
-      showToast(`Conectando a base de datos vfstbd01 y consultando trabajadores (Empresa ${activeEmp})...`, 'info');
+      const activeEmp = (customParams && customParams.idEmpresa) || getSelectedEmpresas().join(',');
+      showToast(`Conectando a base de datos vfstbd01 y consultando trabajadores (Empresas: ${activeEmp})...`, 'info');
 
       const now = new Date();
       const defMes = String(now.getMonth() + 1);
@@ -1935,22 +2045,14 @@
         fechaini: (elements.sqlParamFechaini && elements.sqlParamFechaini.value.trim()) || ''
       };
 
-      const queryParams = new URLSearchParams(p);
-      const response = await fetch(`/api/trabajadores?${queryParams.toString()}`);
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Error del servidor HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = await fetchSqlWithMultiCompany('/api/trabajadores', p);
       if (!result.success || !result.data || result.data.length === 0) {
         throw new Error(result.error || 'No se obtuvieron registros de trabajadores desde la base de datos.');
       }
 
       state.file1 = {
         data: result.data,
-        name: `SQL Server (bsis_rem_afr) - Mes ${result.params.mes}/${result.params.anio}`,
+        name: `SQL Server (bsis_rem_afr) - Mes ${result.params.mes}/${result.params.anio} (${activeEmp})`,
         headers: result.headers,
         keyCol: 'RutTrabajador',
         patCol: 'Ap.Paterno',
@@ -1966,7 +2068,7 @@
         size: result.count * 150
       }, result.count);
       checkProcessingReadiness();
-      syncZonasCatalogFromSql(activeEmp);
+      syncZonasCatalogFromSql(getSelectedEmpresaId());
 
       closeModal(elements.modalSqlParams);
       showToast(`¡${result.count.toLocaleString()} trabajadores cargados directamente desde SQL Server!`, 'success');
@@ -1997,8 +2099,8 @@
         btn2.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Consultando Labores...</span>';
       }
 
-      const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParam2Empresa ? elements.sqlParam2Empresa.value : getSelectedEmpresaId());
-      showToast(`Consultando último día y labores en vfstbd01 (Empresa ${activeEmp})...`, 'info');
+      const activeEmp = (customParams && customParams.idEmpresa) || getSelectedEmpresas().join(',');
+      showToast(`Consultando último día y labores en vfstbd01 (Empresas: ${activeEmp})...`, 'info');
 
       const p = customParams || {
         idEmpresa: activeEmp,
@@ -2006,15 +2108,7 @@
         anio: elements.sqlParam2Anio ? elements.sqlParam2Anio.value : '2026'
       };
 
-      const queryParams = new URLSearchParams(p);
-      const response = await fetch(`/api/ultimo-dia?${queryParams.toString()}`);
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Error del servidor HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = await fetchSqlWithMultiCompany('/api/ultimo-dia', p);
       if (!result.success || !result.data || result.data.length === 0) {
         throw new Error(result.error || 'No se obtuvieron registros de labores / último día.');
       }
@@ -2063,8 +2157,8 @@
         btn4.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Consultando Rutas...</span>';
       }
 
-      const activeEmp = (customParams && customParams.idEmpresa !== undefined) ? customParams.idEmpresa : ((elements.sqlParam4Empresa && elements.sqlParam4Empresa.value) || getSelectedEmpresaId());
-      showToast(`Consultando buses y rutas en vfstbd01 (SPC_REGISTRO_RUTA - Empresa ${activeEmp})...`, 'info');
+      const activeEmp = (customParams && customParams.idEmpresa !== undefined) ? customParams.idEmpresa : getSelectedEmpresas().join(',');
+      showToast(`Consultando buses y rutas en vfstbd01 (SPC_REGISTRO_RUTA - Empresas: ${activeEmp})...`, 'info');
 
       const p = customParams || {
         codPais: (elements.sqlParam4Codpais && elements.sqlParam4Codpais.value) || 'PE',
@@ -2073,10 +2167,7 @@
         idEmpresa: activeEmp
       };
 
-      const queryParams = new URLSearchParams(p);
-      const response = await fetch(`/api/buses?${queryParams.toString()}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json();
+      const result = await fetchSqlWithMultiCompany('/api/buses', p);
       if (!result.success || !result.data) throw new Error(result.error || 'Error al obtener buses y rutas');
 
       state.file4 = {
@@ -2116,15 +2207,13 @@
         btn5.innerHTML = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> <span>Cargando...</span>';
       }
 
-      const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParam5Empresa ? elements.sqlParam5Empresa.value : getSelectedEmpresaId());
-      const response = await fetch(`/api/cuadrillas?idEmpresa=${activeEmp}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const result = await response.json();
+      const activeEmp = (customParams && customParams.idEmpresa) || getSelectedEmpresas().join(',');
+      const result = await fetchSqlWithMultiCompany('/api/cuadrillas', { idEmpresa: activeEmp });
       if (!result.success || !result.data) throw new Error(result.error || 'Error al obtener cuadrillas');
 
       state.file5 = {
         data: result.data,
-        name: `SQL Server (Cuadrillas) - ${result.count} cuadrillas (Empresa ${activeEmp})`,
+        name: `SQL Server (Cuadrillas) - ${result.count} cuadrillas (Empresas: ${activeEmp})`,
         headers: result.headers,
         idCuadrillaCol: 'IDCUADRILLA',
         descCol: 'Descripcion',
@@ -2135,7 +2224,7 @@
 
       autoDetectColumns(5);
       updateFileCardUI(5, { name: `SQL Server (Cuadrillas) - ${result.count} cuadrillas`, size: result.count * 80 }, result.count);
-      showToast(`¡${result.count} cuadrillas cargadas desde SQL Server (Empresa ${activeEmp})!`, 'success');
+      showToast(`¡${result.count} cuadrillas cargadas desde SQL Server (Empresas: ${activeEmp})!`, 'success');
       return result;
     } catch (err) {
       console.error(err);
@@ -2171,8 +2260,7 @@
       }
 
       const range = getDefault3DaysRange();
-      const activeEmp = (customParams && customParams.idEmpresa) || (elements.sqlParam3Empresa ? elements.sqlParam3Empresa.value : getSelectedEmpresaId());
-      // Usar rango dinámico calculado de 3 días para evitar bloqueos por fechas históricas lejanas
+      const activeEmp = (customParams && customParams.idEmpresa) || getSelectedEmpresas().join(',');
       const p = customParams || {
         fechaDesde: range.desde,
         fechaHasta: range.hasta,
@@ -2180,17 +2268,9 @@
         sw_contrato: (elements.sqlParam3Sw && elements.sqlParam3Sw.value) || '0'
       };
 
-      showToast(`Consultando marcaciones (${p.fechaDesde} al ${p.fechaHasta}, Empresa ${activeEmp}) en vfstbd01...`, 'info');
+      showToast(`Consultando marcaciones (${p.fechaDesde} al ${p.fechaHasta}, Empresas: ${activeEmp}) en vfstbd01...`, 'info');
 
-      const queryParams = new URLSearchParams(p);
-      const response = await fetch(`/api/marcaciones?${queryParams.toString()}`);
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `Error del servidor HTTP ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = await fetchSqlWithMultiCompany('/api/marcaciones', p);
       if (!result.success || !result.data || result.data.length === 0) {
         throw new Error(result.error || 'No se obtuvieron registros de marcaciones.');
       }
@@ -2214,7 +2294,7 @@
       checkProcessingReadiness();
 
       closeModal(elements.modalSqlParams3);
-      showToast(`¡${result.count.toLocaleString()} marcaciones cargadas (${result.params.fechaDesde} al ${result.params.fechaHasta})!`, 'success');
+      showToast(`¡${result.count.toLocaleString()} marcaciones cargadas desde SQL Server!`, 'success');
       return result;
     } catch (err) {
       console.error(err);
@@ -2223,7 +2303,7 @@
     } finally {
       if (btn3) {
         btn3.disabled = false;
-        btn3.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>Cargar desde SQL Server (3 días)</span>';
+        btn3.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>Cargar desde SQL Server</span>';
       }
     }
   }
@@ -2349,8 +2429,8 @@
     const chipPer = document.getElementById('monitor-chip-periodo');
     const chipDias = document.getElementById('monitor-chip-dias');
 
-    if (chipEmp && quickEmp && quickEmp.selectedIndex >= 0) {
-      chipEmp.textContent = quickEmp.options[quickEmp.selectedIndex].text;
+    if (chipEmp) {
+      chipEmp.textContent = getSelectedEmpresasLabel();
     }
     if (chipPer && quickMes && quickAnio) {
       const mesName = (quickMes.selectedIndex >= 0) ? quickMes.options[quickMes.selectedIndex].text : `Mes ${quickMes.value}`;
@@ -2501,8 +2581,9 @@
     const inputAnio = document.getElementById('quick-param-anio') || elements.sqlParamAnio;
     const selDias = document.getElementById('quick-param-dias');
 
-    const activeEmpId = (selEmp && selEmp.value) ? selEmp.value : (getSelectedEmpresaId() || '14');
-    const activeEmpText = (selEmp && selEmp.options && selEmp.selectedIndex >= 0) ? selEmp.options[selEmp.selectedIndex].text : `Empresa ${activeEmpId}`;
+    const activeEmpList = getSelectedEmpresas();
+    const activeEmpParam = activeEmpList.join(',');
+    const activeEmpText = getSelectedEmpresasLabel();
     const activeMes = (selMes && selMes.value) ? selMes.value : '8';
     const activeMesText = (selMes && selMes.options && selMes.selectedIndex >= 0) ? selMes.options[selMes.selectedIndex].text : `Mes ${activeMes}`;
     const activeAnio = (inputAnio && inputAnio.value) ? inputAnio.value : '2026';
@@ -2603,7 +2684,7 @@
 
       // Tarea 1: Trabajadores Activos
       const task1 = loadFromSqlServer({
-        idEmpresa: activeEmpId,
+        idEmpresa: activeEmpParam,
         activo: '1',
         mes: activeMes,
         anio: activeAnio,
@@ -2622,7 +2703,7 @@
 
       // Tarea 2: Labores y Asistencia
       const task2 = loadUltimoDiaFromSqlServer({
-        idEmpresa: activeEmpId,
+        idEmpresa: activeEmpParam,
         mes: activeMes,
         anio: activeAnio
       }).then(r2 => {
@@ -2639,7 +2720,7 @@
 
       // Tarea 3: Marcaciones Biométricas
       const task3 = loadMarcacionesFromSqlServer({
-        idEmpresa: activeEmpId,
+        idEmpresa: activeEmpParam,
         dias: activeDias,
         sw_contrato: '0'
       }).then(r3 => {
@@ -2656,7 +2737,7 @@
 
       // Tarea 4: Buses y Rutas
       const task4 = loadBusesFromSqlServer({
-        idEmpresa: activeEmpId,
+        idEmpresa: activeEmpParam,
         codPais: 'PE'
       }).then(r4 => {
         const cnt4 = (r4 && r4.count) || (state.file4.data ? state.file4.data.length : 0);
@@ -2672,7 +2753,7 @@
 
       // Tarea 5: Cuadrillas
       const task5 = loadCuadrillasFromSqlServer({
-        idEmpresa: activeEmpId
+        idEmpresa: activeEmpParam
       }).then(r5 => {
         const cnt5 = (r5 && r5.count) || (state.file5.data ? state.file5.data.length : 0);
         setStepProgress(5, 'completed', `${cnt5.toLocaleString()} cuad.`, `${cnt5.toLocaleString()} cuadrillas activas cargadas`);
@@ -4184,11 +4265,12 @@
         return;
       }
 
-      // Evitar duplicar al trabajador si aparece repetido en la fuente
-      if (seenWorkerIds.has(workerId)) {
+      // Evitar duplicar al trabajador si aparece repetido en la fuente dentro de la misma empresa
+      const dedupeKey = workerId + '::' + String(row1['Empresa'] || row1['IdEmpresa'] || row1['IDEMPRESA'] || '');
+      if (seenWorkerIds.has(dedupeKey)) {
         return;
       }
-      seenWorkerIds.add(workerId);
+      seenWorkerIds.add(dedupeKey);
 
       const row2 = lastDayIndex.get(workerId) || null;
       const markingCount = markingsIndex.get(workerId) || 0;
@@ -4584,6 +4666,10 @@
       result = result.filter(r => r['ESTADO'] === 'AUSENTE');
     } else if (state.activeFilter === 'LEAVE') {
       result = result.filter(r => r['ESTADO'] !== 'ACTIVO' && r['ESTADO'] !== 'AUSENTE');
+    }
+
+    if (state.filterEmpresa) {
+      result = result.filter(r => r['Empresa'] === state.filterEmpresa);
     }
 
     if (state.filterCuartel) {
@@ -5180,16 +5266,16 @@
   // Load Demo Data
   function loadDemoData() {
     const demoTrabajadores = [
-      { Regimen: 'Agrario', RutTrabajador: '70112233', CodigoTrabajador: 'TRAB-001', 'Ap.Paterno': 'Pérez', 'Ap. Materno': 'Ramos', Nombre: 'Juan Carlos', FechaNacimiento: '1992-04-15', Sexo: 'M', Edad: 34, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2022-03-15', FechaTerminoContrato: '2026-12-31', Oficio: 'Cosechador' },
-      { Regimen: 'Agrario', RutTrabajador: '70223344', CodigoTrabajador: 'TRAB-002', 'Ap.Paterno': 'Rodríguez', 'Ap. Materno': 'Solís', Nombre: 'KASSANDRA EUFEMIA', FechaNacimiento: '1995-08-22', Sexo: 'F', Edad: 31, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2021-06-01', FechaTerminoContrato: '2026-12-31', Oficio: 'Seleccionadora' },
-      { Regimen: 'General', RutTrabajador: '70334455', CodigoTrabajador: 'TRAB-003', 'Ap.Paterno': 'Sánchez', 'Ap. Materno': 'Morales', Nombre: 'Carlos Alberto', FechaNacimiento: '1988-11-03', Sexo: 'M', Edad: 37, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2020-01-10', FechaTerminoContrato: 'Indeterminado', Oficio: 'Supervisor de Campo' },
-      { Regimen: 'Agrario', RutTrabajador: '70445566', CodigoTrabajador: 'TRAB-004', 'Ap.Paterno': 'Gómez', 'Ap. Materno': 'Torres', Nombre: 'Ana Lucía', FechaNacimiento: '1998-02-18', Sexo: 'F', Edad: 28, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2023-08-20', FechaTerminoContrato: '2026-12-31', Oficio: 'Empacadora' },
-      { Regimen: 'Agrario', RutTrabajador: '70556677', CodigoTrabajador: 'TRAB-005', 'Ap.Paterno': 'Mendoza', 'Ap. Materno': 'Castro', Nombre: 'Luis Fernando', FechaNacimiento: '1990-07-30', Sexo: 'M', Edad: 36, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2019-11-05', FechaTerminoContrato: 'Indeterminado', Oficio: 'Técnico de Riego' },
-      { Regimen: 'Agrario', RutTrabajador: '70667788', CodigoTrabajador: 'TRAB-006', 'Ap.Paterno': 'Vargas', 'Ap. Materno': 'Silva', Nombre: 'Patricia Sofía', FechaNacimiento: '1994-09-12', Sexo: 'F', Edad: 31, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2022-09-12', FechaTerminoContrato: '2026-12-31', Oficio: 'Evaluadora de Calidad' },
-      { Regimen: 'Agrario', RutTrabajador: '70778899', CodigoTrabajador: 'TRAB-007', 'Ap.Paterno': 'Alva', 'Ap. Materno': 'Paredes', Nombre: 'Jorge Luis', FechaNacimiento: '1989-12-05', Sexo: 'M', Edad: 36, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2021-04-18', FechaTerminoContrato: '2026-12-31', Oficio: 'Conductor' },
-      { Regimen: 'Agrario', RutTrabajador: '70889900', CodigoTrabajador: 'TRAB-008', 'Ap.Paterno': 'Fernández', 'Ap. Materno': 'Quintana', Nombre: 'Rosa María', FechaNacimiento: '1993-03-27', Sexo: 'F', Edad: 33, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2020-07-22', FechaTerminoContrato: 'Indeterminado', Oficio: 'Fitosanidad' },
-      { Regimen: 'Agrario', RutTrabajador: '70990011', CodigoTrabajador: 'TRAB-009', 'Ap.Paterno': 'Chávez', 'Ap. Materno': 'Vega', Nombre: 'Diego Armando', FechaNacimiento: '1996-05-14', Sexo: 'M', Edad: 30, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2023-02-14', FechaTerminoContrato: '2026-12-31', Oficio: 'Estibador' },
-      { Regimen: 'Agrario', RutTrabajador: '71001122', CodigoTrabajador: 'TRAB-010', 'Ap.Paterno': 'Navarro', 'Ap. Materno': 'Cruz', Nombre: 'Carmen Rosa', FechaNacimiento: '1991-10-08', Sexo: 'F', Edad: 34, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2022-10-01', FechaTerminoContrato: '2026-12-31', Oficio: 'Monitor SST' }
+      { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70112233', CodigoTrabajador: 'TRAB-001', 'Ap.Paterno': 'Pérez', 'Ap. Materno': 'Ramos', Nombre: 'Juan Carlos', FechaNacimiento: '1992-04-15', Sexo: 'M', Edad: 34, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2022-03-15', FechaTerminoContrato: '2026-12-31', Oficio: 'Cosechador' },
+      { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70223344', CodigoTrabajador: 'TRAB-002', 'Ap.Paterno': 'Rodríguez', 'Ap. Materno': 'Solís', Nombre: 'KASSANDRA EUFEMIA', FechaNacimiento: '1995-08-22', Sexo: 'F', Edad: 31, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2021-06-01', FechaTerminoContrato: '2026-12-31', Oficio: 'Seleccionadora' },
+      { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'General', RutTrabajador: '70334455', CodigoTrabajador: 'TRAB-003', 'Ap.Paterno': 'Sánchez', 'Ap. Materno': 'Morales', Nombre: 'Carlos Alberto', FechaNacimiento: '1988-11-03', Sexo: 'M', Edad: 37, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2020-01-10', FechaTerminoContrato: 'Indeterminado', Oficio: 'Supervisor de Campo' },
+      { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70445566', CodigoTrabajador: 'TRAB-004', 'Ap.Paterno': 'Gómez', 'Ap. Materno': 'Torres', Nombre: 'Ana Lucía', FechaNacimiento: '1998-02-18', Sexo: 'F', Edad: 28, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2023-08-20', FechaTerminoContrato: '2026-12-31', Oficio: 'Empacadora' },
+      { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70556677', CodigoTrabajador: 'TRAB-005', 'Ap.Paterno': 'Mendoza', 'Ap. Materno': 'Castro', Nombre: 'Luis Fernando', FechaNacimiento: '1990-07-30', Sexo: 'M', Edad: 36, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2019-11-05', FechaTerminoContrato: 'Indeterminado', Oficio: 'Técnico de Riego' },
+      { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70667788', CodigoTrabajador: 'TRAB-006', 'Ap.Paterno': 'Vargas', 'Ap. Materno': 'Silva', Nombre: 'Patricia Sofía', FechaNacimiento: '1994-09-12', Sexo: 'F', Edad: 31, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2022-09-12', FechaTerminoContrato: '2026-12-31', Oficio: 'Evaluadora de Calidad' },
+      { Empresa: 'SOCIEDAD AGRÍCOLA RAPEL S.A.C.', Regimen: 'Agrario', RutTrabajador: '70778899', CodigoTrabajador: 'TRAB-007', 'Ap.Paterno': 'Alva', 'Ap. Materno': 'Paredes', Nombre: 'Jorge Luis', FechaNacimiento: '1989-12-05', Sexo: 'M', Edad: 36, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2021-04-18', FechaTerminoContrato: '2026-12-31', Oficio: 'Conductor' },
+      { Empresa: 'SOCIEDAD AGRÍCOLA RAPEL S.A.C.', Regimen: 'Agrario', RutTrabajador: '70889900', CodigoTrabajador: 'TRAB-008', 'Ap.Paterno': 'Fernández', 'Ap. Materno': 'Quintana', Nombre: 'Rosa María', FechaNacimiento: '1993-03-27', Sexo: 'F', Edad: 33, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2020-07-22', FechaTerminoContrato: 'Indeterminado', Oficio: 'Fitosanidad' },
+      { Empresa: 'SOCIEDAD AGRÍCOLA RAPEL S.A.C.', Regimen: 'Agrario', RutTrabajador: '70990011', CodigoTrabajador: 'TRAB-009', 'Ap.Paterno': 'Chávez', 'Ap. Materno': 'Vega', Nombre: 'Diego Armando', FechaNacimiento: '1996-05-14', Sexo: 'M', Edad: 30, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2023-02-14', FechaTerminoContrato: '2026-12-31', Oficio: 'Estibador' },
+      { Empresa: 'SOCIEDAD AGRÍCOLA RAPEL S.A.C.', Regimen: 'Agrario', RutTrabajador: '71001122', CodigoTrabajador: 'TRAB-010', 'Ap.Paterno': 'Navarro', 'Ap. Materno': 'Cruz', Nombre: 'Carmen Rosa', FechaNacimiento: '1991-10-08', Sexo: 'F', Edad: 34, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2022-10-01', FechaTerminoContrato: '2026-12-31', Oficio: 'Monitor SST' }
     ];
 
     const demoUltimoDia = [
@@ -5330,9 +5416,26 @@
   }
 
   function populateFilterDropdowns() {
+    const selEmpresa = document.getElementById('filter-empresa');
     const selCuartel = document.getElementById('filter-cuartel');
     const selRuta = document.getElementById('filter-ruta');
     if (!state.consolidatedData || state.consolidatedData.length === 0) return;
+
+    if (selEmpresa) {
+      const currentVal = selEmpresa.value;
+      const empresas = new Set();
+      state.consolidatedData.forEach(r => {
+        if (r['Empresa'] && r['Empresa'] !== '-') empresas.add(r['Empresa']);
+      });
+      selEmpresa.innerHTML = '<option value="">🏢 Todas las Empresas</option>';
+      Array.from(empresas).sort().forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp;
+        opt.textContent = emp;
+        if (emp === currentVal) opt.selected = true;
+        selEmpresa.appendChild(opt);
+      });
+    }
 
     if (selCuartel) {
       const currentVal = selCuartel.value;
@@ -5368,6 +5471,193 @@
     }
   }
 
+  // Multi-Selección de Empresas con Presets y Filtro de Búsqueda
+  function setupEmpresaMultiSelect() {
+    const container = document.getElementById('quick-empresa-multiselect');
+    const trigger = document.getElementById('quick-empresa-trigger');
+    const badge = document.getElementById('quick-empresa-badge');
+    const textLabel = document.getElementById('quick-empresa-text');
+    const dropdown = document.getElementById('quick-empresa-dropdown');
+    const searchInput = document.getElementById('quick-empresa-search');
+    const optionsList = document.getElementById('quick-empresa-options-list');
+    const hiddenSelect = document.getElementById('quick-param-empresa');
+    const advSelect = document.getElementById('adv-param-empresa');
+
+    const btnAll = document.getElementById('btn-ms-all');
+    const btnVerfrut = document.getElementById('btn-ms-verfrut');
+    const btnRapel = document.getElementById('btn-ms-rapel');
+    const btnPeru = document.getElementById('btn-ms-peru');
+    const btnClear = document.getElementById('btn-ms-clear');
+
+    if (!container || !optionsList) return;
+
+    // Poblar la lista de opciones (14 Verfrut primero, 9 Rapel segundo)
+    optionsList.innerHTML = '';
+    const sortedEmpresas = [
+      ['14', 'SOCIEDAD EXPORTADORA VERFRUT S. A. C.'],
+      ['9', 'SOCIEDAD AGRÍCOLA RAPEL S. A. C.']
+    ];
+
+    sortedEmpresas.forEach(([code, name]) => {
+      const isDefault = code === '14'; // Verfrut por defecto
+      const optDiv = document.createElement('label');
+      optDiv.className = 'multi-select-option-item' + (isDefault ? ' selected' : '');
+      optDiv.dataset.code = code;
+      optDiv.dataset.name = name.toLowerCase();
+      optDiv.innerHTML = `
+        <input type="checkbox" class="empresa-checkbox" value="${code}" ${isDefault ? 'checked' : ''}>
+        <span class="ms-code-badge">${code}</span>
+        <span class="ms-emp-name">${escapeHtml(name)}</span>
+      `;
+      optionsList.appendChild(optDiv);
+    });
+
+    function updateMultiSelectDisplay() {
+      const checkboxes = Array.from(optionsList.querySelectorAll('.empresa-checkbox'));
+      const checkedBoxes = checkboxes.filter(cb => cb.checked);
+      const checkedValues = checkedBoxes.map(cb => cb.value);
+      const count = checkedBoxes.length;
+
+      checkboxes.forEach(cb => {
+        const itemLabel = cb.closest('.multi-select-option-item') || cb.parentElement;
+        if (itemLabel) itemLabel.classList.toggle('selected', cb.checked);
+      });
+
+      if (badge) {
+        badge.textContent = count;
+        if (count === 0) {
+          badge.classList.add('zero');
+        } else {
+          badge.classList.remove('zero');
+        }
+      }
+
+      if (textLabel) {
+        if (count === 0) {
+          textLabel.textContent = 'Ninguna empresa seleccionada';
+        } else if (count === 1) {
+          const code = checkedValues[0];
+          textLabel.textContent = `${code} - ${EMPRESAS_MAP[code] || ('Empresa ' + code)}`;
+        } else if (count >= 2) {
+          textLabel.textContent = 'Verfrut + Rapel (Ambas)';
+        } else {
+          textLabel.textContent = `${count} Empresas (${checkedValues.join(', ')})`;
+        }
+      }
+
+      // Sincronizar select oculto quick-param-empresa
+      if (hiddenSelect) {
+        Array.from(hiddenSelect.options).forEach(opt => {
+          opt.selected = checkedValues.includes(opt.value);
+        });
+      }
+
+      // Sincronizar select modal avanzado si existe
+      if (advSelect) {
+        Array.from(advSelect.options).forEach(opt => {
+          opt.selected = checkedValues.includes(opt.value);
+        });
+      }
+
+      updateSyncChips();
+    }
+
+    // Toggle dropdown
+    if (trigger) {
+      trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.style.display !== 'none' && dropdown.style.display !== '';
+        dropdown.style.display = isOpen ? 'none' : 'block';
+        trigger.classList.toggle('active', !isOpen);
+      });
+    }
+
+    // Cerrar al hacer clic fuera
+    document.addEventListener('click', (e) => {
+      if (container && !container.contains(e.target)) {
+        if (dropdown) dropdown.style.display = 'none';
+        if (trigger) trigger.classList.remove('active');
+      }
+    });
+
+    // Cerrar con tecla Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && dropdown && dropdown.style.display !== 'none') {
+        dropdown.style.display = 'none';
+        if (trigger) trigger.classList.remove('active');
+      }
+    });
+
+    // Filtro de búsqueda en tiempo real
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        const query = (e.target.value || '').trim().toLowerCase();
+        const items = optionsList.querySelectorAll('.multi-select-option');
+        items.forEach(item => {
+          const code = item.dataset.code || '';
+          const name = item.dataset.name || '';
+          if (!query || code.includes(query) || name.includes(query)) {
+            item.style.display = 'flex';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    // Event delegation para los checkboxes
+    optionsList.addEventListener('change', (e) => {
+      if (e.target.classList.contains('empresa-checkbox')) {
+        updateMultiSelectDisplay();
+      }
+    });
+
+    // Presets rápidos (Verfrut y Rapel)
+    if (btnAll) {
+      btnAll.addEventListener('click', () => {
+        optionsList.querySelectorAll('.empresa-checkbox').forEach(cb => { cb.checked = true; });
+        updateMultiSelectDisplay();
+      });
+    }
+
+    if (btnVerfrut) {
+      btnVerfrut.addEventListener('click', () => {
+        optionsList.querySelectorAll('.empresa-checkbox').forEach(cb => {
+          cb.checked = (cb.value === '14');
+        });
+        updateMultiSelectDisplay();
+      });
+    }
+
+    if (btnRapel) {
+      btnRapel.addEventListener('click', () => {
+        optionsList.querySelectorAll('.empresa-checkbox').forEach(cb => {
+          cb.checked = (cb.value === '9');
+        });
+        updateMultiSelectDisplay();
+      });
+    }
+
+    if (btnPeru) {
+      btnPeru.addEventListener('click', () => {
+        optionsList.querySelectorAll('.empresa-checkbox').forEach(cb => {
+          cb.checked = (cb.value === '14' || cb.value === '9');
+        });
+        updateMultiSelectDisplay();
+      });
+    }
+
+    if (btnClear) {
+      btnClear.addEventListener('click', () => {
+        optionsList.querySelectorAll('.empresa-checkbox').forEach(cb => { cb.checked = false; });
+        updateMultiSelectDisplay();
+      });
+    }
+
+    // Inicializar visualización con los checkboxes por defecto
+    updateMultiSelectDisplay();
+  }
+
   function setupDesktopUI() {
     const btnSyncSql = document.getElementById('btn-header-sync-sql');
     const btnProcess = document.getElementById('btn-header-process');
@@ -5375,9 +5665,17 @@
     const btnSqlParams = document.getElementById('btn-header-sql-params');
     const btnQuickParams = document.getElementById('btn-quick-sync-params');
     const btnFilterNoTrans = document.getElementById('btn-filter-no-transporte');
+    const selEmpresa = document.getElementById('filter-empresa');
     const selRuta = document.getElementById('filter-ruta');
     const selCuartel = document.getElementById('filter-cuartel');
     const btnClearFilters = document.getElementById('btn-clear-filters');
+
+    // Inicializar multi-select de Empresas en Toolbar
+    try {
+      setupEmpresaMultiSelect();
+    } catch (e) {
+      console.error('Error setupEmpresaMultiSelect:', e);
+    }
 
     // Selectores rápidos del Toolbar
     const quickEmp = document.getElementById('quick-param-empresa');
@@ -5485,7 +5783,12 @@
     }
 
     const openSyncParamsModal = () => {
-      if (advEmpresa && quickEmp) advEmpresa.value = quickEmp.value;
+      if (advEmpresa) {
+        const selected = getSelectedEmpresas();
+        Array.from(advEmpresa.options).forEach(opt => {
+          opt.selected = selected.includes(opt.value);
+        });
+      }
       if (advMes && quickMes) advMes.value = quickMes.value;
       if (advAnio && quickAnio) advAnio.value = quickAnio.value;
       if (advDias && quickDias) advDias.value = quickDias.value;
@@ -5512,14 +5815,22 @@
     const saveParamsOnly = (e) => {
       if (e) e.preventDefault();
       try {
-        if (quickEmp && advEmpresa) quickEmp.value = advEmpresa.value;
+        if (advEmpresa) {
+          const advSelected = Array.from(advEmpresa.selectedOptions || []).map(o => o.value);
+          if (advSelected.length > 0) {
+            const listContainer = document.getElementById('quick-empresa-options-list');
+            if (listContainer) {
+              listContainer.querySelectorAll('.empresa-checkbox').forEach(cb => {
+                cb.checked = advSelected.includes(cb.value);
+              });
+              const ev = new Event('change', { bubbles: true });
+              listContainer.dispatchEvent(ev);
+            }
+          }
+        }
         if (quickMes && advMes) quickMes.value = advMes.value;
         if (quickAnio && advAnio) quickAnio.value = advAnio.value;
         if (quickDias && advDias) quickDias.value = advDias.value;
-
-        if (advEmpresa) {
-          syncAllCompanyInputs(advEmpresa.value);
-        }
 
         const m = parseInt((advMes && advMes.value) || '1', 10);
         const a = parseInt((advAnio && advAnio.value) || String(new Date().getFullYear()), 10);
@@ -5608,6 +5919,13 @@
       });
     }
 
+    if (selEmpresa) {
+      selEmpresa.addEventListener('change', (e) => {
+        state.filterEmpresa = e.target.value;
+        applyFilters();
+      });
+    }
+
     if (selRuta) {
       selRuta.addEventListener('change', (e) => {
         state.filterRuta = e.target.value;
@@ -5627,9 +5945,11 @@
         if (elements.tableSearch) elements.tableSearch.value = '';
         state.searchTerm = '';
         state.activeFilter = 'ALL';
+        state.filterEmpresa = '';
         state.filterCuartel = '';
         state.filterRuta = '';
         state.filterSinTransporte = false;
+        if (selEmpresa) selEmpresa.value = '';
         if (selCuartel) selCuartel.value = '';
         if (selRuta) selRuta.value = '';
         if (btnFilterNoTrans) btnFilterNoTrans.classList.remove('active');

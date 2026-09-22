@@ -131,33 +131,32 @@
 
       <!-- Quick SQL Parameters Toolbar -->
       <div class="workspace-quick-params-bar">
-        <div class="quick-param-item">
-          <span class="quick-param-label">🏢 Empresa:</span>
-          <select id="quick-param-empresa" class="quick-param-select quick-param-select-empresa" title="Seleccionar Empresa a consultar en SQL Server">
-            <option value="14" selected>14 - SOCIEDAD EXPORTADORA VERFRUT S.A.C.</option>
-            <option value="9">9 - SOCIEDAD AGRÍCOLA RAPEL S.A.C.</option>
-            <option value="1">1 - SOCIEDAD AGRICOLA EL PORVENIR S.A.</option>
-            <option value="2">2 - EL DURAZNO</option>
-            <option value="3">3 - LOS PARRONES</option>
-            <option value="4">4 - QUILAMUTA</option>
-            <option value="5">5 - INVERSIONES RVD LIMITADA</option>
-            <option value="7">7 - AGRICOLA PILARES VERDES SPA</option>
-            <option value="8">8 - SOC. EXPORTADORA VERFRUT SPA</option>
-            <option value="11">11 - INMOBILIARIA FARALEUFU LIMITADA</option>
-            <option value="12">12 - ALGARROBOS PIURA SAC</option>
-            <option value="16">16 - AGRICOLA PJM LIMITADA</option>
-            <option value="17">17 - AGRICOLA VERCELING CHILE LIMITADA</option>
-            <option value="19">19 - AGRICOLA EL PEÑASCO SPA</option>
-            <option value="20">20 - SKY WINGS SPA</option>
-            <option value="21">21 - AGRICOLA EL REMANSO LTDA</option>
-            <option value="22">22 - BODEGAS LOS LIRIOS SPA</option>
-            <option value="23">23 - AGRICOLA AVANTI S.A.C.</option>
-            <option value="31">31 - BOMAREA S.R.L</option>
-            <option value="32">32 - INVERSIONES MOSQUETA S.A.C.</option>
-            <option value="33">33 - INVERSIONES PIRONA S.A.C.</option>
-            <option value="34">34 - INVERSIONES LEFKADA S.A.C.</option>
-            <option value="35">35 - INVERSIONES HEFEI S.A.C.</option>
-          </select>
+        <!-- Selector Multi-Empresa con Buscador y Checkboxes -->
+        <div class="quick-param-item quick-param-item-empresa">
+          <span class="quick-param-label">🏢 Empresas:</span>
+          <div class="multi-select-container" id="quick-empresa-multiselect">
+            <button type="button" class="multi-select-trigger" id="quick-empresa-trigger" title="Seleccionar una o varias empresas para consolidar en un solo reporte">
+              <span class="multi-select-badge" id="quick-empresa-badge">1</span>
+              <span class="multi-select-text" id="quick-empresa-text">14 - SOCIEDAD EXPORTADORA VERFRUT S.A.C.</span>
+              <svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="multi-select-dropdown" id="quick-empresa-dropdown" style="display: none;">
+              <div class="multi-select-presets">
+                <button type="button" class="btn-ms-preset" id="btn-ms-all" title="Seleccionar ambas empresas (Verfrut y Rapel)">✓ Ambas</button>
+                <button type="button" class="btn-ms-preset" id="btn-ms-verfrut" title="Seleccionar solo Verfrut (14)">14 Verfrut</button>
+                <button type="button" class="btn-ms-preset" id="btn-ms-rapel" title="Seleccionar solo Rapel (9)">9 Rapel</button>
+                <button type="button" class="btn-ms-preset" id="btn-ms-clear" title="Deseleccionar todas">✕ Limpiar</button>
+              </div>
+              <div class="multi-select-options-list" id="quick-empresa-options-list">
+                <!-- Checkboxes generados dinámicamente desde JS (14 Verfrut y 9 Rapel) -->
+              </div>
+            </div>
+            <!-- Select oculto para compatibilidad con código existente (Solo Verfrut y Rapel) -->
+            <select id="quick-param-empresa" class="quick-param-select-hidden" multiple style="display: none;">
+              <option value="14" selected>14 - SOCIEDAD EXPORTADORA VERFRUT S.A.C.</option>
+              <option value="9">9 - SOCIEDAD AGRÍCOLA RAPEL S.A.C.</option>
+            </select>
+          </div>
         </div>
 
         <div class="quick-param-item">
@@ -208,6 +207,12 @@
         <div class="search-input-wrapper">
           <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="table-search" class="filter-search-input" placeholder="Buscar por nombre, DNI, código, placa, ruta, cuartel..." autocomplete="off">
+        </div>
+
+        <div class="filter-dropdown-wrapper">
+          <select id="filter-empresa" class="filter-select" title="Filtrar por Empresa en la tabla consolidada">
+            <option value="">🏢 Todas las Empresas</option>
+          </select>
         </div>
 
         <div class="filter-dropdown-wrapper">
@@ -678,31 +683,13 @@
       <div class="modal-body" style="padding: 1.25rem 1.5rem;">
         <form id="form-sync-params-config">
           <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="adv-param-empresa" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">🏢 Empresa (@IdEmpresa):</label>
-            <select id="adv-param-empresa" class="select-input" style="width: 100%; height: 36px;">
+            <label for="adv-param-empresa" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">🏢 Empresas (@IdEmpresa):</label>
+            <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+              Puede seleccionar varias empresas manteniendo presionada la tecla Ctrl o Cmd, o utilizar el selector multi-empresa de la barra superior.
+            </div>
+            <select id="adv-param-empresa" class="select-input" multiple style="width: 100%; height: 70px; padding: 4px;">
               <option value="14" selected>14 - SOCIEDAD EXPORTADORA VERFRUT S.A.C.</option>
               <option value="9">9 - SOCIEDAD AGRÍCOLA RAPEL S.A.C.</option>
-              <option value="1">1 - SOCIEDAD AGRICOLA EL PORVENIR S.A.</option>
-              <option value="2">2 - EL DURAZNO</option>
-              <option value="3">3 - LOS PARRONES</option>
-              <option value="4">4 - QUILAMUTA</option>
-              <option value="5">5 - INVERSIONES RVD LIMITADA</option>
-              <option value="7">7 - AGRICOLA PILARES VERDES SPA</option>
-              <option value="8">8 - SOC. EXPORTADORA VERFRUT SPA</option>
-              <option value="11">11 - INMOBILIARIA FARALEUFU LIMITADA</option>
-              <option value="12">12 - ALGARROBOS PIURA SAC</option>
-              <option value="16">16 - AGRICOLA PJM LIMITADA</option>
-              <option value="17">17 - AGRICOLA VERCELING CHILE LIMITADA</option>
-              <option value="19">19 - AGRICOLA EL PEÑASCO SPA</option>
-              <option value="20">20 - SKY WINGS SPA</option>
-              <option value="21">21 - AGRICOLA EL REMANSO LTDA</option>
-              <option value="22">22 - BODEGAS LOS LIRIOS SPA</option>
-              <option value="23">23 - AGRICOLA AVANTI S.A.C.</option>
-              <option value="31">31 - BOMAREA S.R.L</option>
-              <option value="32">32 - INVERSIONES MOSQUETA S.A.C.</option>
-              <option value="33">33 - INVERSIONES PIRONA S.A.C.</option>
-              <option value="34">34 - INVERSIONES LEFKADA S.A.C.</option>
-              <option value="35">35 - INVERSIONES HEFEI S.A.C.</option>
             </select>
           </div>
 
