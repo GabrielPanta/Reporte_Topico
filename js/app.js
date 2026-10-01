@@ -750,6 +750,12 @@
     btnExportExcelHeader: document.getElementById('btn-header-export-excel') || document.getElementById('btn-export-excel-header'),
     btnExportExcel: document.getElementById('btn-export-excel'),
     btnExportCsv: document.getElementById('btn-export-csv'),
+    modalExportExcel: document.getElementById('modal-export-excel'),
+    btnCloseExportExcel: document.getElementById('btn-close-export-excel'),
+    btnCancelExportExcel: document.getElementById('btn-cancel-export-excel'),
+    btnConfirmExportExcel: document.getElementById('btn-confirm-export-excel'),
+    exportFilenameInput: document.getElementById('export-filename-input'),
+    exportAutoOpenCheckbox: document.getElementById('export-auto-open-checkbox'),
     btnPrint: document.getElementById('btn-print') || document.getElementById('btn-print-table'),
     distActive: document.getElementById('dist-active'),
     distAbsent: document.getElementById('dist-absent'),
@@ -1592,6 +1598,7 @@
     try { setupColumnVisibilityMenu(); } catch (e) { console.error('Error setupColumnVisibilityMenu:', e); }
     try { loadSqlDatabaseConfig(); } catch (e) { console.error('Error loadSqlDatabaseConfig:', e); }
     try { checkSqlConnection(); } catch (e) { console.error('Error checkSqlConnection:', e); }
+    try { setupExportModal(); } catch (e) { console.error('Error setupExportModal:', e); }
   }
 
   // Theme Management
@@ -1715,7 +1722,7 @@
       if (box) {
         box.className = 'db-status-alert alert-loading';
         box.style.display = 'flex';
-        box.innerHTML = '<span>⏳ Conectando con SQL Server y validando credenciales...</span>';
+        box.innerHTML = '<span>Conectando con SQL Server y validando credenciales...</span>';
       }
 
       const resp = await fetch('/api/test-sql', {
@@ -1728,18 +1735,18 @@
       if (data.success) {
         if (box) {
           box.className = 'db-status-alert alert-success';
-          box.innerHTML = `<span>✅ ${data.message}</span>`;
+          box.innerHTML = `<span>✓ ${data.message}</span>`;
         }
         if (elements.dbStatusBadge) {
           elements.dbStatusBadge.innerHTML = '<span class="db-dot"></span> SQL Server Conectado';
           elements.dbStatusBadge.classList.remove('disconnected');
         }
-        showToast('¡Prueba de conexión exitosa!', 'success');
+        showToast('Prueba de conexión exitosa', 'success');
         playSuccessSound('step');
       } else {
         if (box) {
           box.className = 'db-status-alert alert-error';
-          box.innerHTML = `<span>❌ ${data.error || 'Error de conexión con SQL Server'}</span>`;
+          box.innerHTML = `<span>✕ ${data.error || 'Error de conexión con SQL Server'}</span>`;
         }
         if (elements.dbStatusBadge) {
           elements.dbStatusBadge.innerHTML = '<span class="db-dot" style="background-color: var(--danger-500); box-shadow: 0 0 6px var(--danger-500);"></span> SQL Desconectado';
@@ -1750,13 +1757,13 @@
     } catch (e) {
       if (box) {
         box.className = 'db-status-alert alert-error';
-        box.innerHTML = `<span>❌ Error de red o servidor: ${e.message}</span>`;
+        box.innerHTML = `<span>✕ Error de red o servidor: ${e.message}</span>`;
       }
       showToast(`Error al probar conexión: ${e.message}`, 'error');
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> <span>🔌 Probar Conexión</span>';
+        btn.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> <span>Probar Conexión</span>';
       }
     }
   }
@@ -1784,7 +1791,7 @@
     };
 
     if (!payload.server || !payload.database || !payload.uid) {
-      showToast('⚠️ Por favor completa el servidor, base de datos y usuario.', 'warning');
+      showToast('Por favor completa el servidor, base de datos y usuario.', 'warning');
       return;
     }
 
@@ -1802,7 +1809,7 @@
       const data = await resp.json();
 
       if (data.success) {
-        showToast('💾 Configuración de SQL Server guardada correctamente.', 'success');
+        showToast('Configuración de SQL Server guardada correctamente.', 'success');
         playSuccessSound('chime');
         const modal = elements.modalSqlDbConfig || document.getElementById('modal-sql-db-config');
         if (modal) closeModal(modal);
@@ -1828,13 +1835,13 @@
       if (box) {
         box.className = 'db-status-alert alert-error';
         box.style.display = 'flex';
-        box.innerHTML = `<span>❌ Error al guardar: ${e.message}</span>`;
+        box.innerHTML = `<span>✕ Error al guardar: ${e.message}</span>`;
       }
       showToast(`Error al guardar: ${e.message}`, 'error');
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> <span>💾 Guardar y Aplicar</span>';
+        btn.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> <span>Guardar y Aplicar</span>';
       }
     }
   }
@@ -2032,7 +2039,7 @@
       }
 
       const activeEmp = (customParams && customParams.idEmpresa) || getSelectedEmpresas().join(',');
-      showToast(`Conectando a base de datos vfstbd01 y consultando trabajadores (Empresas: ${activeEmp})...`, 'info');
+      showToast('Consultando trabajadores activos...', 'info');
 
       const now = new Date();
       const defMes = String(now.getMonth() + 1);
@@ -2047,12 +2054,12 @@
 
       const result = await fetchSqlWithMultiCompany('/api/trabajadores', p);
       if (!result.success || !result.data || result.data.length === 0) {
-        throw new Error(result.error || 'No se obtuvieron registros de trabajadores desde la base de datos.');
+        throw new Error(result.error || 'No se obtuvieron registros de trabajadores.');
       }
 
       state.file1 = {
         data: result.data,
-        name: `SQL Server (bsis_rem_afr) - Mes ${result.params.mes}/${result.params.anio} (${activeEmp})`,
+        name: `Trabajadores - Mes ${result.params.mes}/${result.params.anio} (${activeEmp})`,
         headers: result.headers,
         keyCol: 'RutTrabajador',
         patCol: 'Ap.Paterno',
@@ -2064,18 +2071,18 @@
 
       autoDetectColumns(1);
       updateFileCardUI(1, {
-        name: `SQL Server (bsis_rem_afr) - ${result.count.toLocaleString()} trab.`,
+        name: `Trabajadores (${result.count.toLocaleString()} registros)`,
         size: result.count * 150
       }, result.count);
       checkProcessingReadiness();
       syncZonasCatalogFromSql(getSelectedEmpresaId());
 
       closeModal(elements.modalSqlParams);
-      showToast(`¡${result.count.toLocaleString()} trabajadores cargados directamente desde SQL Server!`, 'success');
+      showToast(`${result.count.toLocaleString()} trabajadores cargados con éxito.`, 'success');
       return result;
     } catch (err) {
       console.error(err);
-      showToast(`Error al consultar SQL Server: ${err.message}`, 'error');
+      showToast(`Error al consultar trabajadores: ${err.message}`, 'error');
       throw err;
     } finally {
       if (btn1) {
@@ -2100,7 +2107,7 @@
       }
 
       const activeEmp = (customParams && customParams.idEmpresa) || getSelectedEmpresas().join(',');
-      showToast(`Consultando último día y labores en vfstbd01 (Empresas: ${activeEmp})...`, 'info');
+      showToast('Consultando labores y actividades...', 'info');
 
       const p = customParams || {
         idEmpresa: activeEmp,
@@ -2115,7 +2122,7 @@
 
       state.file2 = {
         data: result.data,
-        name: `SQL Server (Labores/Último Día) - Mes ${result.params.mes}/${result.params.anio}`,
+        name: `Labores / Asistencia - Mes ${result.params.mes}/${result.params.anio}`,
         headers: result.headers,
         keyCol: 'RUT/DNI',
         actCol: 'ACTIVIDAD',
@@ -2128,17 +2135,17 @@
 
       autoDetectColumns(2);
       updateFileCardUI(2, {
-        name: `SQL Server (Labores) - ${result.count.toLocaleString()} reg.`,
+        name: `Labores (${result.count.toLocaleString()} registros)`,
         size: result.count * 120
       }, result.count);
       checkProcessingReadiness();
 
       closeModal(elements.modalSqlParams2);
-      showToast(`¡${result.count.toLocaleString()} registros de labores cargados desde SQL Server!`, 'success');
+      showToast(`${result.count.toLocaleString()} registros de labores cargados con éxito.`, 'success');
       return result;
     } catch (err) {
       console.error(err);
-      showToast(`Error al consultar Labores/Último Día: ${err.message}`, 'error');
+      showToast(`Error al consultar labores: ${err.message}`, 'error');
       throw err;
     } finally {
       if (btn2) {
@@ -2158,7 +2165,7 @@
       }
 
       const activeEmp = (customParams && customParams.idEmpresa !== undefined) ? customParams.idEmpresa : getSelectedEmpresas().join(',');
-      showToast(`Consultando buses y rutas en vfstbd01 (SPC_REGISTRO_RUTA - Empresas: ${activeEmp})...`, 'info');
+      showToast('Consultando transporte y rutas...', 'info');
 
       const p = customParams || {
         codPais: (elements.sqlParam4Codpais && elements.sqlParam4Codpais.value) || 'PE',
@@ -2172,7 +2179,7 @@
 
       state.file4 = {
         data: result.data,
-        name: `SQL Server (SPC_REGISTRO_RUTA) - ${result.count.toLocaleString()} registros`,
+        name: `Transporte y Rutas - ${result.count.toLocaleString()} registros`,
         headers: result.headers,
         patenteCol: 'Patente',
         codBusCol: 'Codigo Campo',
@@ -2182,13 +2189,13 @@
       };
 
       autoDetectColumns(4);
-      updateFileCardUI(4, { name: `SQL Server (Rutas) - ${result.count.toLocaleString()} registros`, size: result.count * 80 }, result.count);
+      updateFileCardUI(4, { name: `Transporte (${result.count.toLocaleString()} registros)`, size: result.count * 80 }, result.count);
       closeModal(elements.modalSqlParams4);
-      showToast(`¡${result.count.toLocaleString()} registros de buses y rutas cargados (SPC_REGISTRO_RUTA)!`, 'success');
+      showToast(`${result.count.toLocaleString()} registros de transporte cargados.`, 'success');
       return result;
     } catch (err) {
       console.error(err);
-      showToast(`Error al consultar Buses y Rutas: ${err.message}`, 'error');
+      showToast(`Error al consultar transporte y rutas: ${err.message}`, 'error');
       throw err;
     } finally {
       if (btn4) {
@@ -2213,7 +2220,7 @@
 
       state.file5 = {
         data: result.data,
-        name: `SQL Server (Cuadrillas) - ${result.count} cuadrillas (Empresas: ${activeEmp})`,
+        name: `Cuadrillas - ${result.count} grupos (Empresas: ${activeEmp})`,
         headers: result.headers,
         idCuadrillaCol: 'IDCUADRILLA',
         descCol: 'Descripcion',
@@ -2223,12 +2230,12 @@
       };
 
       autoDetectColumns(5);
-      updateFileCardUI(5, { name: `SQL Server (Cuadrillas) - ${result.count} cuadrillas`, size: result.count * 80 }, result.count);
-      showToast(`¡${result.count} cuadrillas cargadas desde SQL Server (Empresas: ${activeEmp})!`, 'success');
+      updateFileCardUI(5, { name: `Cuadrillas (${result.count} grupos)`, size: result.count * 80 }, result.count);
+      showToast(`${result.count} cuadrillas cargadas con éxito.`, 'success');
       return result;
     } catch (err) {
       console.error(err);
-      showToast(`Error al consultar Cuadrillas: ${err.message}`, 'error');
+      showToast(`Error al consultar cuadrillas: ${err.message}`, 'error');
     } finally {
       if (btn5) {
         btn5.disabled = false;
@@ -2249,7 +2256,7 @@
     return { desde, hasta };
   }
 
-  // Load Marcaciones from SQL Server (Archivo 3 - SPC_LOGIN_MARCACIONES)
+  // Load Marcaciones from SQL Server (Archivo 3)
   async function loadMarcacionesFromSqlServer(customParams = null) {
     const btn3 = elements.btnLoadSql3;
 
@@ -2268,7 +2275,7 @@
         sw_contrato: (elements.sqlParam3Sw && elements.sqlParam3Sw.value) || '0'
       };
 
-      showToast(`Consultando marcaciones (${p.fechaDesde} al ${p.fechaHasta}, Empresas: ${activeEmp}) en vfstbd01...`, 'info');
+      showToast(`Consultando marcaciones (${p.fechaDesde} al ${p.fechaHasta})...`, 'info');
 
       const result = await fetchSqlWithMultiCompany('/api/marcaciones', p);
       if (!result.success || !result.data || result.data.length === 0) {
@@ -2277,7 +2284,7 @@
 
       state.file3 = {
         data: result.data,
-        name: `SQL Server (Marcaciones) - ${result.params.fechaDesde} al ${result.params.fechaHasta}`,
+        name: `Marcaciones - ${result.params.fechaDesde} al ${result.params.fechaHasta}`,
         headers: result.headers,
         keyCol: 'RutTrabajador',
         nomEstCol: 'NOMBRE_ESTACION',
@@ -2288,17 +2295,17 @@
 
       autoDetectColumns(3);
       updateFileCardUI(3, {
-        name: `SQL Server (Marcaciones) - ${result.count.toLocaleString()} marc.`,
+        name: `Marcaciones (${result.count.toLocaleString()} registros)`,
         size: result.count * 110
       }, result.count);
       checkProcessingReadiness();
 
       closeModal(elements.modalSqlParams3);
-      showToast(`¡${result.count.toLocaleString()} marcaciones cargadas desde SQL Server!`, 'success');
+      showToast(`${result.count.toLocaleString()} marcaciones cargadas con éxito.`, 'success');
       return result;
     } catch (err) {
       console.error(err);
-      showToast(`Error al consultar Marcaciones: ${err.message}`, 'error');
+      showToast(`Error al consultar marcaciones: ${err.message}`, 'error');
       throw err;
     } finally {
       if (btn3) {
@@ -2519,7 +2526,7 @@
       if (do4) { activeTasks.push(loadBusesFromSqlServer(p4)); taskNames.push('Buses y Rutas'); }
       if (do5) { activeTasks.push(loadCuadrillasFromSqlServer(p5)); taskNames.push('Cuadrillas'); }
 
-      showToast(`⚡ Sincronizando ${activeTasks.length} fuentes seleccionadas desde SQL Server (Empresa ${p1.idEmpresa || getSelectedEmpresaId()})...`, 'info');
+      showToast(`Sincronizando ${activeTasks.length} fuentes seleccionadas desde SQL Server (Empresa ${p1.idEmpresa || getSelectedEmpresaId()})...`, 'info');
 
       const results = await Promise.allSettled(activeTasks);
 
@@ -2528,14 +2535,14 @@
 
       if (successful > 0) {
         playSuccessSound('chime');
-        showToast(`🎉 ¡${successful} de ${activeTasks.length} fuentes sincronizadas con éxito! Consolidando...`, 'success');
+        showToast(`${successful} de ${activeTasks.length} fuentes sincronizadas con éxito. Consolidando...`, 'success');
         setTimeout(() => {
           if (state.file1.data && state.file2.data && state.file3.data) {
             handleProcessData();
           }
         }, 350);
       } else {
-        showToast('❌ Ocurrieron errores al sincronizar las fuentes desde SQL Server.', 'error');
+        showToast('Ocurrieron errores al sincronizar las fuentes desde SQL Server.', 'error');
       }
     } catch (err) {
       console.error(err);
@@ -2543,7 +2550,7 @@
     } finally {
       if (btnAll) {
         btnAll.disabled = false;
-        btnAll.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>⚡ Sincronizar Todo (SQL)</span>';
+        btnAll.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>Sincronizar Todo (SQL)</span>';
       }
     }
   }
@@ -2557,9 +2564,9 @@
     // Validación de protocolo
     if (window.location.protocol === 'file:') {
       if (statusText) {
-        statusText.innerHTML = '<span style="color:#eab308;font-weight:600;">⚠️ Para sincronizar en vivo con SQL Server (vfstbd01), ejecute ConsolidadorRRHH.exe</span>';
+        statusText.innerHTML = '<span style="color:#d97706;font-weight:600;">Para sincronizar en tiempo real, ejecute ConsolidadorRRHH.exe</span>';
       }
-      showToast('Para sincronizar en tiempo real con SQL Server, por favor inicie la aplicación desde ConsolidadorRRHH.exe. También puede usar "🧪 Cargar Datos Demo" para operar offline.', 'warning', 7000);
+      showToast('Para sincronizar en tiempo real, por favor inicie la aplicación desde ConsolidadorRRHH.exe.', 'warning', 7000);
       return;
     }
 
@@ -2615,11 +2622,11 @@
         if (status === 'running') {
           iconEl.innerHTML = '<svg class="process-spin-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2.5"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>';
         } else if (status === 'completed') {
-          iconEl.innerHTML = '<span style="color:#16a34a; font-size: 1.1rem; font-weight: bold;">✓</span>';
+          iconEl.innerHTML = '<span class="sync-step-icon-done">✓</span>';
         } else if (status === 'error') {
-          iconEl.innerHTML = '<span style="color:#dc2626; font-size: 1.1rem; font-weight: bold;">✗</span>';
+          iconEl.innerHTML = '<span class="sync-step-icon-err">✕</span>';
         } else {
-          iconEl.innerHTML = '<span style="color:#94a3b8; font-size: 0.9rem;">⚪</span>';
+          iconEl.innerHTML = `<span class="sync-step-num">${stepNum}</span>`;
         }
       }
       if (badgeEl) {
@@ -2636,7 +2643,7 @@
       if (monitorPct) monitorPct.textContent = `${pct}%`;
       if (monitorFill) monitorFill.style.width = `${pct}%`;
       if (monitorOverall) monitorOverall.textContent = message;
-      if (statusText) statusText.innerHTML = `<span style="color:#0284c7;font-weight:600;">⏳ [${pct}%] ${message}</span>`;
+      if (statusText) statusText.innerHTML = `<span style="color:#0284c7;font-weight:600;">[${pct}%] ${message}</span>`;
     }
 
     // Resetear los 5 pasos
@@ -2644,7 +2651,7 @@
       setStepProgress(s, 'pending', 'En espera');
     }
     if (btnViewResults) btnViewResults.style.display = 'none';
-    setOverallProgress(5, 'Iniciando conexión con base de datos vfstbd01...');
+    setOverallProgress(5, 'Iniciando sincronización de información...');
 
     // Abrir modal de avance visual
     if (modalMonitor) openModal(modalMonitor);
@@ -2657,7 +2664,7 @@
     }, 100);
 
     const spinSvg = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>';
-    const defaultHeaderBtnHtml = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>⚡ Sincronizar SQL</span>';
+    const defaultHeaderBtnHtml = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>Sincronizar SQL</span>';
 
     try {
       if (btnHeader) {
@@ -2673,7 +2680,7 @@
       for (let s = 1; s <= 5; s++) {
         setStepProgress(s, 'running', 'Consultando...');
       }
-      setOverallProgress(20, 'Consultando las 5 fuentes SQL en paralelo desde vfstbd01...');
+      setOverallProgress(20, 'Consultando las fuentes de información en paralelo...');
 
       let completedTasks = 0;
       const updateParallelProgress = () => {
@@ -2772,7 +2779,7 @@
       // ==========================================
       // FINALIZACIÓN Y CRUCE AUTOMÁTICO
       // ==========================================
-      setOverallProgress(95, 'Consolidando y procesando cruce de 23 campos...');
+      setOverallProgress(95, 'Consolidando registros de personal...');
       // Ceder brevemente el control al navegador para actualizar la barra visual
       await new Promise(resolve => setTimeout(resolve, 50));
       checkProcessingReadiness();
@@ -2783,40 +2790,44 @@
 
         const totalCons = state.consolidatedData ? state.consolidatedData.length : state.file1.data.length;
         if (monitorOverall) {
-          monitorOverall.innerHTML = `<span style="color:#16a34a; font-weight:700;">✓ ¡Sincronización y cruce completados! ${totalCons.toLocaleString()} registros consolidados en tabla.</span>`;
+          monitorOverall.innerHTML = `<span style="color:#16a34a; font-weight:700;">✓ Sincronización completada: ${totalCons.toLocaleString()} registros consolidados.</span>`;
         }
         if (statusText) {
-          statusText.innerHTML = `<span style="color:#16a34a; font-weight:600;">✓ Sincronizado desde SQL Server (${totalCons.toLocaleString()} trabajadores consolidados en ${activeEmpText})</span>`;
+          statusText.innerHTML = `<span style="color:#16a34a; font-weight:600;">✓ Datos actualizados (${totalCons.toLocaleString()} trabajadores en ${activeEmpText})</span>`;
         }
-        showToast(`🎉 ¡Sincronización y cruce completados! ${totalCons.toLocaleString()} trabajadores consolidados.`, 'success');
+        showToast(`Sincronización completada: ${totalCons.toLocaleString()} trabajadores consolidados.`, 'success');
 
         // Cerrar automáticamente el monitor después de 1 segundo para mostrar directamente la tabla de resultados
         setTimeout(() => {
           if (modalMonitor) closeModal(modalMonitor);
-          const tbl = document.getElementById('consolidated-table');
-          if (tbl) tbl.scrollIntoView({ behavior: 'smooth' });
+          const scrollArea = document.querySelector('.table-scroll-area');
+          if (scrollArea) scrollArea.scrollTop = 0;
+          const mainPanel = document.querySelector('.main-content-panel');
+          if (mainPanel) mainPanel.scrollTop = 0;
         }, 1100);
 
         if (btnViewResults) {
           btnViewResults.style.display = 'inline-flex';
           btnViewResults.onclick = () => {
             if (modalMonitor) closeModal(modalMonitor);
-            const tbl = document.getElementById('consolidated-table');
-            if (tbl) tbl.scrollIntoView({ behavior: 'smooth' });
+            const scrollArea = document.querySelector('.table-scroll-area');
+            if (scrollArea) scrollArea.scrollTop = 0;
+            const mainPanel = document.querySelector('.main-content-panel');
+            if (mainPanel) mainPanel.scrollTop = 0;
           };
         }
       } else {
         if (monitorOverall) {
-          monitorOverall.innerHTML = '<span style="color:#dc2626; font-weight:700;">✗ No se obtuvieron registros de trabajadores. Verifique los parámetros.</span>';
+          monitorOverall.innerHTML = '<span style="color:#dc2626; font-weight:700;">✕ No se obtuvieron registros de trabajadores. Verifique los parámetros.</span>';
         }
         showToast('No se obtuvieron registros de trabajadores. Verifique empresa y periodo.', 'error');
       }
     } catch (err) {
       console.error('Error durante loadAllFromSqlServer:', err);
       if (monitorOverall) {
-        monitorOverall.innerHTML = `<span style="color:#dc2626; font-weight:700;">✗ Error de conexión SQL: ${err.message}</span>`;
+        monitorOverall.innerHTML = `<span style="color:#dc2626; font-weight:700;">✕ No se pudo conectar al servicio: ${err.message}</span>`;
       }
-      showToast(`Error al sincronizar con SQL Server: ${err.message}`, 'error');
+      showToast(`Error al consultar información: ${err.message}`, 'error');
     } finally {
       clearInterval(timerInterval);
       const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -2828,7 +2839,7 @@
       }
       if (btnAll) {
         btnAll.disabled = false;
-        btnAll.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>⚡ Sincronizar Todo (SQL)</span>';
+        btnAll.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>Sincronizar Todo (SQL)</span>';
       }
 
       if (btnCloseMonitor) {
@@ -2859,7 +2870,7 @@
           iconOff.style.display = soundEnabled ? 'none' : 'block';
         }
         elements.btnSoundToggle.title = soundEnabled ? 'Sonido de notificación (Activado)' : 'Sonido de notificación (Silenciado)';
-        showToast(soundEnabled ? '🔊 Sonido activado' : '🔇 Sonido silenciado', 'info');
+        showToast(soundEnabled ? 'Sonido activado' : 'Sonido silenciado', 'info');
         if (soundEnabled) playSuccessSound('step');
       });
     }
@@ -2885,7 +2896,7 @@
           if (elements.globalEmpresaCustom) elements.globalEmpresaCustom.style.display = 'none';
           syncEmpresaSelectors(val);
           const selText = e.target.options[e.target.selectedIndex]?.text || val;
-          showToast(`🏢 Empresa activa: ${selText}`, 'info');
+          showToast(`Empresa activa: ${selText}`, 'info');
         }
       });
     }
@@ -2974,7 +2985,7 @@
         const m = parseInt((elements.syncAllMasterMes && elements.syncAllMasterMes.value) || '8', 10);
         const y = parseInt((elements.syncAllMasterAnio && elements.syncAllMasterAnio.value) || '2026', 10);
         calculateAndSetSyncAllDates(m, y);
-        showToast('📅 Fechas de corte y marcaciones actualizadas.', 'info');
+        showToast('Fechas de corte y marcaciones actualizadas.', 'info');
       });
     }
 
@@ -2992,7 +3003,7 @@
         if (elements.syncAllP2Mes) elements.syncAllP2Mes.value = String(m);
         if (elements.syncAllP2Anio) elements.syncAllP2Anio.value = String(y);
         calculateAndSetSyncAllDates(m, y);
-        showToast(`✅ Parámetros propagados a las 5 consultas (Empresa ${empVal}, Periodo ${m}/${y}).`, 'success');
+        showToast(`Parámetros aplicados a las 5 consultas (Empresa ${empVal}, Periodo ${m}/${y}).`, 'success');
       });
     }
 
@@ -3007,7 +3018,7 @@
         const do5 = elements.syncAllInclude5 && elements.syncAllInclude5.checked;
 
         if (!do1 && !do2 && !do3 && !do4 && !do5) {
-          showToast('⚠️ Debes seleccionar al menos una fuente para sincronizar.', 'warning');
+          showToast('Debe seleccionar al menos una fuente para sincronizar.', 'warning');
           return;
         }
 
@@ -3311,31 +3322,13 @@
     // Export & Action Buttons
     if (elements.btnExportExcelHeader) {
       elements.btnExportExcelHeader.addEventListener('click', () => {
-        if (!state.consolidatedData || state.consolidatedData.length === 0) {
-          if (state.file1.data && state.file1.data.length > 0) {
-            handleProcessData();
-            setTimeout(() => exportData('xlsx'), 400);
-          } else {
-            showToast('Primero haz clic en ⚡ Sincronizar Todo (SQL) o carga los datos.', 'info');
-          }
-        } else {
-          exportData('xlsx');
-        }
+        openExportModal('xlsx');
       });
     }
 
     if (elements.btnExportExcel) {
       elements.btnExportExcel.addEventListener('click', () => {
-        if (!state.consolidatedData || state.consolidatedData.length === 0) {
-          if (state.file1.data && state.file1.data.length > 0) {
-            handleProcessData();
-            setTimeout(() => exportData('xlsx'), 400);
-          } else {
-            showToast('Primero haz clic en ⚡ Sincronizar Todo (SQL) o carga los datos.', 'info');
-          }
-        } else {
-          exportData('xlsx');
-        }
+        openExportModal('xlsx');
       });
     }
 
@@ -4088,7 +4081,7 @@
   // Core Consolidation Engine
   function handleProcessData() {
     if (!state.file1.data || state.file1.data.length === 0) {
-      showToast('Por favor sincronice con "⚡ Sincronizar SQL" o cargue datos demo primero', 'info');
+      showToast('Por favor sincronice con "Sincronizar SQL" o cargue datos primero', 'info');
       return;
     }
     // Si file2 o file3 aún no tienen datos, inicializar estructuras seguras para permitir consolidación
@@ -4611,9 +4604,11 @@
     }
     if (typeof window.switchViewMode === 'function') {
       window.switchViewMode('results');
-    } else if (elements.resultsSection) {
-      elements.resultsSection.scrollIntoView({ behavior: 'smooth' });
     }
+    const scrollArea = document.querySelector('.table-scroll-area');
+    if (scrollArea) scrollArea.scrollTop = 0;
+    const mainPanel = document.querySelector('.main-content-panel');
+    if (mainPanel) mainPanel.scrollTop = 0;
 
     populateFilterDropdowns();
     updateDesktopUIStatus();
@@ -4976,15 +4971,230 @@
     });
   }
 
-  // Export Data con Estilos Profesionales en Excel (.xlsx)
-  async function exportData(format) {
+  // Open Export Modal (Permite elegir destino y apertura directa)
+  function openExportModal(format = 'xlsx') {
+    if (!state.consolidatedData || state.consolidatedData.length === 0) {
+      if (state.file1.data && state.file1.data.length > 0) {
+        showToast('Procesando cruce de datos antes de exportar...', 'info');
+        handleProcessData();
+        setTimeout(() => openExportModal(format), 400);
+        return;
+      }
+      showToast('No hay datos para exportar. Sincroniza desde SQL o carga los archivos primero.', 'error');
+      return;
+    }
+
+    const modal = document.getElementById('modal-export-excel');
+    if (!modal) {
+      exportData(format);
+      return;
+    }
+
+    // Nombre sugerido con fecha de hoy
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const filenameInput = document.getElementById('export-filename-input');
+    if (filenameInput) {
+      filenameInput.value = `Consolidado_Trabajadores_${timestamp}.${format}`;
+    }
+
+    // Recordar preferencia de apertura en Excel
+    const autoOpenCheckbox = document.getElementById('export-auto-open-checkbox');
+    if (autoOpenCheckbox) {
+      const savedAuto = localStorage.getItem('export_auto_open');
+      autoOpenCheckbox.checked = savedAuto !== null ? savedAuto === 'true' : true;
+    }
+
+    // Recordar preferencia de destino
+    const savedDest = localStorage.getItem('export_destination') || 'dialog';
+    const radios = modal.querySelectorAll('input[name="export-destination"]');
+    radios.forEach(r => {
+      r.checked = r.value === savedDest;
+    });
+    updateExportCardStyles(modal);
+
+    openModal(modal);
+  }
+
+  function updateExportCardStyles(container) {
+    const root = container || document;
+    const cards = root.querySelectorAll('.export-location-card');
+    cards.forEach(card => {
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio && radio.checked) {
+        card.classList.add('selected');
+        card.style.borderColor = '#10b981';
+        card.style.background = 'rgba(16, 185, 129, 0.08)';
+      } else {
+        card.classList.remove('selected');
+        card.style.borderColor = 'var(--border-color, #e2e8f0)';
+        card.style.background = 'var(--bg-card, #ffffff)';
+      }
+    });
+  }
+
+  function setupExportModal() {
+    const modal = document.getElementById('modal-export-excel');
+    if (!modal) return;
+
+    const btnClose = document.getElementById('btn-close-export-excel');
+    const btnCancel = document.getElementById('btn-cancel-export-excel');
+    const btnConfirm = document.getElementById('btn-confirm-export-excel');
+    const filenameInput = document.getElementById('export-filename-input');
+    const autoOpenCheckbox = document.getElementById('export-auto-open-checkbox');
+
+    if (btnClose) btnClose.addEventListener('click', () => closeModal(modal));
+    if (btnCancel) btnCancel.addEventListener('click', () => closeModal(modal));
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal(modal);
+    });
+
+    const radios = modal.querySelectorAll('input[name="export-destination"]');
+    radios.forEach(radio => {
+      radio.addEventListener('change', () => {
+        updateExportCardStyles(modal);
+        localStorage.setItem('export_destination', radio.value);
+      });
+      const card = radio.closest('.export-location-card');
+      if (card) {
+        card.addEventListener('click', (e) => {
+          if (e.target !== radio) {
+            radio.checked = true;
+            updateExportCardStyles(modal);
+            localStorage.setItem('export_destination', radio.value);
+          }
+        });
+      }
+    });
+
+    if (autoOpenCheckbox) {
+      autoOpenCheckbox.addEventListener('change', () => {
+        localStorage.setItem('export_auto_open', String(autoOpenCheckbox.checked));
+      });
+    }
+
+    if (btnConfirm) {
+      btnConfirm.addEventListener('click', () => {
+        let filename = (filenameInput ? filenameInput.value.trim() : '') || `Consolidado_Trabajadores_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        if (!filename.toLowerCase().endsWith('.xlsx') && !filename.toLowerCase().endsWith('.csv')) {
+          filename += '.xlsx';
+        }
+
+        let destination = 'dialog';
+        const checkedRadio = modal.querySelector('input[name="export-destination"]:checked');
+        if (checkedRadio) destination = checkedRadio.value;
+
+        const autoOpen = autoOpenCheckbox ? autoOpenCheckbox.checked : true;
+
+        closeModal(modal);
+
+        exportData('xlsx', {
+          filename,
+          destination,
+          autoOpen
+        });
+      });
+    }
+  }
+
+  // Notificación interactiva con botones para abrir archivo o carpeta
+  function showExportSuccessToast(filePath, fileName, opened) {
+    const toast = document.createElement('div');
+    toast.className = 'toast success toast-export-success';
+    toast.style.cssText = 'min-width: 380px; max-width: 530px; padding: 1.1rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; border-left: 5px solid #10b981; box-shadow: 0 12px 30px -5px rgba(0,0,0,0.3); border-radius: 10px; z-index: 10000;';
+
+    const statusTitle = opened ? 'Archivo guardado y abierto en Excel' : 'Reporte Excel guardado con éxito';
+    const openedNotice = opened ? '<span style="display:inline-block; margin-top:2px; font-size:0.75rem; color:#059669; font-weight:600;">Abierto en Microsoft Excel</span>' : '';
+
+    toast.innerHTML = `
+      <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <div style="width: 34px; height: 34px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <strong style="display: block; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">${statusTitle}</strong>
+          ${openedNotice}
+          <div style="font-size: 0.76rem; color: var(--text-muted); word-break: break-all; margin-top: 4px; background: rgba(0,0,0,0.03); padding: 5px 8px; border-radius: 4px; font-family: monospace;">
+            ${escapeHtml(filePath)}
+          </div>
+        </div>
+        <button type="button" class="btn-toast-close" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.25rem; line-height:1; padding:0 4px;" title="Cerrar">&times;</button>
+      </div>
+      <div style="display: flex; gap: 0.6rem; justify-content: flex-end; border-top: 1px solid var(--border-color, #e2e8f0); padding-top: 0.65rem;">
+        <button type="button" class="btn-toast-open-file" style="padding: 0.42rem 0.95rem; font-size: 0.82rem; font-weight: 600; border-radius: 6px; background: #10b981; color: #fff; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.45rem; box-shadow: 0 2px 5px rgba(16,185,129,0.25); transition: background 0.2s;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span>Abrir en Excel</span>
+        </button>
+        <button type="button" class="btn-toast-open-folder" style="padding: 0.42rem 0.95rem; font-size: 0.82rem; font-weight: 500; border-radius: 6px; background: var(--bg-hover, #f1f5f9); color: var(--text-main, #334155); border: 1px solid var(--border-color, #cbd5e1); cursor: pointer; display: flex; align-items: center; gap: 0.45rem; transition: all 0.2s;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>Abrir Carpeta</span>
+        </button>
+      </div>
+    `;
+
+    const btnClose = toast.querySelector('.btn-toast-close');
+    btnClose.addEventListener('click', () => toast.remove());
+
+    const btnOpenFile = toast.querySelector('.btn-toast-open-file');
+    btnOpenFile.addEventListener('click', async () => {
+      try {
+        const resp = await fetch('/api/open-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: filePath })
+        });
+        const data = await resp.json();
+        if (data && data.success) {
+          showToast('Iniciando Microsoft Excel...', 'info');
+        } else {
+          showToast(data.error || 'No se pudo abrir el archivo', 'error');
+        }
+      } catch (e) {
+        showToast('Error al comunicar con la aplicación: ' + e.message, 'error');
+      }
+    });
+
+    const btnOpenFolder = toast.querySelector('.btn-toast-open-folder');
+    btnOpenFolder.addEventListener('click', async () => {
+      try {
+        const resp = await fetch('/api/open-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: filePath })
+        });
+        const data = await resp.json();
+        if (data && data.success) {
+          showToast('Carpeta abierta en el Explorador', 'info');
+        }
+      } catch (e) {
+        showToast('Error al abrir la carpeta: ' + e.message, 'error');
+      }
+    });
+
+    elements.toastContainer.appendChild(toast);
+
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(12px)';
+        toast.style.transition = 'all 0.35s ease';
+        setTimeout(() => toast.remove(), 350);
+      }
+    }, 15000);
+  }
+
+  // Export Data con Estilos Profesionales en Excel (.xlsx) y opciones de destino
+  async function exportData(format, exportOptions = {}) {
     if (!state.consolidatedData || state.consolidatedData.length === 0) {
       showToast('No hay datos para exportar. Procesa los archivos primero.', 'error');
       return;
     }
 
+    const destination = exportOptions.destination || 'dialog';
+    const autoOpen = exportOptions.autoOpen !== undefined ? exportOptions.autoOpen : true;
+    const customFilename = exportOptions.filename;
     const timestamp = new Date().toISOString().slice(0, 10);
-    const fileName = `Consolidado_Trabajadores_${timestamp}.${format}`;
+    const fileName = customFilename || `Consolidado_Trabajadores_${timestamp}.${format}`;
 
     const formattedExportData = state.consolidatedData.map(row => {
       const orderedRow = {};
@@ -5152,7 +5362,7 @@
           colLetter.width = Math.min(Math.max(maxLen + 4, 13), 42);
         });
 
-        // 8. Generar buffer y enviar a backend /api/save-excel (guardado directo en Descargas de Windows)
+        // 8. Generar buffer binario
         const buffer = await workbook.xlsx.writeBuffer();
         
         let binaryStr = '';
@@ -5163,40 +5373,80 @@
         }
         const base64Data = window.btoa(binaryStr);
 
-        let savedDirectly = false;
+        let handledByBackend = false;
         try {
           const resp = await fetch('/api/save-excel', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: fileName, base64: base64Data })
+            body: JSON.stringify({
+              filename: fileName,
+              base64: base64Data,
+              choose_location: destination === 'dialog',
+              save_target: destination,
+              auto_open: autoOpen
+            })
           });
           const resJson = await resp.json();
-          if (resJson && resJson.success) {
-            savedDirectly = true;
-            playSuccessSound('chime');
-            showToast(`✅ ¡Archivo Excel descargado con éxito!\nGuardado en: ${resJson.path || fileName}`, 'success');
+          if (resJson) {
+            handledByBackend = true;
+            if (resJson.cancelled) {
+              showToast('Operación de guardado cancelada.', 'info');
+              return;
+            }
+            if (resJson.success) {
+              playSuccessSound('chime');
+              showExportSuccessToast(resJson.path || fileName, resJson.filename || fileName, resJson.opened);
+              return;
+            } else if (resJson.error) {
+              showToast(`Error: ${resJson.error}`, 'error');
+              return;
+            }
           }
         } catch (postErr) {
-          console.warn('Fallo al guardar por API local, usando descarga del navegador:', postErr);
+          console.warn('Fallo al guardar por API local, usando guardado del navegador:', postErr);
         }
 
-        // Descarga estándar en navegador como respaldo
-        try {
-          const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-          const link = document.createElement('a');
-          link.href = URL.createObjectURL(blob);
-          link.setAttribute('download', fileName);
-          document.body.appendChild(link);
-          link.click();
-          setTimeout(() => {
-            document.body.removeChild(link);
-            URL.revokeObjectURL(link.href);
-          }, 300);
-        } catch (_) {}
+        // Si el backend local no está disponible (ej. navegador web puro sin Python):
+        if (!handledByBackend) {
+          // Intentar File System Access API para elegir ubicación en Chrome/Edge
+          if (window.showSaveFilePicker && destination === 'dialog') {
+            try {
+              const handle = await window.showSaveFilePicker({
+                suggestedName: fileName,
+                types: [{
+                  description: 'Archivos de Excel (*.xlsx)',
+                  accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                }]
+              });
+              const writable = await handle.createWritable();
+              await writable.write(buffer);
+              await writable.close();
+              playSuccessSound('chime');
+              showToast(`¡Archivo guardado con éxito: ${handle.name}!`, 'success');
+              return;
+            } catch (pickerErr) {
+              if (pickerErr.name === 'AbortError') {
+                showToast('Guardado cancelado.', 'info');
+                return;
+              }
+            }
+          }
 
-        if (!savedDirectly) {
-          playSuccessSound('step');
-          showToast(`Archivo Excel generado con estilos: ${fileName}`, 'success');
+          // Fallback a descarga regular de navegador
+          try {
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', fileName);
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+              document.body.removeChild(link);
+              URL.revokeObjectURL(link.href);
+            }, 300);
+            playSuccessSound('step');
+            showToast(`Archivo Excel descargado: ${fileName}`, 'success');
+          } catch (_) {}
         }
         return;
       } catch (excelErr) {
@@ -5220,22 +5470,38 @@
       XLSX.utils.book_append_sheet(wb, ws, 'Consolidado');
       
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-      let savedDirectly = false;
+      let handledByBackend = false;
       try {
         const resp = await fetch('/api/save-excel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: fileName, base64: wbout })
+          body: JSON.stringify({
+            filename: fileName,
+            base64: wbout,
+            choose_location: destination === 'dialog',
+            save_target: destination,
+            auto_open: autoOpen
+          })
         });
         const resJson = await resp.json();
-        if (resJson && resJson.success) {
-          savedDirectly = true;
-          playSuccessSound('chime');
-          showToast(`✅ ¡Archivo Excel descargado con éxito!\nGuardado en: ${resJson.path || fileName}`, 'success');
+        if (resJson) {
+          handledByBackend = true;
+          if (resJson.cancelled) {
+            showToast('Operación de guardado cancelada.', 'info');
+            return;
+          }
+          if (resJson.success) {
+            playSuccessSound('chime');
+            showExportSuccessToast(resJson.path || fileName, resJson.filename || fileName, resJson.opened);
+            return;
+          } else if (resJson.error) {
+            showToast(`Error: ${resJson.error}`, 'error');
+            return;
+          }
         }
       } catch (_) {}
 
-      if (!savedDirectly) {
+      if (!handledByBackend) {
         XLSX.writeFile(wb, fileName);
         showToast(`Archivo Excel exportado: ${fileName}`, 'success');
       }
@@ -5248,7 +5514,13 @@
         await fetch('/api/save-excel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: fileName, base64: csvBase64 })
+          body: JSON.stringify({
+            filename: fileName,
+            base64: csvBase64,
+            choose_location: destination === 'dialog',
+            save_target: destination,
+            auto_open: autoOpen
+          })
         });
       } catch (_) {}
 
@@ -5427,7 +5699,7 @@
       state.consolidatedData.forEach(r => {
         if (r['Empresa'] && r['Empresa'] !== '-') empresas.add(r['Empresa']);
       });
-      selEmpresa.innerHTML = '<option value="">🏢 Todas las Empresas</option>';
+      selEmpresa.innerHTML = '<option value="">Todas las Empresas</option>';
       Array.from(empresas).sort().forEach(emp => {
         const opt = document.createElement('option');
         opt.value = emp;
@@ -5694,10 +5966,10 @@
     if (btnProcess) {
       btnProcess.addEventListener('click', () => {
         if (!state.file1.data || state.file1.data.length === 0) {
-          showToast('Primero presione "⚡ Sincronizar SQL" para cargar las asistencias.', 'info');
+          showToast('Primero presione "Sincronizar SQL" para cargar las asistencias.', 'info');
           return;
         }
-        showToast('🔄 Recalculando cruce de 23 columnas consolidadas...', 'info');
+        showToast('Recalculando cruce de 23 columnas consolidadas...', 'info');
         handleProcessData();
       });
     }
@@ -5705,17 +5977,7 @@
     // Exportar Reporte Excel
     if (btnExport) {
       btnExport.addEventListener('click', () => {
-        if (!state.consolidatedData || state.consolidatedData.length === 0) {
-          if (state.file1.data && state.file1.data.length > 0) {
-            handleProcessData();
-            setTimeout(() => exportData('xlsx'), 400);
-          } else {
-            showToast('Primero sincronice con "⚡ Sincronizar SQL" para generar el reporte.', 'info');
-          }
-        } else {
-          showToast('📥 Generando archivo Excel consolidado...', 'info');
-          exportData('xlsx');
-        }
+        openExportModal('xlsx');
       });
     }
 

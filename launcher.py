@@ -184,6 +184,68 @@ def json_serial(obj):
         return obj.decode('utf-8', errors='replace')
     return str(obj)
 
+def ask_save_as_path(default_filename="Consolidado.xlsx", initial_dir=None):
+    """Muestra el diálogo nativo de Windows Guardar Como para elegir la ruta de destino."""
+    if not initial_dir:
+        initial_dir = os.path.join(os.path.expanduser('~'), 'Downloads')
+        if not os.path.exists(initial_dir):
+            initial_dir = os.path.join(os.path.expanduser('~'), 'Desktop')
+
+    # Método 1: Diálogo nativo vía Tkinter (rápido, soporta UTF-8 y modal sobre ventana)
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes('-topmost', True)
+        root.focus_force()
+        chosen = filedialog.asksaveasfilename(
+            parent=root,
+            title="Guardar archivo Excel Consolidado",
+            initialdir=initial_dir,
+            initialfile=default_filename,
+            defaultextension=".xlsx",
+            filetypes=[("Archivos de Excel (*.xlsx)", "*.xlsx"), ("Todos los archivos (*.*)", "*.*")]
+        )
+        root.destroy()
+        if chosen:
+            return os.path.normpath(chosen)
+        return ""  # El usuario canceló la selección
+    except Exception:
+        pass
+
+    # Método 2: Diálogo nativo vía PowerShell System.Windows.Forms
+    try:
+        import subprocess
+        escaped_file = default_filename.replace("'", "''")
+        escaped_dir = initial_dir.replace("'", "''")
+        ps_cmd = f"""
+        [System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null
+        $dlg = New-Object System.Windows.Forms.SaveFileDialog
+        $dlg.Title = 'Guardar archivo Excel Consolidado'
+        $dlg.Filter = 'Archivos de Excel (*.xlsx)|*.xlsx|Todos los archivos (*.*)|*.*'
+        $dlg.FileName = '{escaped_file}'
+        $dlg.InitialDirectory = '{escaped_dir}'
+        $dlg.RestoreDirectory = $true
+        if ($dlg.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
+            Write-Output $dlg.FileName
+        }}
+        """
+        proc = subprocess.run(
+            ['powershell', '-NoProfile', '-NonInteractive', '-Command', ps_cmd],
+            capture_output=True,
+            text=True
+        )
+        output = proc.stdout.strip()
+        if output:
+            return os.path.normpath(output)
+        return ""  # Usuario canceló
+    except Exception:
+        pass
+
+    # Si todo falla, devolver la ruta por defecto
+    return os.path.normpath(os.path.join(initial_dir, default_filename))
+
 class CustomHTTPHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         directory = get_resource_path('')
@@ -226,6 +288,10 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             self.handle_api_save_excel()
         elif path == '/api/open-file':
             self.handle_api_open_file()
+        elif path == '/api/open-folder':
+            self.handle_api_open_folder()
+        elif path == '/api/select-save-path':
+            self.handle_api_select_save_path()
         elif path == '/api/test-sql':
             self.handle_api_test_sql_post()
         elif path == '/api/sql-config':
@@ -234,7 +300,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             self.send_json_response(404, {'success': False, 'error': 'Endpoint no encontrado'})
 
     def handle_api_save_excel(self):
-        """Guarda el archivo Excel generado en la carpeta Descargas o Escritorio de Windows."""
+        """Guarda el archivo Excel generado en la ruta seleccionada y permite abrirlo directamente."""
         try:
             import base64
             content_length = int(self.headers.get('Content-Length', 0))
@@ -242,27 +308,79 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             payload = json.loads(post_body.decode('utf-8'))
 
             filename = payload.get('filename') or f"Consolidado_Trabajadores_{datetime.date.today().isoformat()}.xlsx"
-            base64_data = payload.get('base64', '')
+            if not filename.lower().endswith('.xlsx') and not filename.lower().endswith('.csv'):
+                filename += '.xlsx'
 
-            # Guardar en la carpeta Descargas del usuario de Windows
+            base64_data = payload.get('base64', '')
+            choose_location = bool(payload.get('choose_location', False))
+            save_target = str(payload.get('save_target', 'dialog' if choose_location else 'downloads'))
+            custom_path = payload.get('custom_path') or payload.get('path')
+            auto_open = bool(payload.get('auto_open', False))
+
             downloads_dir = os.path.join(os.path.expanduser('~'), 'Downloads')
             if not os.path.exists(downloads_dir):
                 downloads_dir = os.path.join(os.path.expanduser('~'), 'Descargas')
             if not os.path.exists(downloads_dir):
                 downloads_dir = os.path.join(os.path.expanduser('~'), 'Desktop')
-            os.makedirs(downloads_dir, exist_ok=True)
-            file_path = os.path.join(downloads_dir, filename)
+
+            desktop_dir = os.path.join(os.path.expanduser('~'), 'Desktop')
+            if not os.path.exists(desktop_dir):
+                desktop_dir = os.path.join(os.path.expanduser('~'), 'Escritorio')
+            if not os.path.exists(desktop_dir):
+                desktop_dir = downloads_dir
+
+            file_path = None
+            if custom_path and os.path.isabs(custom_path):
+                file_path = os.path.normpath(custom_path)
+            elif save_target == 'desktop':
+                file_path = os.path.normpath(os.path.join(desktop_dir, filename))
+            elif save_target == 'downloads':
+                file_path = os.path.normpath(os.path.join(downloads_dir, filename))
+            elif choose_location or save_target == 'dialog':
+                target_dir = downloads_dir
+                file_path = ask_save_as_path(filename, initial_dir=target_dir)
+                if not file_path:  # El usuario canceló el diálogo
+                    self.send_json_response(200, {
+                        'success': False,
+                        'cancelled': True,
+                        'message': 'Guardado cancelado por el usuario.'
+                    })
+                    return
+            else:
+                file_path = os.path.normpath(os.path.join(downloads_dir, filename))
+
+            # Asegurar directorio de destino
+            parent_dir = os.path.dirname(file_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
 
             # Escribir archivo binario
             file_bytes = base64.b64decode(base64_data)
-            with open(file_path, 'wb') as f:
-                f.write(file_bytes)
+            try:
+                with open(file_path, 'wb') as f:
+                    f.write(file_bytes)
+            except PermissionError:
+                self.send_json_response(409, {
+                    'success': False,
+                    'error': f"El archivo '{os.path.basename(file_path)}' parece estar abierto en Microsoft Excel. Por favor ciérralo antes de sobrescribirlo, o guárdalo con otro nombre."
+                })
+                return
+
+            opened = False
+            if auto_open:
+                try:
+                    os.startfile(file_path)
+                    opened = True
+                except Exception as e_open:
+                    print(f"Aviso: No se pudo abrir automáticamente el archivo en Excel: {e_open}")
 
             self.send_json_response(200, {
                 'success': True,
+                'cancelled': False,
                 'path': file_path,
-                'filename': filename,
+                'filename': os.path.basename(file_path),
                 'size': len(file_bytes),
+                'opened': opened,
                 'message': f"Archivo guardado exitosamente en: {file_path}"
             })
         except Exception as e:
@@ -272,17 +390,61 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             })
 
     def handle_api_open_file(self):
-        """Abre un archivo local en su aplicación predeterminada."""
+        """Abre un archivo local en su aplicación predeterminada (Microsoft Excel)."""
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             post_body = self.rfile.read(content_length)
             payload = json.loads(post_body.decode('utf-8'))
             file_path = payload.get('path', '')
-            if file_path and os.path.exists(file_path):
-                os.startfile(file_path)
-                self.send_json_response(200, {'success': True, 'message': 'Archivo abierto'})
+            if file_path:
+                file_path = os.path.normpath(file_path)
+                if os.path.exists(file_path):
+                    os.startfile(file_path)
+                    self.send_json_response(200, {'success': True, 'message': 'Archivo abierto en Microsoft Excel'})
+                    return
+            self.send_json_response(404, {'success': False, 'error': 'Archivo no encontrado en el sistema'})
+        except Exception as e:
+            self.send_json_response(500, {'success': False, 'error': str(e)})
+
+    def handle_api_open_folder(self):
+        """Abre la carpeta contenedora en el Explorador de Windows y resalta el archivo."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_body = self.rfile.read(content_length)
+            payload = json.loads(post_body.decode('utf-8'))
+            file_path = payload.get('path', '')
+            if file_path:
+                file_path = os.path.normpath(file_path)
+                if os.path.exists(file_path):
+                    import subprocess
+                    subprocess.Popen(f'explorer /select,"{file_path}"')
+                    self.send_json_response(200, {'success': True, 'message': 'Carpeta abierta'})
+                    return
+                elif os.path.isdir(os.path.dirname(file_path)):
+                    os.startfile(os.path.dirname(file_path))
+                    self.send_json_response(200, {'success': True, 'message': 'Carpeta abierta'})
+                    return
+            self.send_json_response(404, {'success': False, 'error': 'Ruta no encontrada'})
+        except Exception as e:
+            self.send_json_response(500, {'success': False, 'error': str(e)})
+
+    def handle_api_select_save_path(self):
+        """Permite que la interfaz solicite la selección previa de una ruta para guardar."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            payload = {}
+            if content_length > 0:
+                post_body = self.rfile.read(content_length)
+                try:
+                    payload = json.loads(post_body.decode('utf-8'))
+                except Exception:
+                    payload = {}
+            filename = payload.get('filename') or f"Consolidado_Trabajadores_{datetime.date.today().isoformat()}.xlsx"
+            path = ask_save_as_path(filename)
+            if path:
+                self.send_json_response(200, {'success': True, 'path': path, 'cancelled': False})
             else:
-                self.send_json_response(404, {'success': False, 'error': 'Archivo no encontrado'})
+                self.send_json_response(200, {'success': False, 'cancelled': True})
         except Exception as e:
             self.send_json_response(500, {'success': False, 'error': str(e)})
 

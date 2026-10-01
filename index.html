@@ -90,35 +90,35 @@
         <div class="workspace-header-title-block">
           <h1 class="workspace-title">Control de Asistencia & Transporte</h1>
           <p class="workspace-subtitle">
-            <span id="header-data-status">Ningún archivo cargado</span> | Servidor SQL: <strong class="sql-server-name">vfstbd01 / bsis_rem_afr</strong>
+            <span id="header-data-status">Listo para consultar</span>
           </p>
         </div>
 
         <!-- Action Buttons (100% Funcionales) -->
         <div class="workspace-header-actions">
-          <button type="button" class="btn-app-action btn-sync-sql" id="btn-header-sync-sql" title="Sincroniza las 5 fuentes directamente desde SQL Server y procesa el cruce de 24 columnas automáticamente">
+          <button type="button" class="btn-app-action btn-sync-sql" id="btn-header-sync-sql" title="Consultar y consolidar la información del personal">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            <span>⚡ Sincronizar SQL</span>
+            <span>Sincronizar SQL</span>
           </button>
 
-          <button type="button" class="btn-app-action btn-process-cruce" id="btn-header-process" title="El cruce se ejecuta de manera 100% automática al sincronizar. Este botón permite recalcular si ajustas parámetros o filtros">
+          <button type="button" class="btn-app-action btn-process-cruce" id="btn-header-process" title="Recalcular la información con los filtros actuales">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            <span>🔄 Recalcular Cruce</span>
+            <span>Recalcular</span>
           </button>
 
           <button type="button" class="btn-app-action btn-export-rep" id="btn-header-export-excel" title="Descargar reporte Excel consolidado (.xlsx)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Exportar Reporte</span>
+            <span>Exportar Excel</span>
           </button>
 
-          <button type="button" class="btn-app-action btn-params-sql" id="btn-header-sql-params" title="Configurar empresa, mes, año y parámetros de consulta SQL">
+          <button type="button" class="btn-app-action btn-params-sql" id="btn-header-sql-params" title="Configurar empresa, mes, año y ventana de marcaciones">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            <span>Parámetros SQL</span>
+            <span>Parámetros</span>
           </button>
 
-                    <button type="button" class="btn-app-action btn-user-config" id="btn-header-user-config" title="Verificar usuario y editar credenciales de SQL Server">
+          <button type="button" class="btn-app-action btn-user-config" id="btn-header-user-config" title="Verificar usuario y actualizar credenciales">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <span>Usuario & BD</span>
+            <span>Conexión</span>
           </button>
 
           <!-- Theme Switcher -->
@@ -133,7 +133,7 @@
       <div class="workspace-quick-params-bar">
         <!-- Selector Multi-Empresa con Buscador y Checkboxes -->
         <div class="quick-param-item quick-param-item-empresa">
-          <span class="quick-param-label">🏢 Empresas:</span>
+          <span class="quick-param-label">Empresas:</span>
           <div class="multi-select-container" id="quick-empresa-multiselect">
             <button type="button" class="multi-select-trigger" id="quick-empresa-trigger" title="Seleccionar una o varias empresas para consolidar en un solo reporte">
               <span class="multi-select-badge" id="quick-empresa-badge">1</span>
@@ -142,10 +142,10 @@
             </button>
             <div class="multi-select-dropdown" id="quick-empresa-dropdown" style="display: none;">
               <div class="multi-select-presets">
-                <button type="button" class="btn-ms-preset" id="btn-ms-all" title="Seleccionar ambas empresas (Verfrut y Rapel)">✓ Ambas</button>
+                <button type="button" class="btn-ms-preset" id="btn-ms-all" title="Seleccionar ambas empresas (Verfrut y Rapel)">Ambas</button>
                 <button type="button" class="btn-ms-preset" id="btn-ms-verfrut" title="Seleccionar solo Verfrut (14)">14 Verfrut</button>
                 <button type="button" class="btn-ms-preset" id="btn-ms-rapel" title="Seleccionar solo Rapel (9)">9 Rapel</button>
-                <button type="button" class="btn-ms-preset" id="btn-ms-clear" title="Deseleccionar todas">✕ Limpiar</button>
+                <button type="button" class="btn-ms-preset" id="btn-ms-clear" title="Deseleccionar todas">Limpiar</button>
               </div>
               <div class="multi-select-options-list" id="quick-empresa-options-list">
                 <!-- Checkboxes generados dinámicamente desde JS (14 Verfrut y 9 Rapel) -->
@@ -160,7 +160,7 @@
         </div>
 
         <div class="quick-param-item">
-          <span class="quick-param-label">📅 Periodo:</span>
+          <span class="quick-param-label">Periodo:</span>
           <select id="quick-param-mes" class="quick-param-select" title="Mes de consulta">
             <option value="1">Enero</option>
             <option value="2">Febrero</option>
@@ -179,7 +179,7 @@
         </div>
 
         <div class="quick-param-item">
-          <span class="quick-param-label">🕒 Marcaciones:</span>
+          <span class="quick-param-label">Marcaciones:</span>
           <select id="quick-param-dias" class="quick-param-select" title="Días hacia atrás para consultar marcaciones biométricas">
             <option value="1">1 día (Hoy)</option>
             <option value="2">Últimos 2 días</option>
@@ -187,12 +187,6 @@
             <option value="5">Últimos 5 días</option>
             <option value="7">Últimos 7 días</option>
           </select>
-        </div>
-
-        <div class="quick-param-item" style="margin-left: auto;">
-          <button type="button" class="btn btn-sm btn-secondary" id="btn-quick-sync-params" style="height: 28px; padding: 0 10px; font-size: 0.78rem; font-weight: 600;" title="Configurar parámetros avanzados de sincronización">
-            ⚙️ Más Parámetros
-          </button>
         </div>
       </div>
 
@@ -211,7 +205,7 @@
 
         <div class="filter-dropdown-wrapper">
           <select id="filter-empresa" class="filter-select" title="Filtrar por Empresa en la tabla consolidada">
-            <option value="">🏢 Todas las Empresas</option>
+            <option value="">Todas las Empresas</option>
           </select>
         </div>
 
@@ -250,7 +244,7 @@
                   <div class="empty-state-card">
                     <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5; margin-bottom: 0.5rem;"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                     <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main);">No hay registros cargados</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Haga clic en <strong>"⚡ Sincronizar SQL"</strong> para consultar y consolidar las asistencias directamente desde SQL Server.</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Haga clic en <strong>"Sincronizar SQL"</strong> para consultar y consolidar las asistencias directamente desde SQL Server.</div>
                   </div>
                 </td>
               </tr>
@@ -284,10 +278,13 @@
       <span class="statusbar-online-dot"></span>
       <span>Sistema: <strong>En Línea</strong></span>
       <span class="statusbar-separator">|</span>
-      <span>Módulo Activo: <strong>ASISTENCIA</strong></span>
+      <span>Módulo: <strong>Consolidador de Personal</strong></span>
+    </div>
+    <div class="statusbar-center">
+      <span class="statusbar-signature">by <strong>Gabriel Panta</strong></span>
     </div>
     <div class="statusbar-right">
-      <span>BD: <strong>vfstbd01/bsis_rem_afr (PE)</strong></span>
+      <span>Estado: <strong>Operativo</strong></span>
       <span class="statusbar-separator">|</span>
       <span>Registros: <strong id="statusbar-record-count">0 / 0</strong></span>
     </div>
@@ -378,8 +375,8 @@
           </svg>
         </div>
         <div>
-          <h3 id="sql-db-config-title">Configuración de Conexión SQL Server</h3>
-          <p class="modal-subtitle">Actualiza servidor, usuario, contraseña y parámetros de base de datos</p>
+          <h3 id="sql-db-config-title">Configuración de Acceso y Conexión</h3>
+          <p class="modal-subtitle">Actualiza las credenciales de usuario y red institucional</p>
         </div>
         <button type="button" class="btn-close" id="btn-close-sql-db-config" aria-label="Cerrar modal">&times;</button>
       </div>
@@ -393,14 +390,14 @@
           </svg>
           <div>
             <strong>Gestión de Contraseña y Acceso:</strong>
-            <span>Si cambias periódicamente tu contraseña institucional, actualízala aquí y haz clic en <strong>Guardar y Aplicar</strong> para mantener conectadas las 5 consultas automáticas.</span>
+            <span>Si actualizas periódicamente tu contraseña institucional, modifícala aquí y haz clic en <strong>Guardar y Aplicar</strong> para mantener activa la sincronización del sistema.</span>
           </div>
         </div>
 
         <form id="form-sql-db-config" class="sql-params-form">
           <div class="form-grid">
             <div class="form-group">
-              <label for="db-config-server">Servidor (Host / IP):</label>
+              <label for="db-config-server">Servidor:</label>
               <input type="text" id="db-config-server" class="select-input" placeholder="ej. vfstbd01" required>
             </div>
             <div class="form-group">
@@ -408,11 +405,11 @@
               <input type="text" id="db-config-database" class="select-input" placeholder="ej. bsis_rem_afr" required>
             </div>
             <div class="form-group">
-              <label for="db-config-uid">Usuario SQL (UID):</label>
+              <label for="db-config-uid">Usuario de Red:</label>
               <input type="text" id="db-config-uid" class="select-input" placeholder="ej. gpanta" required autocomplete="username">
             </div>
             <div class="form-group">
-              <label for="db-config-pwd">Contraseña (PWD):</label>
+              <label for="db-config-pwd">Contraseña:</label>
               <div class="password-input-wrapper">
                 <input type="password" id="db-config-pwd" class="select-input" placeholder="Nueva contraseña" required autocomplete="current-password">
                 <button type="button" class="btn-toggle-pwd" id="btn-toggle-db-pwd" title="Mostrar/Ocultar contraseña" aria-label="Mostrar u ocultar contraseña">
@@ -424,7 +421,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label for="db-config-wsid">Estación (WSID):</label>
+              <label for="db-config-wsid">Estación:</label>
               <input type="text" id="db-config-wsid" class="select-input" placeholder="ej. VFRPTS03">
             </div>
             <div class="form-group">
@@ -449,14 +446,14 @@
 
           <div class="modal-footer-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
             <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-db-config" title="Restaurar parámetros por defecto iniciales">
-              🔄 Restaurar Defecto
+              Restaurar Predeterminado
             </button>
             <div style="display: flex; gap: 0.6rem; align-items: center;">
               <button type="button" class="btn btn-secondary btn-sm" id="btn-test-db-config">
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
                 </svg>
-                <span>🔌 Probar Conexión</span>
+                <span>Probar Conexión</span>
               </button>
               <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-sql-db-config">Cancelar</button>
               <button type="submit" class="btn btn-primary btn-sm" id="btn-save-db-config">
@@ -465,7 +462,7 @@
                   <polyline points="17 21 17 13 7 13 7 21"></polyline>
                   <polyline points="7 3 7 8 15 8"></polyline>
                 </svg>
-                <span>💾 Guardar y Aplicar</span>
+                <span>Guardar y Aplicar</span>
               </button>
             </div>
           </div>
@@ -482,7 +479,7 @@
         <button type="button" class="btn-close" id="btn-close-modal" aria-label="Cerrar ventana">&times;</button>
       </div>
       <div class="modal-body">
-        <p>Esta herramienta sincroniza y consolida automáticamente los datos de trabajadores directamente desde SQL Server (VFSTBD01) generando exactamente los <strong>23 campos solicitados</strong>:</p>
+        <p>Esta herramienta consolida automáticamente la información del personal, sus labores de campo, marcaciones de asistencia y rutas de transporte, generando el reporte consolidado de <strong>23 columnas oficiales</strong>:</p>
         
         <h4>Estructura de las 23 Columnas del Consolidado:</h4>
         <ol class="columns-ordered-list">
@@ -511,16 +508,16 @@
           <li><strong style="color: var(--primary-600);"><code>ESTADO</code></strong></li>
         </ol>
 
-        <h4>Lógica de Evaluación de Estado:</h4>
+        <h4>Criterio de Evaluación del Estado:</h4>
         <ul>
-          <li><strong>ESTADO = "ACTIVO"</strong>: Si el Rut/DNI registra marcación en Archivo 3 o digitación = NO.</li>
-          <li><strong>ESTADO = "AUSENTE"</strong>: Si NO registra marcación y no tiene una inasistencia justificada.</li>
-          <li><strong>ESTADO = [Valor de ACTIVIDAD]</strong>: Si registra una inasistencia (ej. "LICENCIA POR MATERNIDAD", "DESCANSO MÉDICO", "VACACIONES", "PERSONAL CON S.P.L", etc.).</li>
+          <li><strong>ESTADO = "ACTIVO"</strong>: Si el trabajador registra asistencia o marcación en el reloj.</li>
+          <li><strong>ESTADO = "AUSENTE"</strong>: Si no registra marcación ni actividad en el periodo.</li>
+          <li><strong>ESTADO = [Motivo de Inasistencia]</strong>: Si registra descanso médico, licencia, vacaciones u otro concepto registrado.</li>
         </ul>
 
         <div class="privacy-note">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <small><em>Conexión Segura: La conexión a SQL Server se realiza localmente desde el servidor Python hacia vfstbd01.</em></small>
+          <small><em>Conexión Segura: La sincronización de información se realiza de forma directa y protegida dentro de la red institucional.</em></small>
         </div>
       </div>
     </div>
@@ -545,11 +542,11 @@
       <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border-color);">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
           <div style="width: 32px; height: 32px; border-radius: 6px; background: #0284c7; color: #fff; display: flex; align-items: center; justify-content: center;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
           </div>
           <div>
-            <h3 id="sync-monitor-title" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">Monitor de Sincronización SQL en Vivo</h3>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Servidor de Producción: <strong style="color: #0284c7;">vfstbd01 (bsis_rem_afr)</strong></span>
+            <h3 id="sync-monitor-title" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main);">Sincronización de Datos</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Actualizando información de personal, labores y asistencia</span>
           </div>
         </div>
         <button type="button" class="btn-close" id="btn-close-sync-monitor" aria-label="Cerrar monitor" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-muted);">&times;</button>
@@ -558,15 +555,15 @@
       <div class="modal-body sync-monitor-body" style="padding: 1.25rem 1.5rem;">
         <!-- Chips de Parámetros Activos -->
         <div class="sync-active-params-chip" id="sync-monitor-params-chip">
-          <span>🏢 Empresa: <strong id="monitor-chip-empresa">14 - VERFRUT S.A.C.</strong></span>
-          <span>📅 Periodo: <strong id="monitor-chip-periodo">Agosto / 2026</strong></span>
-          <span>🕒 Marcaciones: <strong id="monitor-chip-dias">Últimos 3 días</strong></span>
+          <span>Empresa: <strong id="monitor-chip-empresa">14 - VERFRUT S.A.C.</strong></span>
+          <span>Periodo: <strong id="monitor-chip-periodo">Agosto / 2026</strong></span>
+          <span>Marcaciones: <strong id="monitor-chip-dias">Últimos 3 días</strong></span>
         </div>
 
         <!-- Barra de Progreso General -->
         <div class="sync-progress-bar-container">
           <div class="sync-progress-header">
-            <span class="sync-progress-status-label" id="sync-monitor-overall-status">Iniciando consultas SQL...</span>
+            <span class="sync-progress-status-label" id="sync-monitor-overall-status">Iniciando consulta de datos...</span>
             <span class="sync-progress-pct" id="sync-monitor-pct" style="color: #0284c7; font-weight: 700;">0%</span>
           </div>
           <div class="sync-progress-track">
@@ -574,19 +571,18 @@
           </div>
         </div>
 
-        <!-- Lista de las 5 Consultas Paso a Paso -->
+        <!-- Lista de las 5 Fuentes Paso a Paso -->
         <div class="sync-steps-list">
           <!-- 1. Trabajadores -->
           <div class="sync-step-item" id="sync-step-1">
             <div class="sync-step-icon">
-              <span id="sync-step-icon-1">⚪</span>
+              <span id="sync-step-icon-1" class="sync-step-num">1</span>
             </div>
             <div class="sync-step-info">
               <div class="sync-step-title">
                 <strong>1. Ficha de Trabajadores Activos</strong>
-                <code>SPC_FICHA_TRABAJADOR_SIN_DATOSSUELDOS</code>
               </div>
-              <div class="sync-step-meta" id="sync-step-meta-1">Población activa, DNI, nombres, apellidos y régimen laboral</div>
+              <div class="sync-step-meta" id="sync-step-meta-1">Personal vigente, DNI, nombres y régimen laboral</div>
             </div>
             <div class="sync-step-badge" id="sync-step-badge-1">En espera</div>
           </div>
@@ -594,14 +590,13 @@
           <!-- 2. Labores -->
           <div class="sync-step-item" id="sync-step-2">
             <div class="sync-step-icon">
-              <span id="sync-step-icon-2">⚪</span>
+              <span id="sync-step-icon-2" class="sync-step-num">2</span>
             </div>
             <div class="sync-step-info">
               <div class="sync-step-title">
-                <strong>2. Labores y Asistencia (Último Día)</strong>
-                <code>SPC_BUSCA_ULTIMO_DIA_ACTIVIDAD_TRABAJADOR</code>
+                <strong>2. Labores y Asistencia</strong>
               </div>
-              <div class="sync-step-meta" id="sync-step-meta-2">Último día trabajado, labor, cuartel, sector y cuadrilla</div>
+              <div class="sync-step-meta" id="sync-step-meta-2">Último día trabajado, labores realizadas y cuartel</div>
             </div>
             <div class="sync-step-badge" id="sync-step-badge-2">En espera</div>
           </div>
@@ -609,14 +604,13 @@
           <!-- 3. Marcaciones -->
           <div class="sync-step-item" id="sync-step-3">
             <div class="sync-step-icon">
-              <span id="sync-step-icon-3">⚪</span>
+              <span id="sync-step-icon-3" class="sync-step-num">3</span>
             </div>
             <div class="sync-step-info">
               <div class="sync-step-title">
-                <strong>3. Marcaciones Biométricas de Reloj</strong>
-                <code>SPC_LOGIN_MARCACIONES</code>
+                <strong>3. Marcaciones de Reloj</strong>
               </div>
-              <div class="sync-step-meta" id="sync-step-meta-3">Marcaciones de entrada, salida, estaciones y buses</div>
+              <div class="sync-step-meta" id="sync-step-meta-3">Marcaciones biométricas de entrada y salida</div>
             </div>
             <div class="sync-step-badge" id="sync-step-badge-3">En espera</div>
           </div>
@@ -624,14 +618,13 @@
           <!-- 4. Buses -->
           <div class="sync-step-item" id="sync-step-4">
             <div class="sync-step-icon">
-              <span id="sync-step-icon-4">⚪</span>
+              <span id="sync-step-icon-4" class="sync-step-num">4</span>
             </div>
             <div class="sync-step-info">
               <div class="sync-step-title">
-                <strong>4. Rutas y Transporte de Buses</strong>
-                <code>SPC_REGISTRO_RUTA</code>
+                <strong>4. Rutas y Transporte</strong>
               </div>
-              <div class="sync-step-meta" id="sync-step-meta-4">Asignación de patentes, código de bus y descripción de ruta</div>
+              <div class="sync-step-meta" id="sync-step-meta-4">Asignación de buses, patentes y rutas de traslado</div>
             </div>
             <div class="sync-step-badge" id="sync-step-badge-4">En espera</div>
           </div>
@@ -639,14 +632,13 @@
           <!-- 5. Cuadrillas -->
           <div class="sync-step-item" id="sync-step-5">
             <div class="sync-step-icon">
-              <span id="sync-step-icon-5">⚪</span>
+              <span id="sync-step-icon-5" class="sync-step-num">5</span>
             </div>
             <div class="sync-step-info">
               <div class="sync-step-title">
                 <strong>5. Cuadrillas de Campo</strong>
-                <code>SPC_DINAMICA_CUADRILLAS</code>
               </div>
-              <div class="sync-step-meta" id="sync-step-meta-5">Cuadrillas activas, código y nombres de encargados</div>
+              <div class="sync-step-meta" id="sync-step-meta-5">Cuadrillas activas y supervisores asignados</div>
             </div>
             <div class="sync-step-badge" id="sync-step-badge-5">En espera</div>
           </div>
@@ -654,9 +646,9 @@
       </div>
 
       <div class="modal-footer sync-monitor-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background: var(--bg-surface);">
-        <span class="sync-timer-label" id="sync-monitor-timer" style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">Tiempo transcurrido: 0.0s</span>
-        <button type="button" class="btn btn-primary" id="btn-sync-monitor-view-results" style="display: none; padding: 0.5rem 1.25rem;">
-          <span>🎉 Ver Datos Consolidados</span>
+        <span class="sync-timer-label" id="sync-monitor-timer" style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500;">Tiempo: 0.0s</span>
+        <button type="button" class="btn btn-primary" id="btn-sync-monitor-view-results" style="display: none; padding: 0.45rem 1.25rem;">
+          <span>Ver Datos Consolidados</span>
         </button>
       </div>
     </div>
@@ -673,8 +665,8 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </div>
           <div>
-            <h3 id="sync-params-config-title" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">Parámetros de Sincronización SQL</h3>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">Ajusta empresa, mes, año y ventana de marcaciones</span>
+            <h3 id="sync-params-config-title" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--text-main);">Parámetros del Reporte</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Configura empresa, mes, año y ventana de asistencia</span>
           </div>
         </div>
         <button type="button" class="btn-close" id="btn-close-sync-params-config" aria-label="Cerrar modal">&times;</button>
@@ -683,7 +675,7 @@
       <div class="modal-body" style="padding: 1.25rem 1.5rem;">
         <form id="form-sync-params-config">
           <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="adv-param-empresa" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">🏢 Empresas (@IdEmpresa):</label>
+            <label for="adv-param-empresa" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Empresas:</label>
             <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.4rem;">
               Puede seleccionar varias empresas manteniendo presionada la tecla Ctrl o Cmd, o utilizar el selector multi-empresa de la barra superior.
             </div>
@@ -695,7 +687,7 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div class="form-group">
-              <label for="adv-param-mes" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">📅 Mes de Consulta (@mes):</label>
+              <label for="adv-param-mes" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Mes de Consulta:</label>
               <select id="adv-param-mes" class="select-input" style="width: 100%; height: 36px;">
                 <option value="1">1 - Enero</option>
                 <option value="2">2 - Febrero</option>
@@ -712,18 +704,18 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="adv-param-anio" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Año de Consulta (@año):</label>
+              <label for="adv-param-anio" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Año:</label>
               <input type="number" id="adv-param-anio" class="select-input" value="2026" min="2020" max="2035" style="width: 100%; height: 36px;" required>
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div class="form-group">
-              <label for="adv-param-fechaini" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Fecha Corte (@fechaini):</label>
+              <label for="adv-param-fechaini" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Fecha de Corte:</label>
               <input type="text" id="adv-param-fechaini" class="select-input" value="" placeholder="DD/MM/AAAA" style="width: 100%; height: 36px;" required>
             </div>
             <div class="form-group">
-              <label for="adv-param-activo" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Estado (@activo):</label>
+              <label for="adv-param-activo" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Personal a Incluir:</label>
               <select id="adv-param-activo" class="select-input" style="width: 100%; height: 36px;">
                 <option value="1" selected>Solo Activos (Recomendado)</option>
                 <option value="0">Todos (Activos e Inactivos)</option>
@@ -732,7 +724,7 @@
           </div>
 
           <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="adv-param-dias" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">🕒 Ventana de Marcaciones Biométricas:</label>
+            <label for="adv-param-dias" style="display: block; font-weight: 600; margin-bottom: 0.35rem;">Rango de Marcaciones de Asistencia:</label>
             <select id="adv-param-dias" class="select-input" style="width: 100%; height: 36px;">
               <option value="1">1 día (Hoy)</option>
               <option value="2">Últimos 2 días</option>
@@ -740,21 +732,109 @@
               <option value="5">Últimos 5 días</option>
               <option value="7">Últimos 7 días</option>
             </select>
-            <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Se consultan automáticamente los registros biométricos hasta hoy para la empresa activa.</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Se consultan las marcaciones de reloj registradas en este rango de días.</span>
           </div>
 
           <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem; flex-wrap: wrap;">
             <button type="button" class="btn btn-secondary" id="btn-cancel-sync-params-config">Cancelar</button>
             <button type="button" class="btn btn-secondary" id="btn-save-sync-params-only" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #0284c7; color: #fff; border-color: #0284c7;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-              <span>💾 Guardar Parámetros</span>
+              <span>Guardar Parámetros</span>
             </button>
             <button type="button" class="btn btn-primary" id="btn-save-and-sync-params" style="display: inline-flex; align-items: center; gap: 0.4rem;">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              <span>⚡ Guardar y Sincronizar</span>
+              <span>Guardar y Sincronizar</span>
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: EXPORTAR REPORTE A EXCEL
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-export-excel" role="dialog" aria-modal="true" aria-labelledby="export-excel-title">
+    <div class="modal-content modal-content-md">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 32px; height: 32px; border-radius: 6px; background: #10b981; color: #fff; display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <div>
+            <h3 id="export-excel-title" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main);">Exportar Reporte a Excel</h3>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Generar consolidado oficial en formato de hoja de cálculo (.xlsx)</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-export-excel" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+        <!-- Nombre de archivo -->
+        <div class="form-group" style="margin-bottom: 1.15rem;">
+          <label for="export-filename-input" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-main);">
+            Nombre del archivo (.xlsx):
+          </label>
+          <input type="text" id="export-filename-input" class="select-input" style="width: 100%; height: 36px; font-weight: 500;" value="Consolidado_Trabajadores.xlsx">
+        </div>
+
+        <!-- Ubicación de guardado -->
+        <div class="form-group" style="margin-bottom: 1.15rem;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.45rem; color: var(--text-main);">
+            Ubicación de guardado:
+          </label>
+          <div class="export-location-options" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <label class="export-location-card" id="card-dest-dialog" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 0.9rem; border: 1px solid #10b981; background: rgba(16, 185, 129, 0.05); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+              <input type="radio" name="export-destination" value="dialog" checked style="margin-top: 3px; accent-color: #059669;">
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                  <strong style="font-size: 0.88rem; color: var(--text-main);">Elegir ubicación al guardar (Examinar...)</strong>
+                </div>
+                <span style="font-size: 0.76rem; color: var(--text-muted); display: block; margin-top: 2px;">Abre el Explorador de Windows para seleccionar la carpeta de destino</span>
+              </div>
+            </label>
+
+            <label class="export-location-card" id="card-dest-downloads" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 0.9rem; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+              <input type="radio" name="export-destination" value="downloads" style="margin-top: 3px; accent-color: #059669;">
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <strong style="font-size: 0.88rem; color: var(--text-main);">Carpeta Descargas</strong>
+                </div>
+                <span style="font-size: 0.76rem; color: var(--text-muted); display: block; margin-top: 2px;">Guardar directamente en la carpeta predeterminada de descargas</span>
+              </div>
+            </label>
+
+            <label class="export-location-card" id="card-dest-desktop" style="display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.75rem 0.9rem; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+              <input type="radio" name="export-destination" value="desktop" style="margin-top: 3px; accent-color: #059669;">
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 0.45rem;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  <strong style="font-size: 0.88rem; color: var(--text-main);">Escritorio</strong>
+                </div>
+                <span style="font-size: 0.76rem; color: var(--text-muted); display: block; margin-top: 2px;">Guardar en el escritorio de Windows</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Casilla para abrir automáticamente en Excel -->
+        <div style="background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; padding: 0.75rem 0.9rem; margin-bottom: 1.25rem;">
+          <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="export-auto-open-checkbox" checked style="width: 16px; height: 16px; accent-color: #059669; cursor: pointer;">
+            <span style="color: var(--text-main); font-size: 0.86rem; font-weight: 500;">Abrir archivo en Microsoft Excel al finalizar</span>
+          </label>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div style="display: flex; justify-content: flex-end; gap: 0.65rem; border-top: 1px solid var(--border-color, #e2e8f0); padding-top: 0.85rem;">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-export-excel" style="padding: 0.45rem 1.15rem; font-size: 0.85rem;">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-confirm-export-excel" style="background: #10B981; border-color: #059669; color: #fff; padding: 0.45rem 1.4rem; display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; font-weight: 600;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Exportar</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
