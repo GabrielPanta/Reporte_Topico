@@ -45,9 +45,23 @@ El archivo final exportado contiene las siguientes 23 columnas en orden:
 
 ---
 
+## 👥 Deduplicación Inteligente entre Empresas (por DNI)
+
+Al consolidar varias empresas (ej. **SOCIEDAD EXPORTADORA VERFRUT S.A.C.** y **SOCIEDAD AGRÍCOLA RAPEL S.A.C.**):
+1. **Identificación por DNI:** Los trabajadores se agrupan e identifican por su DNI normalizado (`RutTrabajador`).
+2. **Criterio de Prevalencia:** Cuando un trabajador figura en ambas empresas o tiene registros duplicados, **solo prevalece el registro con la última fecha de inicio de periodo** (`FechaInicioPeriodo` más reciente), conservándose en la hoja principal.
+3. **Auditoría y Reporte:**
+   - **En la aplicación:** Se activa el botón y badge de **`Duplicados: N resueltos`** en la barra de herramientas, permitiendo abrir un modal con el detalle completo de los duplicados identificados, qué empresa prevaleció y qué registro fue descartado.
+   - **En el archivo Excel exportado:** Se generan **2 hojas**:
+     - **`Consolidado Personal`**: Listado de trabajadores únicos consolidados con el criterio de prevalencia aplicado.
+     - **`Duplicados`**: Hoja de auditoría con todos los registros duplicados evaluados, indicando `PREVALECE (CONSERVADO)` o `DESCARTADO (OMITIDO)` y el motivo comparativo detallado.
+
+---
+
 ## 🚀 Cómo Iniciar la Aplicación
 
 1. **Con el archivo de inicio:** Haz doble clic en **`iniciar.bat`** para abrir el navegador en `http://localhost:8000`.
 2. **Directo en el navegador:** Haz doble clic en **`index.html`** con Chrome, Edge o Firefox.
 3. **Prueba rápida:** Haz clic en el botón superior **"Cargar Datos de Ejemplo"** para probar la consolidación completa al instante.
 4. **Descargar:** Haz clic en **"Descargar Excel (.xlsx)"** para obtener el archivo con formato listo.
+

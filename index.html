@@ -194,6 +194,9 @@
       <div class="workspace-status-banner">
         <span class="status-indicator-dot"></span>
         <span class="status-banner-text" id="sync-status-text">Estado: Listo para sincronizar</span>
+        <span class="status-banner-dup-info" id="status-dup-info" style="display: none;" title="Haga clic para ver los trabajadores duplicados identificados">
+          <span>⚠️</span> <span id="status-dup-text">0 duplicados resueltos</span>
+        </span>
       </div>
 
       <!-- Filter Toolbar -->
@@ -224,6 +227,11 @@
         <button type="button" class="btn-filter-toggle" id="btn-filter-no-transporte" title="Filtrar solo trabajadores sin bus o placa asignada">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           <span>Solo sin transporte</span>
+        </button>
+
+        <button type="button" class="btn-duplicates-toggle" id="btn-show-duplicates" style="display: none;" title="Ver trabajadores duplicados entre empresas identificados por DNI">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span id="duplicates-badge-text">Duplicados: 0</span>
         </button>
 
         <button type="button" class="btn-filter-clear" id="btn-clear-filters" title="Restablecer todos los filtros aplicados">
@@ -819,6 +827,18 @@
           </div>
         </div>
 
+        <!-- Info de Hojas Exportadas -->
+        <div class="export-sheets-info-card" style="display: flex; align-items: flex-start; gap: 0.65rem; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; padding: 0.65rem 0.85rem; margin-bottom: 1.15rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" style="margin-top: 2px; flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <div style="font-size: 0.8rem; color: var(--text-main); line-height: 1.4;">
+            <strong>Estructura oficial del archivo (.xlsx):</strong>
+            <span style="display: block; color: var(--text-muted); font-size: 0.76rem; margin-top: 3px;">
+              • <strong>Hoja 1: "Consolidado Personal"</strong>: Registros únicos consolidados (prevalece la última fecha de inicio de periodo).<br>
+              • <strong>Hoja 2: "Duplicados"</strong>: Auditoría detallada de todos los trabajadores duplicados por DNI entre empresas con su resolución y motivo.
+            </span>
+          </div>
+        </div>
+
         <!-- Casilla para abrir automáticamente en Excel -->
         <div style="background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; padding: 0.75rem 0.9rem; margin-bottom: 1.25rem;">
           <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; user-select: none;">
@@ -833,6 +853,84 @@
           <button type="button" class="btn btn-primary" id="btn-confirm-export-excel" style="background: #10B981; border-color: #059669; color: #fff; padding: 0.45rem 1.4rem; display: flex; align-items: center; gap: 0.45rem; font-size: 0.85rem; font-weight: 600;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span>Exportar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Duplicados Identificados entre Empresas -->
+  <div class="modal-overlay" id="modal-duplicates" role="dialog" aria-modal="true" aria-labelledby="duplicates-modal-title">
+    <div class="modal-content modal-content-xl" style="max-width: 1100px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 34px; height: 34px; border-radius: 6px; background: #f59e0b; color: #fff; display: flex; align-items: center; justify-content: center;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div>
+            <h3 id="duplicates-modal-title" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main);">Trabajadores Duplicados por DNI</h3>
+            <span style="font-size: 0.76rem; color: var(--text-muted);">Auditoría entre empresas: Prevalece el registro con la fecha de inicio de periodo más reciente</span>
+          </div>
+        </div>
+        <button type="button" class="btn-close" id="btn-close-duplicates" aria-label="Cerrar modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+        <!-- Tarjetas de Resumen KPI -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem; margin-bottom: 1.15rem;">
+          <div style="background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; padding: 0.75rem 1rem;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">Casos Únicos Duplicados</div>
+            <div id="dup-kpi-cases" style="font-size: 1.4rem; font-weight: 800; color: #d97706; margin-top: 0.2rem;">0</div>
+          </div>
+          <div style="background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; padding: 0.75rem 1rem;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">Total Registros Evaluados</div>
+            <div id="dup-kpi-total" style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin-top: 0.2rem;">0</div>
+          </div>
+          <div style="background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; padding: 0.75rem 1rem;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">Registros Conservados</div>
+            <div id="dup-kpi-kept" style="font-size: 1.4rem; font-weight: 800; color: #16a34a; margin-top: 0.2rem;">0</div>
+          </div>
+          <div style="background: var(--bg-surface, #f8fafc); border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; padding: 0.75rem 1rem;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted);">Registros Descartados</div>
+            <div id="dup-kpi-discarded" style="font-size: 1.4rem; font-weight: 800; color: #dc2626; margin-top: 0.2rem;">0</div>
+          </div>
+        </div>
+
+        <!-- Buscador de Duplicados -->
+        <div style="margin-bottom: 0.85rem; display: flex; gap: 0.65rem;">
+          <input type="text" id="duplicates-search-input" class="filter-search-input" style="flex: 1; height: 36px;" placeholder="Filtrar por DNI, nombre de trabajador, empresa o motivo...">
+        </div>
+
+        <!-- Tabla de Duplicados -->
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px;">
+          <table class="desktop-data-table" style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+            <thead style="position: sticky; top: 0; background: var(--bg-table-head, #1e293b); color: #fff; z-index: 2;">
+              <tr>
+                <th style="padding: 0.65rem 0.75rem; text-align: center;">DNI</th>
+                <th style="padding: 0.65rem 0.75rem; text-align: left;">Trabajador</th>
+                <th style="padding: 0.65rem 0.75rem; text-align: left;">Empresa</th>
+                <th style="padding: 0.65rem 0.75rem; text-align: center;">Inicio Periodo</th>
+                <th style="padding: 0.65rem 0.75rem; text-align: left;">Oficio</th>
+                <th style="padding: 0.65rem 0.75rem; text-align: center;">Resolución</th>
+                <th style="padding: 0.65rem 0.75rem; text-align: left;">Criterio / Motivo</th>
+              </tr>
+            </thead>
+            <tbody id="duplicates-table-body">
+              <!-- Renderizado dinámico desde JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.5rem; border-top: 1px solid var(--border-color, #e2e8f0);">
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          ℹ️ Esta misma información se incluye en la hoja <strong>"Duplicados"</strong> del archivo Excel exportado.
+        </div>
+        <div style="display: flex; gap: 0.65rem;">
+          <button type="button" class="btn btn-secondary" id="btn-close-duplicates-footer">Cerrar</button>
+          <button type="button" class="btn btn-primary" id="btn-export-from-duplicates" style="background: #10b981; border-color: #059669; color: #fff; display: flex; align-items: center; gap: 0.45rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Exportar Excel Completo</span>
           </button>
         </div>
       </div>

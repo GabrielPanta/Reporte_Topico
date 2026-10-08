@@ -670,7 +670,9 @@
     sortColumn: 'RutTrabajador',
     sortDirection: 'asc',
     visibleColumns: new Set(TARGET_COLUMNS),
-    metrics: { total: 0, active: 0, leave: 0, absent: 0 }
+    metrics: { total: 0, active: 0, leave: 0, absent: 0 },
+    duplicatesData: [],
+    duplicatesSummary: { totalCases: 0, totalRows: 0, keptCount: 0, discardedCount: 0 }
   };
 
   // DOM Elements Cache
@@ -686,6 +688,16 @@
     btnExportCsv: document.getElementById('btn-export-csv'),
     btnCopyTable: document.getElementById('btn-copy-table'),
     btnPrintTable: document.getElementById('btn-print-table'),
+    btnShowDuplicates: document.getElementById('btn-show-duplicates'),
+    duplicatesBadgeText: document.getElementById('duplicates-badge-text'),
+    statusDupInfo: document.getElementById('status-dup-info'),
+    statusDupText: document.getElementById('status-dup-text'),
+    modalDuplicates: document.getElementById('modal-duplicates'),
+    btnCloseDuplicates: document.getElementById('btn-close-duplicates'),
+    btnCloseDuplicatesFooter: document.getElementById('btn-close-duplicates-footer'),
+    duplicatesTableBody: document.getElementById('duplicates-table-body'),
+    duplicatesSearch: document.getElementById('duplicates-search-input'),
+    btnExportFromDuplicates: document.getElementById('btn-export-from-duplicates'),
 
     // Step Wizard
     step1: document.getElementById('step-1'),
@@ -1008,6 +1020,22 @@
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]/g, '');
+  }
+
+  // Normalizador específico de DNI / RUT para identificación unívoca y deduplicación
+  function cleanWorkerDni(val) {
+    if (val === null || val === undefined) return '';
+    let s = String(val).trim().toUpperCase();
+    if (!s || s === '-' || s === 'NULL' || s === 'NONE' || s === '(EN BLANCO)') return '';
+    // Eliminar puntos, guiones, espacios, barras y diagonales
+    s = s.replace(/[\.\s\-\/\\]/g, '');
+    // Mantener sólo caracteres alfanuméricos
+    s = s.replace(/[^A-Z0-9]/g, '');
+    // Si tiene 7 dígitos puramente numéricos (muy común cuando Excel omite el 0 inicial del DNI peruano), anteponer 0
+    if (/^\d{7}$/.test(s)) {
+      s = '0' + s;
+    }
+    return s;
   }
 
   // Normalizador de valores de celdas
@@ -1538,20 +1566,38 @@
     });
   }
 
-  // Parser de fechas flexible (soporta YYYY-MM-DD, DD/MM/YYYY, Date objects)
+  // Parser de fechas flexible (soporta YYYY-MM-DD, DD/MM/YYYY, números de serie Excel, Date objects)
   function parseDateValue(val) {
     if (!val) return null;
     if (val instanceof Date && !isNaN(val.getTime())) return val;
-    const str = String(val).trim();
-    if (!str || str === '(en blanco)' || str === 'None' || str === 'null' || str === '-') return null;
+    
+    // Si viene como número (serial de fecha Excel, ej: 45658)
+    if (typeof val === 'number' && !isNaN(val)) {
+      if (val > 30000 && val < 60000) {
+        const utcDays = Math.floor(val) - 25569;
+        return new Date(utcDays * 86400 * 1000);
+      }
+    }
 
-    // Formato ISO: YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss
+    const str = String(val).trim();
+    if (!str || str === '(en blanco)' || str === 'None' || str === 'null' || str === '-' || str === '0') return null;
+
+    // String numérico que representa número serial de Excel (ej: "45658")
+    if (/^\d{5}$/.test(str)) {
+      const serial = parseInt(str, 10);
+      if (serial > 30000 && serial < 60000) {
+        const utcDays = serial - 25569;
+        return new Date(utcDays * 86400 * 1000);
+      }
+    }
+
+    // Formato ISO: YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss o YYYY/MM/DD
     const isoMatch = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
     if (isoMatch) {
       return new Date(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10));
     }
 
-    // Formato Latino: DD/MM/YYYY
+    // Formato Latino: DD/MM/YYYY o DD-MM-YYYY
     const latMatch = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
     if (latMatch) {
       return new Date(parseInt(latMatch[3], 10), parseInt(latMatch[2], 10) - 1, parseInt(latMatch[1], 10));
@@ -2883,6 +2929,37 @@
     if (elements.btnClosePreview) elements.btnClosePreview.addEventListener('click', () => closeModal(elements.modalPreview));
     if (elements.btnCloseDossier) elements.btnCloseDossier.addEventListener('click', () => closeModal(elements.modalDossier));
 
+    // Modal de Duplicados Identificados
+    if (elements.btnShowDuplicates) {
+      elements.btnShowDuplicates.addEventListener('click', () => {
+        openModal(elements.modalDuplicates);
+        renderDuplicatesTable();
+      });
+    }
+    if (elements.statusDupInfo) {
+      elements.statusDupInfo.addEventListener('click', () => {
+        openModal(elements.modalDuplicates);
+        renderDuplicatesTable();
+      });
+    }
+    if (elements.btnCloseDuplicates) {
+      elements.btnCloseDuplicates.addEventListener('click', () => closeModal(elements.modalDuplicates));
+    }
+    if (elements.btnCloseDuplicatesFooter) {
+      elements.btnCloseDuplicatesFooter.addEventListener('click', () => closeModal(elements.modalDuplicates));
+    }
+    if (elements.duplicatesSearch) {
+      elements.duplicatesSearch.addEventListener('input', (e) => {
+        renderDuplicatesTable(e.target.value.trim());
+      });
+    }
+    if (elements.btnExportFromDuplicates) {
+      elements.btnExportFromDuplicates.addEventListener('click', () => {
+        closeModal(elements.modalDuplicates);
+        openExportModal('xlsx');
+      });
+    }
+
     // Global Empresa Selector Events
     if (elements.globalEmpresaSelect) {
       elements.globalEmpresaSelect.addEventListener('change', (e) => {
@@ -4039,6 +4116,10 @@
     for (let i = 1; i <= 5; i++) resetSingleFile(i);
     state.consolidatedData = [];
     state.filteredData = [];
+    state.duplicatesData = [];
+    state.duplicatesSummary = { totalCases: 0, totalRows: 0, keptCount: 0, discardedCount: 0 };
+    if (elements.btnShowDuplicates) elements.btnShowDuplicates.style.display = 'none';
+    if (elements.statusDupInfo) elements.statusDupInfo.style.display = 'none';
     if (elements.resultsSection) elements.resultsSection.classList.remove('active');
     if (elements.step1) {
       elements.step1.classList.add('active');
@@ -4241,16 +4322,18 @@
       }
     });
 
-    // Step 4: Consolidate (Con Deduplicación Estricta de Personal)
+    // Step 4: Consolidate (Con Deduplicación Inteligente Multi-Empresa por DNI y Última Fecha de Inicio de Periodo)
     let activeCount = 0;
     let absentCount = 0;
     let leaveCount = 0;
 
-    const consolidated = [];
+    const candidateRows = [];
     const seenWorkerIds = new Set();
 
     state.file1.data.forEach(row1 => {
-      const workerId = cleanHeader(row1[keyCol1]);
+      const rawWorkerId = row1[keyCol1];
+      if (!rawWorkerId) return;
+      const workerId = cleanWorkerDni(rawWorkerId) || cleanHeader(rawWorkerId);
       if (!workerId) return;
 
       // Filtrar solo personal activo y no finiquitado
@@ -4258,15 +4341,17 @@
         return;
       }
 
-      // Evitar duplicar al trabajador si aparece repetido en la fuente dentro de la misma empresa
-      const dedupeKey = workerId + '::' + String(row1['Empresa'] || row1['IdEmpresa'] || row1['IDEMPRESA'] || '');
-      if (seenWorkerIds.has(dedupeKey)) {
+      // Evitar duplicar exactamente la misma fila si viene repetida de forma idéntica en la fuente
+      const empRaw = String(row1['Empresa'] || row1['IdEmpresa'] || row1['IDEMPRESA'] || '');
+      const fIniRaw = String(row1['FechaInicioPeriodo'] || row1['Fec.Ingreso'] || row1['FecIngreso'] || '');
+      const dedupeExactKey = workerId + '::' + empRaw + '::' + fIniRaw;
+      if (seenWorkerIds.has(dedupeExactKey)) {
         return;
       }
-      seenWorkerIds.add(dedupeKey);
+      seenWorkerIds.add(dedupeExactKey);
 
-      const row2 = lastDayIndex.get(workerId) || null;
-      const markingCount = markingsIndex.get(workerId) || 0;
+      const row2 = lastDayIndex.get(workerId) || lastDayIndex.get(cleanHeader(rawWorkerId)) || null;
+      const markingCount = markingsIndex.get(workerId) || markingsIndex.get(cleanHeader(rawWorkerId)) || 0;
       const hasMarkings = markingCount > 0;
 
       const rawDig1 = extractRawFromRow(row1, ['tienedigitacionjornal', 'tienedigitacion', 'digitacion', 'jornal', 'digitado', 'esjornal']);
@@ -4295,16 +4380,12 @@
       let estadoVal = '';
       if (actividadVal && isAbsenceActivity(actividadVal)) {
         estadoVal = String(actividadVal).trim().toUpperCase();
-        leaveCount++;
       } else if (laborVal && isAbsenceActivity(laborVal)) {
         estadoVal = String(laborVal).trim().toUpperCase();
-        leaveCount++;
       } else if (digText === 'NO' || digText === 'N') {
         estadoVal = 'ACTIVO';
-        activeCount++;
       } else if (hasMarkings) {
         estadoVal = 'ACTIVO';
-        activeCount++;
       } else if (row2 && (actividadVal || laborVal)) {
         // Verificar si la fecha de último día laborado está dentro de los últimos 4 días
         const rawUltDia = extractRawFromRow(row2, ['ultimodia', 'ultimo_dia', 'fechaultimodia', 'fecha_ultimo_dia', 'fecultdia', 'ultimodialaborado', 'hasta', 'fechahasta']);
@@ -4319,14 +4400,11 @@
         // Si tiene labores dentro de los últimos 4 días (o labor activa registrada)
         if (diffDays <= 4 || (!ultDiaDate && (actividadVal || laborVal))) {
           estadoVal = 'ACTIVO';
-          activeCount++;
         } else {
           estadoVal = 'AUSENTE';
-          absentCount++;
         }
       } else {
         estadoVal = 'AUSENTE';
-        absentCount++;
       }
 
       // Concatenación de Apellidos y Nombres
@@ -4359,7 +4437,7 @@
 
       // PLACA
       let placaConsolidada = '';
-      const busPlacas = markingsBusPlacasIndex.get(workerId);
+      const busPlacas = markingsBusPlacasIndex.get(workerId) || markingsBusPlacasIndex.get(cleanHeader(rawWorkerId));
       if (busPlacas && busPlacas.length > 0) {
         placaConsolidada = busPlacas.join(' / ');
       } else {
@@ -4457,7 +4535,6 @@
 
       let zonaConsolidada = '';
       if (hasRegularLaborInFile2 && row2) {
-        // En Archivo 2 buscar ZONA o Zona Labores (sin tomar Labor)
         const rawZ2 = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) ||
                       extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'sede', 'fundo', 'campo', 'centrocostopredio']);
         zonaConsolidada = formatZonaValue(rawZ2, empresaConsolidada);
@@ -4553,7 +4630,6 @@
         } else if (colName === 'HASTA') {
           let hastaVal = '';
           if (row2) {
-            // Extraer estrictamente el campo "ULTIMO DIA" de la consulta Último Día Laborado
             for (const k of Object.keys(row2)) {
               const ck = cleanHeader(k);
               if (ck === 'ultimodia' || ck === 'fechaultimodia' || ck === 'fecultdia' || ck === 'ultimodialaborado') {
@@ -4575,12 +4651,111 @@
         }
       });
 
-      consolidated.push(consolidatedRow);
+      candidateRows.push({
+        consolidatedRow,
+        workerId,
+        rawRow1: row1
+      });
+    });
+
+    // Deduplicación Multi-Empresa por DNI: Agrupar por DNI y resolver por última FechaInicioPeriodo
+    const groupedByDni = new Map();
+    candidateRows.forEach(item => {
+      if (!groupedByDni.has(item.workerId)) {
+        groupedByDni.set(item.workerId, []);
+      }
+      groupedByDni.get(item.workerId).push(item);
+    });
+
+    const consolidated = [];
+    const duplicatesReportList = [];
+    let duplicateCasesCount = 0;
+
+    groupedByDni.forEach((items, workerDni) => {
+      if (items.length === 1) {
+        // Caso sin duplicado: Se conserva directamente
+        const singleRow = items[0].consolidatedRow;
+        consolidated.push(singleRow);
+
+        const st = singleRow['ESTADO'] || '';
+        if (st === 'ACTIVO') activeCount++;
+        else if (st === 'AUSENTE') absentCount++;
+        else leaveCount++;
+      } else {
+        // Caso DUPLICADO IDENTIFICADO (mismo DNI presente en más de una fila o empresa)
+        duplicateCasesCount++;
+
+        // Ordenar candidatos: Prevalece el que tenga la ÚLTIMA fecha de inicio de periodo (más reciente)
+        items.sort((a, b) => {
+          const rowA = a.consolidatedRow;
+          const rowB = b.consolidatedRow;
+
+          const dateA = parseDateValue(rowA['FechaInicioPeriodo']);
+          const dateB = parseDateValue(rowB['FechaInicioPeriodo']);
+          const timeA = dateA ? dateA.getTime() : -Infinity;
+          const timeB = dateB ? dateB.getTime() : -Infinity;
+
+          if (timeB !== timeA) {
+            return timeB - timeA; // Mayor fecha (más reciente) primero
+          }
+
+          // Criterios de desempate en caso de misma fecha de inicio de periodo:
+          // 1. Estado ACTIVO sobre AUSENTE
+          const isActA = rowA['ESTADO'] === 'ACTIVO' ? 1 : 0;
+          const isActB = rowB['ESTADO'] === 'ACTIVO' ? 1 : 0;
+          if (isActB !== isActA) return isActB - isActA;
+
+          // 2. Tiene digitación SÍ sobre NO
+          const digA = (rowA['Tiene Digitacion (jornal)'] || '').includes('SÍ') ? 1 : 0;
+          const digB = (rowB['Tiene Digitacion (jornal)'] || '').includes('SÍ') ? 1 : 0;
+          if (digB !== digA) return digB - digA;
+
+          return 0;
+        });
+
+        // El ganador (índice 0) PREVALECE y es el único que queda en el consolidado principal
+        const winnerItem = items[0];
+        const winnerRow = winnerItem.consolidatedRow;
+        consolidated.push(winnerRow);
+
+        const stWinner = winnerRow['ESTADO'] || '';
+        if (stWinner === 'ACTIVO') activeCount++;
+        else if (stWinner === 'AUSENTE') absentCount++;
+        else leaveCount++;
+
+        // Registrar en el reporte de duplicados a TODOS los registros de este DNI para auditoría
+        items.forEach((item, idx) => {
+          const row = item.consolidatedRow;
+          const isWinner = idx === 0;
+          const otherEmpresas = items
+            .filter((_, i) => i !== idx)
+            .map(it => it.consolidatedRow['Empresa'] || 'Otra empresa')
+            .join(', ');
+
+          const dupReportRow = {
+            ...row,
+            'Resolución': isWinner ? 'PREVALECE (CONSERVADO)' : 'DESCARTADO (OMITIDO)',
+            'Criterio / Motivo': isWinner
+              ? `Última fecha de inicio de periodo (${row['FechaInicioPeriodo'] || 'Sin fecha'}) frente a registro anterior de ${otherEmpresas}`
+              : `Periodo anterior (${row['FechaInicioPeriodo'] || 'Sin fecha'}) frente a ${winnerRow['Empresa']} (${winnerRow['FechaInicioPeriodo'] || 'Sin fecha'})`,
+            'DNI_Grupo': workerDni,
+            'EsGanador': isWinner
+          };
+          duplicatesReportList.push(dupReportRow);
+        });
+      }
     });
 
     // Update State
     state.consolidatedData = consolidated;
     state.filteredData = [...consolidated];
+    state.duplicatesData = duplicatesReportList;
+    state.duplicatesSummary = {
+      totalCases: duplicateCasesCount,
+      totalRows: duplicatesReportList.length,
+      keptCount: duplicateCasesCount,
+      discardedCount: duplicatesReportList.length - duplicateCasesCount
+    };
     state.currentPage = 1;
     state.metrics = {
       total: consolidated.length,
@@ -4588,6 +4763,28 @@
       absent: absentCount,
       leave: leaveCount
     };
+
+    // Actualizar indicador y badge de duplicados en la interfaz
+    if (elements.btnShowDuplicates) {
+      if (duplicateCasesCount > 0) {
+        elements.btnShowDuplicates.style.display = 'inline-flex';
+        if (elements.duplicatesBadgeText) {
+          elements.duplicatesBadgeText.textContent = `Duplicados: ${duplicateCasesCount} resuelto${duplicateCasesCount > 1 ? 's' : ''}`;
+        }
+      } else {
+        elements.btnShowDuplicates.style.display = 'none';
+      }
+    }
+    if (elements.statusDupInfo) {
+      if (duplicateCasesCount > 0) {
+        elements.statusDupInfo.style.display = 'inline-flex';
+        if (elements.statusDupText) {
+          elements.statusDupText.textContent = `${duplicateCasesCount} duplicado${duplicateCasesCount > 1 ? 's' : ''} resuelto${duplicateCasesCount > 1 ? 's' : ''}`;
+        }
+      } else {
+        elements.statusDupInfo.style.display = 'none';
+      }
+    }
 
     // Update Wizard steps
     if (elements.step2) elements.step2.classList.add('completed');
@@ -4613,7 +4810,98 @@
     populateFilterDropdowns();
     updateDesktopUIStatus();
     playSuccessSound('chime');
-    showToast(`¡Consolidación exitosa! ${consolidated.length.toLocaleString()} registros procesados.`, 'success');
+
+    if (duplicateCasesCount > 0) {
+      showToast(`¡Consolidación exitosa! ${consolidated.length.toLocaleString()} trabajadores únicos. Se resolvieron ${duplicateCasesCount} duplicados por DNI (prevaleció la última fecha de inicio de periodo).`, 'success');
+    } else {
+      showToast(`¡Consolidación exitosa! ${consolidated.length.toLocaleString()} trabajadores procesados sin duplicados de DNI.`, 'success');
+    }
+  }
+
+  // Renderiza la tabla de auditoría del modal de duplicados identificados
+  function renderDuplicatesTable(filterTerm = '') {
+    const tbody = elements.duplicatesTableBody || document.getElementById('duplicates-table-body');
+    if (!tbody) return;
+
+    const term = (filterTerm || '').toLowerCase().trim();
+    const dups = state.duplicatesData || [];
+    const summary = state.duplicatesSummary || { totalCases: 0, totalRows: 0, keptCount: 0, discardedCount: 0 };
+
+    // Actualizar contadores KPI en el modal
+    const kpiCases = document.getElementById('dup-kpi-cases');
+    const kpiTotal = document.getElementById('dup-kpi-total');
+    const kpiKept = document.getElementById('dup-kpi-kept');
+    const kpiDiscarded = document.getElementById('dup-kpi-discarded');
+
+    if (kpiCases) kpiCases.textContent = (summary.totalCases || 0).toLocaleString();
+    if (kpiTotal) kpiTotal.textContent = (summary.totalRows || 0).toLocaleString();
+    if (kpiKept) kpiKept.textContent = (summary.keptCount || 0).toLocaleString();
+    if (kpiDiscarded) kpiDiscarded.textContent = (summary.discardedCount || 0).toLocaleString();
+
+    if (dups.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8" style="margin-bottom: 0.5rem; opacity: 0.8;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main);">No se encontraron trabajadores duplicados por DNI</div>
+            <div style="font-size: 0.8rem; margin-top: 0.25rem;">Todos los trabajadores pertenecen a una sola empresa de forma unívoca o no presentan duplicidad.</div>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    const filtered = term
+      ? dups.filter(r => {
+          return String(r['RutTrabajador'] || '').toLowerCase().includes(term) ||
+                 String(r['Apellidos y Nombres'] || '').toLowerCase().includes(term) ||
+                 String(r['Empresa'] || '').toLowerCase().includes(term) ||
+                 String(r['Resolución'] || '').toLowerCase().includes(term) ||
+                 String(r['Criterio / Motivo'] || '').toLowerCase().includes(term);
+        })
+      : dups;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+            No se encontraron duplicados que coincidan con <strong>"${escapeHtml(term)}"</strong>.
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map((row, idx) => {
+      const isWinner = String(row['Resolución'] || '').includes('PREVALECE');
+      const badgeClass = isWinner ? 'dup-badge-kept' : 'dup-badge-discarded';
+      const badgeIcon = isWinner ? '✓ ' : '✕ ';
+      const zebraBg = idx % 2 === 0 ? 'background: var(--bg-surface, #fff);' : 'background: rgba(241, 245, 249, 0.5);';
+
+      return `
+        <tr style="${zebraBg} border-bottom: 1px solid var(--border-color, #e2e8f0);">
+          <td style="padding: 0.55rem 0.75rem; text-align: center; font-weight: 700; color: var(--text-main); font-family: monospace;">
+            ${escapeHtml(row['RutTrabajador'] || '-')}
+          </td>
+          <td style="padding: 0.55rem 0.75rem; font-weight: 600; color: var(--text-main);">
+            ${escapeHtml(row['Apellidos y Nombres'] || '-')}
+          </td>
+          <td style="padding: 0.55rem 0.75rem; color: var(--text-muted); font-size: 0.8rem;">
+            ${escapeHtml(row['Empresa'] || '-')}
+          </td>
+          <td style="padding: 0.55rem 0.75rem; text-align: center; font-weight: 700; color: ${isWinner ? '#16a34a' : '#dc2626'};">
+            ${escapeHtml(row['FechaInicioPeriodo'] || '-')}
+          </td>
+          <td style="padding: 0.55rem 0.75rem; color: var(--text-muted); font-size: 0.8rem;">
+            ${escapeHtml(row['Oficio'] || '-')}
+          </td>
+          <td style="padding: 0.55rem 0.75rem; text-align: center;">
+            <span class="${badgeClass}">${badgeIcon}${escapeHtml(row['Resolución'] || '')}</span>
+          </td>
+          <td style="padding: 0.55rem 0.75rem; font-size: 0.76rem; color: var(--text-muted); line-height: 1.35;">
+            ${escapeHtml(row['Criterio / Motivo'] || '-')}
+          </td>
+        </tr>
+      `;
+    }).join('');
   }
 
   // Update Metrics & Distribution Bar
@@ -5362,6 +5650,142 @@
           colLetter.width = Math.min(Math.max(maxLen + 4, 13), 42);
         });
 
+        // =====================================================================
+        // HOJA 2: DUPLICADOS IDENTIFICADOS POR DNI ENTRE EMPRESAS
+        // =====================================================================
+        const dupWorksheet = workbook.addWorksheet('Duplicados', {
+          views: [{ showGridLines: true }]
+        });
+
+        const dupColumns = ['Resolución', 'Criterio / Motivo', ...TARGET_COLUMNS];
+
+        // 1. Fila de Título de la Hoja de Duplicados
+        const dupTitleRow = dupWorksheet.addRow(['REPORTE DE TRABAJADORES DUPLICADOS IDENTIFICADOS POR DNI']);
+        dupWorksheet.mergeCells(1, 1, 1, dupColumns.length);
+        dupTitleRow.height = 34;
+        dupTitleRow.getCell(1).font = { name: 'Segoe UI', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+        dupTitleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } }; // Slate 900
+        dupTitleRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // 2. Fila de Subtítulo / Auditoría de Duplicados
+        const totalDupCases = (state.duplicatesSummary && state.duplicatesSummary.totalCases) || 0;
+        const totalDupRows = state.duplicatesData ? state.duplicatesData.length : 0;
+        const dupSubtitleText = totalDupCases > 0
+          ? `Auditoría entre empresas | Casos con duplicidad: ${totalDupCases}  |  Registros evaluados: ${totalDupRows}  |  Regla aplicada: Prevalece el registro con la última fecha de inicio de periodo`
+          : `Validación de Personal | No se encontraron trabajadores duplicados por DNI entre las empresas analizadas`;
+        
+        const dupSubRow = dupWorksheet.addRow([dupSubtitleText]);
+        dupWorksheet.mergeCells(2, 1, 2, dupColumns.length);
+        dupSubRow.height = 22;
+        dupSubRow.getCell(1).font = { name: 'Segoe UI', size: 10, italic: true, color: { argb: 'FF475569' } };
+        dupSubRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+        dupSubRow.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // 3. Fila separadora vacía
+        const dupBlankRow = dupWorksheet.addRow([]);
+        dupBlankRow.height = 8;
+
+        // 4. Cabeceras de Duplicados
+        const dupHeaderRow = dupWorksheet.addRow(dupColumns);
+        dupHeaderRow.height = 28;
+        dupHeaderRow.eachCell((cell, colNumber) => {
+          cell.font = { name: 'Segoe UI', size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } }; // Slate 800
+          cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+          cell.border = {
+            top: { style: 'medium', color: { argb: 'FF0F172A' } },
+            left: { style: 'thin', color: { argb: 'FF334155' } },
+            bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+            right: { style: 'thin', color: { argb: 'FF334155' } }
+          };
+        });
+
+        // 5. Filas de datos de duplicados
+        if (state.duplicatesData && state.duplicatesData.length > 0) {
+          state.duplicatesData.forEach((dupItem, index) => {
+            const rowValues = dupColumns.map(col => dupItem[col] !== undefined ? dupItem[col] : '');
+            const dataRow = dupWorksheet.addRow(rowValues);
+            dataRow.height = 21;
+
+            const isWinner = String(dupItem['Resolución'] || '').includes('PREVALECE');
+            const isEven = index % 2 === 0;
+            const bgZebra = isEven ? 'FFFFFFFF' : 'FFF8FAFC';
+
+            dataRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+              const colName = dupColumns[colNumber - 1];
+              cell.font = { name: 'Segoe UI', size: 10, color: { argb: 'FF1E293B' } };
+              cell.border = thinBorder;
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgZebra } };
+
+              if (centerCols.has(colName)) {
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+              } else {
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+              }
+
+              // Estilos específicos para auditoría
+              if (colName === 'Resolución') {
+                cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                if (isWinner) {
+                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCFCE7' } }; // Verde suave
+                  cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF15803D' } }; // Verde 700
+                  cell.border = {
+                    top: { style: 'thin', color: { argb: 'FF86EFAC' } },
+                    left: { style: 'thin', color: { argb: 'FF86EFAC' } },
+                    bottom: { style: 'thin', color: { argb: 'FF86EFAC' } },
+                    right: { style: 'thin', color: { argb: 'FF86EFAC' } }
+                  };
+                } else {
+                  cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEE2E2' } }; // Rojo suave
+                  cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFB91C1C' } }; // Rojo 700
+                  cell.border = {
+                    top: { style: 'thin', color: { argb: 'FFFCA5A5' } },
+                    left: { style: 'thin', color: { argb: 'FFFCA5A5' } },
+                    bottom: { style: 'thin', color: { argb: 'FFFCA5A5' } },
+                    right: { style: 'thin', color: { argb: 'FFFCA5A5' } }
+                  };
+                }
+              } else if (colName === 'Criterio / Motivo') {
+                cell.font = { name: 'Segoe UI', size: 9.5, italic: true, color: { argb: 'FF334155' } };
+              } else if (colName === 'RutTrabajador') {
+                cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF0F172A' } };
+              } else if (colName === 'FechaInicioPeriodo') {
+                cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: isWinner ? 'FF15803D' : 'FFB91C1C' } };
+              }
+            });
+          });
+
+          // AutoFiltro en hoja de duplicados
+          dupWorksheet.autoFilter = {
+            from: { row: 4, column: 1 },
+            to: { row: 4 + state.duplicatesData.length, column: dupColumns.length }
+          };
+        } else {
+          const emptyNoticeRow = dupWorksheet.addRow([
+            'SIN DUPLICADOS',
+            'No se encontraron trabajadores con DNI duplicado entre las empresas analizadas.'
+          ]);
+          emptyNoticeRow.height = 24;
+          emptyNoticeRow.getCell(1).font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FF15803D' } };
+          emptyNoticeRow.getCell(2).font = { name: 'Segoe UI', size: 10, italic: true, color: { argb: 'FF475569' } };
+        }
+
+        // Auto-ajuste de anchos para la hoja de duplicados
+        dupColumns.forEach((colName, colIdx) => {
+          let maxLen = colName.length;
+          if (state.duplicatesData && state.duplicatesData.length > 0) {
+            state.duplicatesData.forEach(row => {
+              const val = row[colName];
+              if (val !== null && val !== undefined) {
+                const len = String(val).length;
+                if (len > maxLen) maxLen = len;
+              }
+            });
+          }
+          const colLetter = dupWorksheet.getColumn(colIdx + 1);
+          colLetter.width = Math.min(Math.max(maxLen + 4, 14), 50);
+        });
+
         // 8. Generar buffer binario
         const buffer = await workbook.xlsx.writeBuffer();
         
@@ -5467,7 +5891,19 @@
       });
       ws['!cols'] = colWidths;
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Consolidado');
+      XLSX.utils.book_append_sheet(wb, ws, 'Consolidado Personal');
+
+      // Hoja 2: Duplicados en SheetJS
+      const dupColumns = ['Resolución', 'Criterio / Motivo', ...TARGET_COLUMNS];
+      const dupRowsExport = (state.duplicatesData && state.duplicatesData.length > 0)
+        ? state.duplicatesData.map(dup => {
+            const obj = {};
+            dupColumns.forEach(c => { obj[c] = dup[c] !== undefined ? dup[c] : ''; });
+            return obj;
+          })
+        : [{ 'Resolución': 'SIN DUPLICADOS', 'Criterio / Motivo': 'No se encontraron trabajadores duplicados por DNI entre las empresas.' }];
+      const wsDup = XLSX.utils.json_to_sheet(dupRowsExport, { header: dupColumns });
+      XLSX.utils.book_append_sheet(wb, wsDup, 'Duplicados');
       
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
       let handledByBackend = false;
@@ -5541,9 +5977,12 @@
       { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70112233', CodigoTrabajador: 'TRAB-001', 'Ap.Paterno': 'Pérez', 'Ap. Materno': 'Ramos', Nombre: 'Juan Carlos', FechaNacimiento: '1992-04-15', Sexo: 'M', Edad: 34, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2022-03-15', FechaTerminoContrato: '2026-12-31', Oficio: 'Cosechador' },
       { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70223344', CodigoTrabajador: 'TRAB-002', 'Ap.Paterno': 'Rodríguez', 'Ap. Materno': 'Solís', Nombre: 'KASSANDRA EUFEMIA', FechaNacimiento: '1995-08-22', Sexo: 'F', Edad: 31, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2021-06-01', FechaTerminoContrato: '2026-12-31', Oficio: 'Seleccionadora' },
       { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'General', RutTrabajador: '70334455', CodigoTrabajador: 'TRAB-003', 'Ap.Paterno': 'Sánchez', 'Ap. Materno': 'Morales', Nombre: 'Carlos Alberto', FechaNacimiento: '1988-11-03', Sexo: 'M', Edad: 37, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2020-01-10', FechaTerminoContrato: 'Indeterminado', Oficio: 'Supervisor de Campo' },
-      { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70445566', CodigoTrabajador: 'TRAB-004', 'Ap.Paterno': 'Gómez', 'Ap. Materno': 'Torres', Nombre: 'Ana Lucía', FechaNacimiento: '1998-02-18', Sexo: 'F', Edad: 28, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2023-08-20', FechaTerminoContrato: '2026-12-31', Oficio: 'Empacadora' },
+      { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70445566', CodigoTrabajador: 'TRAB-004', 'Ap.Paterno': 'Gómez', 'Ap. Materno': 'Torres', Nombre: 'Ana Lucía', FechaNacimiento: '1998-02-18', Sexo: 'F', Edad: 28, FechaInicioPeriodo: '2026-02-15', FechaInicioContrato: '2023-08-20', FechaTerminoContrato: '2026-12-31', Oficio: 'Empacadora' },
       { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70556677', CodigoTrabajador: 'TRAB-005', 'Ap.Paterno': 'Mendoza', 'Ap. Materno': 'Castro', Nombre: 'Luis Fernando', FechaNacimiento: '1990-07-30', Sexo: 'M', Edad: 36, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2019-11-05', FechaTerminoContrato: 'Indeterminado', Oficio: 'Técnico de Riego' },
       { Empresa: 'SOCIEDAD EXPORTADORA VERFRUT S.A.C.', Regimen: 'Agrario', RutTrabajador: '70667788', CodigoTrabajador: 'TRAB-006', 'Ap.Paterno': 'Vargas', 'Ap. Materno': 'Silva', Nombre: 'Patricia Sofía', FechaNacimiento: '1994-09-12', Sexo: 'F', Edad: 31, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2022-09-12', FechaTerminoContrato: '2026-12-31', Oficio: 'Evaluadora de Calidad' },
+      // Duplicados entre empresas para prueba de auditoría (DNI 70112233 y DNI 70445566 presentes en ambas)
+      { Empresa: 'SOCIEDAD AGRÍCOLA RAPEL S.A.C.', Regimen: 'Agrario', RutTrabajador: '70112233', CodigoTrabajador: 'TRAB-001-R', 'Ap.Paterno': 'Pérez', 'Ap. Materno': 'Ramos', Nombre: 'Juan Carlos', FechaNacimiento: '1992-04-15', Sexo: 'M', Edad: 34, FechaInicioPeriodo: '2026-03-01', FechaInicioContrato: '2026-03-01', FechaTerminoContrato: '2026-12-31', Oficio: 'Cosechador' },
+      { Empresa: 'SOCIEDAD AGRÍCOLA RAPEL S.A.C.', Regimen: 'Agrario', RutTrabajador: '70445566', CodigoTrabajador: 'TRAB-004-R', 'Ap.Paterno': 'Gómez', 'Ap. Materno': 'Torres', Nombre: 'Ana Lucía', FechaNacimiento: '1998-02-18', Sexo: 'F', Edad: 28, FechaInicioPeriodo: '2025-08-10', FechaInicioContrato: '2025-08-10', FechaTerminoContrato: '2025-12-31', Oficio: 'Empacadora' },
       { Empresa: 'SOCIEDAD AGRÍCOLA RAPEL S.A.C.', Regimen: 'Agrario', RutTrabajador: '70778899', CodigoTrabajador: 'TRAB-007', 'Ap.Paterno': 'Alva', 'Ap. Materno': 'Paredes', Nombre: 'Jorge Luis', FechaNacimiento: '1989-12-05', Sexo: 'M', Edad: 36, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2021-04-18', FechaTerminoContrato: '2026-12-31', Oficio: 'Conductor' },
       { Empresa: 'SOCIEDAD AGRÍCOLA RAPEL S.A.C.', Regimen: 'Agrario', RutTrabajador: '70889900', CodigoTrabajador: 'TRAB-008', 'Ap.Paterno': 'Fernández', 'Ap. Materno': 'Quintana', Nombre: 'Rosa María', FechaNacimiento: '1993-03-27', Sexo: 'F', Edad: 33, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2020-07-22', FechaTerminoContrato: 'Indeterminado', Oficio: 'Fitosanidad' },
       { Empresa: 'SOCIEDAD AGRÍCOLA RAPEL S.A.C.', Regimen: 'Agrario', RutTrabajador: '70990011', CodigoTrabajador: 'TRAB-009', 'Ap.Paterno': 'Chávez', 'Ap. Materno': 'Vega', Nombre: 'Diego Armando', FechaNacimiento: '1996-05-14', Sexo: 'M', Edad: 30, FechaInicioPeriodo: '2026-01-01', FechaInicioContrato: '2023-02-14', FechaTerminoContrato: '2026-12-31', Oficio: 'Estibador' },
