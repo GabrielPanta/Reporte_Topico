@@ -87,6 +87,8 @@
     'PERSONAL CON SPL',
     'S.P.L',
     'SPL',
+    'PERSONAL SUSPENDIDOS',
+    'PERSONAL SUSPENDIDO',
     'FALTA JUSTIFICADA',
     'FALTA INJUSTIFICADA',
     'FALTA',
@@ -97,6 +99,7 @@
     'MATERNIDAD',
     'PATERNIDAD',
     'SUSPENSION',
+    'SUSPENDIDO',
     'INCAPACIDAD',
     'SUBSIDIO',
     'LUTO',
@@ -106,6 +109,50 @@
     'CUARENTENA',
     'CESE'
   ];
+
+  // Catálogo de Inasistencias específicas para resolución de Zona de Tareo en personal Jornal SÍ (SPC_ACTIVIDAD_TRABAJADOR_BUSES)
+  const INASISTENCIAS_TAREO_KEYWORDS = [
+    'PERMISO CON',
+    'PERMISO SIN',
+    'PERMISO',
+    'VACACION',
+    'VACACIONES',
+    'LICENCIA',
+    'LICENCIAS',
+    'PERSONAL CON S.P.L',
+    'PERSONAL CON SPL',
+    'S.P.L',
+    'SPL',
+    'PERSONAL SUSPENDIDOS',
+    'PERSONAL SUSPENDIDO',
+    'SUSPENSION',
+    'SUSPENDIDO',
+    'FALTA JUSTIFICADA',
+    'FALTA INJUSTIFICADA',
+    'FALTA',
+    'INASISTENCIA',
+    'DESCANSO MEDICO',
+    'DESCANSO',
+    'MEDICO',
+    'MATERNIDAD',
+    'PATERNIDAD',
+    'INCAPACIDAD',
+    'SUBSIDIO',
+    'LUTO',
+    'SINDICAL',
+    'COMPENSATORIO',
+    'AISLAMIENTO',
+    'CUARENTENA'
+  ];
+
+  function isTareoInasistencia(text) {
+    if (!text) return false;
+    const clean = String(text).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return INASISTENCIAS_TAREO_KEYWORDS.some(kw => {
+      const cleanKw = kw.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      return clean.includes(cleanKw);
+    });
+  }
 
   // Helper para verificar si un trabajador está finiquitado o no vigente
   function isWorkerFiniquitado(row) {
@@ -672,7 +719,8 @@
     visibleColumns: new Set(TARGET_COLUMNS),
     metrics: { total: 0, active: 0, leave: 0, absent: 0 },
     duplicatesData: [],
-    duplicatesSummary: { totalCases: 0, totalRows: 0, keptCount: 0, discardedCount: 0 }
+    duplicatesSummary: { totalCases: 0, totalRows: 0, keptCount: 0, discardedCount: 0 },
+    tareosInasistencias: {}
   };
 
   // DOM Elements Cache
@@ -1514,6 +1562,23 @@
 
     if (targetCol === 'Zona Labores') {
       const act = row2 ? extractFromRow(row2, ['actividad', 'tipoactividad', 'motivo', 'situacion', 'labor', 'labores']) : '';
+      const rawDig = extractRawFromRow(row1, ['tienedigitacionjornal', 'tienedigitacion', 'digitacion', 'jornal', 'tienejornal', 'digitado', 'esjornal']) ||
+                     (row2 ? extractRawFromRow(row2, ['tienedigitacionjornal', 'tienedigitacion', 'digitacion', 'jornal', 'tienejornal', 'digitado', 'esjornal']) : '');
+      const digStr = String(rawDig || '').trim().toUpperCase();
+      const isJornal = (digStr === 'SI' || digStr === 'SÍ' || digStr === '1');
+      const isInasist = act && isTareoInasistencia(act);
+      const rawRut = (row1 && (row1[keyCol1] || row1['RutTrabajador'] || row1['Rut'] || row1['DNI'])) ||
+                     (row2 && (row2['RUT/DNI'] || row2['RutTrabajador'] || row2['Rut']));
+      const cleanRut = cleanWorkerDni(rawRut);
+
+      const empContext = extractFromRow(row1, ['empresa', 'idempresa', 'nomempresa', 'razonsocial', 'compania']) ||
+                         (row2 ? extractFromRow(row2, ['empresa', 'idempresa', 'nomempresa', 'razonsocial', 'compania']) : '') ||
+                         (typeof getSelectedEmpresaId === 'function' ? getSelectedEmpresaId() : '14');
+
+      if (isJornal && isInasist && cleanRut && state.tareosInasistencias && state.tareosInasistencias[cleanRut]) {
+        return formatZonaValue(state.tareosInasistencias[cleanRut].zona, empContext);
+      }
+
       const hasRegularLabor = act && !isAbsenceActivity(act);
       let rawZ = '';
       if (hasRegularLabor && row2) {
@@ -1523,14 +1588,24 @@
         rawZ = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
                (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion', 'lugar']) : '');
       }
-      const empContext = extractFromRow(row1, ['empresa', 'idempresa', 'nomempresa', 'razonsocial', 'compania']) ||
-                         (row2 ? extractFromRow(row2, ['empresa', 'idempresa', 'nomempresa', 'razonsocial', 'compania']) : '') ||
-                         (typeof getSelectedEmpresaId === 'function' ? getSelectedEmpresaId() : '14');
       return formatZonaValue(rawZ, empContext);
     }
 
     if (targetCol === 'SubCentroCosto / Cuartel') {
       const act = row2 ? extractFromRow(row2, ['actividad', 'tipoactividad', 'motivo', 'situacion', 'labor', 'labores']) : '';
+      const rawDig = extractRawFromRow(row1, ['tienedigitacionjornal', 'tienedigitacion', 'digitacion', 'jornal', 'tienejornal', 'digitado', 'esjornal']) ||
+                     (row2 ? extractRawFromRow(row2, ['tienedigitacionjornal', 'tienedigitacion', 'digitacion', 'jornal', 'tienejornal', 'digitado', 'esjornal']) : '');
+      const digStr = String(rawDig || '').trim().toUpperCase();
+      const isJornal = (digStr === 'SI' || digStr === 'SÍ' || digStr === '1');
+      const isInasist = act && isTareoInasistencia(act);
+      const rawRut = (row1 && (row1[keyCol1] || row1['RutTrabajador'] || row1['Rut'] || row1['DNI'])) ||
+                     (row2 && (row2['RUT/DNI'] || row2['RutTrabajador'] || row2['Rut']));
+      const cleanRut = cleanWorkerDni(rawRut);
+
+      if (isJornal && isInasist && cleanRut && state.tareosInasistencias && state.tareosInasistencias[cleanRut]) {
+        return state.tareosInasistencias[cleanRut].cuartel || '';
+      }
+
       const hasRegularLabor = act && !isAbsenceActivity(act);
       if (hasRegularLabor && row2) {
         return extractFromRow(row2, ['cuartelsector', 'cuartel_sector', 'cuartel', 'sector', 'subcentrocostocuartel', 'subcentrocosto', 'centrocosto', 'centrodecosto', 'ceco', 'subceco', 'lote', 'valvula', 'nomcuartel', 'area', 'seccion']) ||
@@ -2361,6 +2436,95 @@
     }
   }
 
+  // Sincroniza tareos de los últimos 2 meses (SPC_ACTIVIDAD_TRABAJADOR_BUSES)
+  // exclusivamente para el personal con Jornal "SÍ" que presente inasistencias en el último día
+  async function syncTareosInasistencias(file1Rows, file2Rows, mes, anio) {
+    if (!file1Rows || !Array.isArray(file1Rows) || file1Rows.length === 0) return;
+    if (!file2Rows || !Array.isArray(file2Rows) || file2Rows.length === 0) return;
+    if (window.location.protocol === 'file:') return;
+
+    try {
+      // 1. Indexar Archivo 2 por RUT normalizado
+      const file2Map = new Map();
+      file2Rows.forEach(r => {
+        const rawRut = r['RUT/DNI'] || r['RutTrabajador'] || r['Rut'] || r['Dni'] || r['DNI'] || extractFromRow(r, ['rut', 'dni', 'documento']);
+        const dni = cleanWorkerDni(rawRut);
+        if (dni) {
+          file2Map.set(dni, r);
+        }
+      });
+
+      // 2. Identificar trabajadores candidatos: Jornal == SÍ && inasistencia en último día
+      const targetWorkers = [];
+      const seenRuts = new Set();
+
+      file1Rows.forEach(r1 => {
+        const rawDig = extractRawFromRow(r1, ['tienedigitacionjornal', 'tienedigitacion', 'digitacion', 'jornal', 'tienejornal', 'digitado', 'esjornal']);
+        const digStr = String(rawDig || '').trim().toUpperCase();
+        const isJornal = (digStr === 'SI' || digStr === 'SÍ' || digStr === '1');
+        if (!isJornal) return;
+
+        const rawRut = r1['RutTrabajador'] || r1['Rut'] || r1['DNI'] || r1['Dni'] || extractFromRow(r1, ['rut', 'dni', 'documento']);
+        const dni = cleanWorkerDni(rawRut);
+        if (!dni || seenRuts.has(dni)) return;
+
+        const r2 = file2Map.get(dni);
+        if (!r2) return;
+
+        const act = extractFromRow(r2, ['actividad', 'tipoactividad', 'motivo', 'situacion', 'condicion', 'licencia', 'tipoausencia']);
+        const lab = extractFromRow(r2, ['labor', 'labores', 'detallelabor', 'tarea', 'descripcionlabor']);
+        const isInasistencia = (act && isTareoInasistencia(act)) || (lab && isTareoInasistencia(lab));
+        if (!isInasistencia) return;
+
+        // Obtener código de trabajador numérico de 6 dígitos
+        let idTrab = String(r1['CodigoTrabajador'] || r1['CodTrabajador'] || r2['IDTRABAJADOR'] || r2['IdTrabajador'] || '').trim();
+        if (idTrab && /^\d+$/.test(idTrab) && idTrab.length < 6) {
+          idTrab = idTrab.padStart(6, '0');
+        }
+
+        const rawEmp = extractFromRow(r1, ['idempresa', 'empresa']) || extractFromRow(r2, ['idempresa', 'empresa']) || '14';
+        const empId = resolveEmpresaId(rawEmp);
+
+        seenRuts.add(dni);
+        targetWorkers.push({
+          rut: dni,
+          idTrabajador: idTrab,
+          idEmpresa: parseInt(empId, 10) || 14
+        });
+      });
+
+      if (targetWorkers.length === 0) {
+        return;
+      }
+
+      console.log(`[Tareos] Consultando tareos de últimos 2 meses para ${targetWorkers.length} trabajadores con Jornal SÍ e inasistencia...`);
+      const resp = await fetch('/api/tareo-inasistencias', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workers: targetWorkers,
+          mes: mes || (new Date().getMonth() + 1),
+          anio: anio || new Date().getFullYear()
+        })
+      });
+
+      if (resp.ok) {
+        const json = await resp.json();
+        if (json.success && json.tareos) {
+          if (!state.tareosInasistencias) state.tareosInasistencias = {};
+          Object.assign(state.tareosInasistencias, json.tareos);
+          const foundCount = Object.keys(json.tareos).length;
+          console.log(`[Tareos] Obtenidos ${foundCount} tareos de últimos 2 meses con éxito (${json.range}).`);
+          if (foundCount > 0) {
+            showToast(`${foundCount} zonas de tareo recuperadas para personal con inasistencias.`, 'info', 4000);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Advertencia al consultar tareos de inasistencias:', err);
+    }
+  }
+
   // Helper: Actualiza el contador y estados visuales en el modal de Sincronización Completa
   function updateSyncAllSummaryCount() {
     const checks = [
@@ -2702,12 +2866,20 @@
     // Abrir modal de avance visual
     if (modalMonitor) openModal(modalMonitor);
 
-    // Timer de tiempo transcurrido
+    // Timer de tiempo transcurrido en minutos y segundos
     const startTime = Date.now();
+    const formatElapsedTime = (ms) => {
+      const totalSec = Math.max(0, Math.floor(ms / 1000));
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      const mm = String(mins).padStart(2, '0');
+      const ss = String(secs).padStart(2, '0');
+      return `${mm}:${ss} (${mins > 0 ? `${mins}m ` : ''}${secs}s)`;
+    };
+
     const timerInterval = setInterval(() => {
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      if (monitorTimer) monitorTimer.textContent = `Tiempo transcurrido: ${elapsed}s`;
-    }, 100);
+      if (monitorTimer) monitorTimer.textContent = `Tiempo transcurrido: ${formatElapsedTime(Date.now() - startTime)}`;
+    }, 250);
 
     const spinSvg = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>';
     const defaultHeaderBtnHtml = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>Sincronizar SQL</span>';
@@ -2822,6 +2994,12 @@
       // Esperar a que las 5 consultas en paralelo terminen
       await Promise.allSettled([task1, task2, task3, task4, task5]);
 
+      // Consultar dinámicamente los tareos de los últimos 2 meses para el personal con Jornal SÍ e inasistencias
+      if (state.file1.data && state.file2.data) {
+        setOverallProgress(92, 'Consultando tareos recientes (últimos 2 meses) para inasistencias con Jornal...');
+        await syncTareosInasistencias(state.file1.data, state.file2.data, activeMes, activeAnio);
+      }
+
       // ==========================================
       // FINALIZACIÓN Y CRUCE AUTOMÁTICO
       // ==========================================
@@ -2876,8 +3054,7 @@
       showToast(`Error al consultar información: ${err.message}`, 'error');
     } finally {
       clearInterval(timerInterval);
-      const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-      if (monitorTimer) monitorTimer.textContent = `Tiempo total: ${totalElapsed}s`;
+      if (monitorTimer) monitorTimer.textContent = `Tiempo total: ${formatElapsedTime(Date.now() - startTime)}`;
 
       if (btnHeader) {
         btnHeader.disabled = false;
@@ -4533,22 +4710,31 @@
       // Zona Labores y SubCentroCosto / Cuartel
       const hasRegularLaborInFile2 = row2 && (actividadVal || laborVal) && !isAbsenceActivity(actividadVal) && !isAbsenceActivity(laborVal);
 
+      // Regla especial: Personal con Jornal SÍ e Inasistencia en el último día -> tomar zona de tareo y cuartel de SPC_ACTIVIDAD_TRABAJADOR_BUSES (últimos 2 meses)
+      const rawDigVal = extractRawFromRow(row1, ['tienedigitacionjornal', 'tienedigitacion', 'digitacion', 'jornal', 'tienejornal', 'digitado', 'esjornal']) ||
+                        (row2 ? extractRawFromRow(row2, ['tienedigitacionjornal', 'tienedigitacion', 'digitacion', 'jornal', 'tienejornal', 'digitado', 'esjornal']) : '');
+      const digStrVal = String(rawDigVal || '').trim().toUpperCase();
+      const isJornalSi = (digStrVal === 'SI' || digStrVal === 'SÍ' || digStrVal === '1');
+      const hasInasistencia = (actividadVal && isTareoInasistencia(actividadVal)) || (laborVal && isTareoInasistencia(laborVal));
+      const cleanDniKey = cleanWorkerDni(workerId);
+      const tareoReciente = (isJornalSi && hasInasistencia && state.tareosInasistencias && state.tareosInasistencias[cleanDniKey]) ? state.tareosInasistencias[cleanDniKey] : null;
+
       let zonaConsolidada = '';
-      if (hasRegularLaborInFile2 && row2) {
+      let cuartelConsolidado = '';
+
+      if (tareoReciente) {
+        zonaConsolidada = formatZonaValue(tareoReciente.zona, empresaConsolidada);
+        cuartelConsolidado = tareoReciente.cuartel || '';
+      } else if (hasRegularLaborInFile2 && row2) {
         const rawZ2 = extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) ||
                       extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'sede', 'fundo', 'campo', 'centrocostopredio']);
         zonaConsolidada = formatZonaValue(rawZ2, empresaConsolidada);
+        cuartelConsolidado = extractFromRow(row2, ['cuartelsector', 'cuartel_sector', 'cuartel', 'sector', 'subcentrocostocuartel', 'subcentrocosto', 'centrocosto', 'ceco', 'lote', 'valvula']) ||
+                             extractFromRow(row1, ['subcentrocostocuartel', 'subcentrocosto', 'cuartel', 'centrocosto', 'ceco', 'lote']);
       } else {
         const rawZ1 = extractFromRow(row1, ['zonalabores', 'zonadelabores', 'zona', 'sede', 'fundo', 'campo', 'centrocostopredio']) ||
                       (row2 ? extractFromRow(row2, ['zona', 'zonalabores', 'zonadelabores', 'sede', 'fundo', 'campo', 'ubicacion']) : '');
         zonaConsolidada = formatZonaValue(rawZ1, empresaConsolidada);
-      }
-
-      let cuartelConsolidado = '';
-      if (hasRegularLaborInFile2 && row2) {
-        cuartelConsolidado = extractFromRow(row2, ['cuartelsector', 'cuartel_sector', 'cuartel', 'sector', 'subcentrocostocuartel', 'subcentrocosto', 'centrocosto', 'ceco', 'lote', 'valvula']) ||
-                             extractFromRow(row1, ['subcentrocostocuartel', 'subcentrocosto', 'cuartel', 'centrocosto', 'ceco', 'lote']);
-      } else {
         cuartelConsolidado = extractFromRow(row1, ['subcentrocostocuartel', 'subcentrocosto', 'cuartel', 'centrocosto', 'ceco', 'lote']) ||
                              (row2 ? extractFromRow(row2, ['cuartelsector', 'cuartel_sector', 'cuartel', 'sector', 'subcentrocostocuartel', 'subcentrocosto', 'centrocosto', 'ceco', 'lote', 'valvula']) : '');
       }
@@ -6403,12 +6589,19 @@
 
     // Procesar Cruce (Recalcular si el usuario ajusta parámetros)
     if (btnProcess) {
-      btnProcess.addEventListener('click', () => {
+      btnProcess.addEventListener('click', async () => {
         if (!state.file1.data || state.file1.data.length === 0) {
           showToast('Primero presione "Sincronizar SQL" para cargar las asistencias.', 'info');
           return;
         }
         showToast('Recalculando cruce de 23 columnas consolidadas...', 'info');
+        if (state.file1.data && state.file2.data && (!state.tareosInasistencias || Object.keys(state.tareosInasistencias).length === 0)) {
+          const selMes = document.getElementById('quick-param-mes');
+          const selAnio = document.getElementById('quick-param-anio');
+          const m = selMes ? selMes.value : null;
+          const a = selAnio ? selAnio.value : null;
+          await syncTareosInasistencias(state.file1.data, state.file2.data, m, a);
+        }
         handleProcessData();
       });
     }

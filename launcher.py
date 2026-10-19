@@ -1,5 +1,12 @@
 import os
 import sys
+
+# Evitar excepciones de print() cuando se ejecuta empaquetado sin consola (console=False)
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, 'w', encoding='utf-8')
+
 import webbrowser
 import socket
 import threading
@@ -296,6 +303,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             self.handle_api_test_sql_post()
         elif path == '/api/sql-config':
             self.handle_api_save_sql_config()
+        elif path == '/api/tareo-inasistencias':
+            self.handle_api_tareo_inasistencias()
         else:
             self.send_json_response(404, {'success': False, 'error': 'Endpoint no encontrado'})
 
@@ -1106,6 +1115,193 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             self.send_json_response(500, {'success': False, 'error': f"Error al consultar Zonas: {str(e)}"})
 
+    def handle_api_tareo_inasistencias(self):
+        """Consulta SPC_ACTIVIDAD_TRABAJADOR_BUSES en el rango de los últimos 2 meses
+        para el personal con Jornal SÍ e Inasistencia en el último día."""
+        try:
+            import pyodbc
+        except ImportError:
+            self.send_json_response(500, {'success': False, 'error': 'pyodbc no está instalado.'})
+            return
+
+        from concurrent.futures import ThreadPoolExecutor
+
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_body = self.rfile.read(content_length) if content_length > 0 else b'{}'
+        payload = json.loads(post_body.decode('utf-8')) if post_body else {}
+
+        workers = payload.get('workers', [])
+        mes = int(payload.get('mes') or datetime.date.today().month)
+        anio = int(payload.get('anio') or datetime.date.today().year)
+
+        if not workers:
+            self.send_json_response(200, {'success': True, 'count': 0, 'tareos': {}})
+            return
+
+        import calendar
+        last_day = calendar.monthrange(anio, mes)[1]
+        hasta_dt = datetime.date(anio, mes, last_day)
+        today = datetime.date.today()
+        if anio == today.year and mes == today.month:
+            hasta_dt = today
+
+        # Rango rápido: últimos 35 días (cubre el 95%+ de tareos recientes a triple velocidad)
+        rapido_dt = hasta_dt - datetime.timedelta(days=35)
+        mes_rapido_str = rapido_dt.strftime('%d-%m-%Y')
+
+        # Rango extendido de respaldo: 2 meses (para licencias o descansos médicos prolongados)
+        m_desde = mes - 2
+        y_desde = anio
+        while m_desde < 1:
+            m_desde += 12
+            y_desde -= 1
+        desde_dt = datetime.date(y_desde, m_desde, 1)
+
+        mes_desde_str = desde_dt.strftime('%d-%m-%Y')
+        mes_hasta_str = hasta_dt.strftime('%d-%m-%Y')
+
+        inasistencias_keywords = [
+            'PERMISO CON', 'PERMISO SIN', 'PERMISO', 'VACACIONES', 'VACACION',
+            'LICENCIA', 'LICENCIAS', 'PERSONAL CON S.P.L', 'PERSONAL CON SPL',
+            'S.P.L', 'SPL', 'PERSONAL SUSPENDIDOS', 'PERSONAL SUSPENDIDO',
+            'SUSPENSION', 'SUSPENDIDO', 'FALTA JUSTIFICADA', 'FALTA INJUSTIFICADA',
+            'FALTA', 'INASISTENCIA', 'DESCANSO MEDICO', 'DESCANSO', 'MEDICO',
+            'INCAPACIDAD', 'SUBSIDIO', 'MATERNIDAD', 'PATERNIDAD'
+        ]
+
+        # Precargar catálogo de zonas una sola vez para cada empresa involucrada
+        zonas_por_empresa = {}
+        unique_emp_ids = set(int(w.get('idEmpresa') or 14) for w in workers)
+        for emp_id in unique_emp_ids:
+            try:
+                c_zona = get_sql_connection(timeout=10)
+                cur_zona = c_zona.cursor()
+                cur_zona.execute("SELECT IdZona FROM [Zona] WHERE IdEmpresa = ?", (emp_id,))
+                zids = set(str(r[0]).strip() for r in cur_zona.fetchall())
+                for extra in range(0, 100):
+                    zids.add(str(extra))
+                for s_id in [121, 149, 153, 155, 156, 180, 181, 190, 241, 249, 253, 255, 280, 290, 755, 781, 790, 821, 840, 841, 848, 849, 850, 853, 854, 855, 858, 870, 880, 881, 953]:
+                    zids.add(str(s_id))
+                c_zona.close()
+                zonas_por_empresa[emp_id] = ','.join(sorted(zids, key=lambda x: int(x) if x.isdigit() else 9999))
+            except Exception:
+                zonas_por_empresa[emp_id] = '0,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,121,821,180,280,155,840,841,848,849,850,853,854,855,858,241,851,852,856,870,255,249,0'
+
+        def query_worker_on_cursor(cur, w):
+            rut = str(w.get('rut') or '').strip()
+            wid = str(w.get('idTrabajador') or '').strip()
+            id_emp = int(w.get('idEmpresa') or 14)
+            if not wid:
+                return rut, None
+
+            zona_str = zonas_por_empresa.get(id_emp, '0,10,11,12,14,54,58')
+            sql = """
+            EXEC SPC_ACTIVIDAD_TRABAJADOR_BUSES 
+                @IdEmpresa = ?, 
+                @MesDesde = ?, 
+                @MesHasta = ?, 
+                @Zona = ?,
+                @Idtrabajador = ?
+            """
+
+            def execute_range(f_desde):
+                cur.execute(sql, (id_emp, f_desde, mes_hasta_str, zona_str, wid))
+                while cur.description is None:
+                    if not cur.nextset():
+                        break
+                if not cur.description:
+                    return None
+                cols = [c[0] for c in cur.description]
+                fec_idx = cols.index('Fecha Actividad')
+                zona_idx = cols.index('Zona/Predio')
+                cuartel_idx = cols.index('Cuartel/Sector')
+                act_idx = cols.index('Actividad')
+                lab_idx = cols.index('Labor') if 'Labor' in cols else -1
+                rows = cur.fetchall()
+                if not rows:
+                    return None
+
+                valid_rows = []
+                for r in rows:
+                    z_val = str(r[zona_idx] or '').strip()
+                    if not z_val:
+                        continue
+                    act_val = str(r[act_idx] or '').strip().upper()
+                    lab_val = str(r[lab_idx] or '').strip().upper() if lab_idx >= 0 else ''
+                    is_inasist = any(kw in act_val or (lab_val and kw in lab_val) for kw in inasistencias_keywords)
+                    if not is_inasist:
+                        valid_rows.append(r)
+
+                if not valid_rows:
+                    return None
+
+                best = max(valid_rows, key=lambda r: r[fec_idx] if r[fec_idx] else datetime.datetime.min)
+                fec_str = best[fec_idx].strftime('%Y-%m-%d') if isinstance(best[fec_idx], (datetime.date, datetime.datetime)) else str(best[fec_idx])
+                return {
+                    'fecha': fec_str,
+                    'zona': str(best[zona_idx]).strip(),
+                    'cuartel': str(best[cuartel_idx] or '').strip(),
+                    'actividad': str(best[act_idx] or '').strip()
+                }
+
+            try:
+                # 1. Intentar primero con el rango rápido (últimos 35 días)
+                res = execute_range(mes_rapido_str)
+                # 2. Si no tuvo tareos en los últimos 35 días, ampliar a los 2 meses completos
+                if not res:
+                    res = execute_range(mes_desde_str)
+                return rut, res
+            except Exception:
+                return rut, None
+
+        # Procesar con chunks y conexión persistente por hilo
+        num_threads = min(len(workers), 12) if len(workers) > 0 else 1
+        chunks = [[] for _ in range(num_threads)]
+        for idx, w in enumerate(workers):
+            chunks[idx % num_threads].append(w)
+
+        def process_chunk(chunk):
+            chunk_results = []
+            conn = None
+            try:
+                conn = get_sql_connection(timeout=30)
+                cur = conn.cursor()
+                for w in chunk:
+                    try:
+                        r_rut, r_res = query_worker_on_cursor(cur, w)
+                        if r_rut and r_res:
+                            chunk_results.append((r_rut, r_res))
+                    except Exception:
+                        # Si una consulta falla por desconexión transitoria, intentar reconectar
+                        try:
+                            conn.close()
+                            conn = get_sql_connection(timeout=30)
+                            cur = conn.cursor()
+                        except Exception:
+                            pass
+            except Exception as e_th:
+                print(f"Warning en hilo de tareos: {e_th}")
+            finally:
+                if conn:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
+            return chunk_results
+
+        tareos_map = {}
+        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+            for chunk_items in executor.map(process_chunk, [c for c in chunks if c]):
+                for r_rut, r_res in chunk_items:
+                    tareos_map[r_rut] = r_res
+
+        self.send_json_response(200, {
+            'success': True,
+            'count': len(tareos_map),
+            'tareos': tareos_map,
+            'range': f"{mes_desde_str} a {mes_hasta_str}"
+        })
+
     def _rows_to_dicts(self, columns, raw_rows):
         data = []
         for row in raw_rows:
@@ -1223,6 +1419,12 @@ def main():
 
     threading.Thread(target=set_native_window_icon, daemon=True).start()
 
+    app_local_data = os.path.join(os.environ.get('LOCALAPPDATA', os.path.expanduser('~')), 'ConsolidadorRRHH_Data')
+    try:
+        os.makedirs(app_local_data, exist_ok=True)
+    except Exception:
+        pass
+
     use_webview = True
     try:
         import webview
@@ -1237,7 +1439,7 @@ def main():
             confirm_close=False,
             maximized=True
         )
-        webview.start(gui='edgechromium', debug=False)
+        webview.start(gui='edgechromium', debug=False, storage_path=app_local_data)
         print("\nAplicación cerrada por el usuario.")
         httpd.server_close()
         sys.exit(0)
@@ -1246,17 +1448,28 @@ def main():
         use_webview = False
 
     if not use_webview:
-        # Fallback a Edge App Mode (ventana independiente maximizada sin barras ni pestañas)
+        # Fallback a Edge App Mode (ventana independiente maximizada sin barras, sin sincronización ni OneDrive)
         import subprocess
         opened = False
         edge_paths = [
             r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
             r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
         ]
+        edge_data_dir = os.path.join(app_local_data, 'EdgeProfile')
         for ep in edge_paths:
             if os.path.exists(ep):
                 try:
-                    subprocess.Popen([ep, f"--app={url}", "--start-maximized"])
+                    cmd = [
+                        ep,
+                        f"--app={url}",
+                        f"--user-data-dir={edge_data_dir}",
+                        "--no-first-run",
+                        "--no-default-browser-check",
+                        "--disable-sync",
+                        "--disable-features=msEdgeSync,msHub",
+                        "--start-maximized"
+                    ]
+                    subprocess.Popen(cmd)
                     opened = True
                     break
                 except Exception:
