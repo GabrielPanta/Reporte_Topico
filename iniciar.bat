@@ -8,23 +8,25 @@ echo   Servidor SQL Server: vfstbd01 (bsis_rem_afr)
 echo ========================================================
 echo.
 
+:: 1. Prioridad: Iniciar ejecutable nativo compilado si existe
+if exist "dist\ConsolidadorRRHH.exe" (
+    echo [OK] Iniciando aplicacion de escritorio nativa...
+    start "" "dist\ConsolidadorRRHH.exe"
+    exit
+)
+
+:: 2. Si no existe dist, iniciar mediante Python launcher.py
 where python >nul 2>nul
 if %errorlevel% equ 0 (
     echo [OK] Ejecutando launcher.py con Python...
-    python launcher.py
-    goto end
+    start "" python launcher.py
+    exit
 )
 
 if exist "%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe" (
     echo [OK] Ejecutando launcher.py con WindowsApps Python...
-    "%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe" launcher.py
-    goto end
-)
-
-if exist "dist\ConsolidadorRRHH.exe" (
-    echo [OK] Ejecutando aplicacion nativa dist\ConsolidadorRRHH.exe...
-    dist\ConsolidadorRRHH.exe
-    goto end
+    start "" "%LOCALAPPDATA%\Microsoft\WindowsApps\python.exe" launcher.py
+    exit
 )
 
 echo [ERROR] No se pudo encontrar Python ni el ejecutable compilado.

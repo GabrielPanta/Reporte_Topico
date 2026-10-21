@@ -21,7 +21,7 @@ a = Analysis(
         ('ejemplo_5_cuadrillas.xlsx', '.'),
         ('sql_config.json', '.')
     ],
-    hiddenimports=['pyodbc', 'webview', 'clr_loader', 'pythonnet', 'bottle', 'tkinter', 'subprocess', 'concurrent.futures'],
+    hiddenimports=['pyodbc', 'webview', 'clr_loader', 'pythonnet', 'bottle', 'tkinter', 'subprocess', 'concurrent.futures', 'multiprocessing'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

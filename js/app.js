@@ -145,6 +145,22 @@
     'CUARENTENA'
   ];
 
+  // Helper para formatear duraciones en minutos y segundos legibles
+  function formatDurationDetailed(ms) {
+    if (!ms || ms < 0) return '0 seg';
+    const totalSec = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    if (mins === 0) {
+      if (totalSec === 0) {
+        const msRound = Math.round(ms);
+        return msRound < 1000 ? `${msRound} ms` : '1 seg';
+      }
+      return `${secs} seg`;
+    }
+    return `${mins} min ${secs.toString().padStart(2, '0')} seg`;
+  }
+
   function isTareoInasistencia(text) {
     if (!text) return false;
     const clean = String(text).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -720,7 +736,10 @@
     metrics: { total: 0, active: 0, leave: 0, absent: 0 },
     duplicatesData: [],
     duplicatesSummary: { totalCases: 0, totalRows: 0, keptCount: 0, discardedCount: 0 },
-    tareosInasistencias: {}
+    tareosInasistencias: {},
+    isSyncingAll: false,
+    lastConsolidationDurationMs: 0,
+    lastConsolidationDurationText: ''
   };
 
   // DOM Elements Cache
@@ -740,6 +759,8 @@
     duplicatesBadgeText: document.getElementById('duplicates-badge-text'),
     statusDupInfo: document.getElementById('status-dup-info'),
     statusDupText: document.getElementById('status-dup-text'),
+    statusTimeInfo: document.getElementById('status-time-info'),
+    statusTimeText: document.getElementById('status-time-text'),
     modalDuplicates: document.getElementById('modal-duplicates'),
     btnCloseDuplicates: document.getElementById('btn-close-duplicates'),
     btnCloseDuplicatesFooter: document.getElementById('btn-close-duplicates-footer'),
@@ -2884,6 +2905,7 @@
     const spinSvg = '<svg class="btn-icon process-spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>';
     const defaultHeaderBtnHtml = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> <span>Sincronizar SQL</span>';
 
+    state.isSyncingAll = true;
     try {
       if (btnHeader) {
         btnHeader.disabled = true;
@@ -3012,14 +3034,30 @@
         handleProcessData();
         playSuccessSound('chime');
 
+        const totalElapsedMs = Date.now() - startTime;
+        const totalDurationFormatted = formatDurationDetailed(totalElapsedMs);
+        const mmss = formatElapsedTime(totalElapsedMs);
+        state.lastConsolidationDurationMs = totalElapsedMs;
+        state.lastConsolidationDurationText = totalDurationFormatted;
+
         const totalCons = state.consolidatedData ? state.consolidatedData.length : state.file1.data.length;
         if (monitorOverall) {
-          monitorOverall.innerHTML = `<span style="color:#16a34a; font-weight:700;">✓ Sincronización completada: ${totalCons.toLocaleString()} registros consolidados.</span>`;
+          monitorOverall.innerHTML = `<span style="color:#16a34a; font-weight:700;">✓ Sincronización completada en ${totalDurationFormatted}: ${totalCons.toLocaleString()} registros consolidados.</span>`;
+        }
+        if (monitorTimer) {
+          monitorTimer.textContent = `Tiempo total: ${totalDurationFormatted} (${mmss})`;
         }
         if (statusText) {
           statusText.innerHTML = `<span style="color:#16a34a; font-weight:600;">✓ Datos actualizados (${totalCons.toLocaleString()} trabajadores en ${activeEmpText})</span>`;
         }
-        showToast(`Sincronización completada: ${totalCons.toLocaleString()} trabajadores consolidados.`, 'success');
+        if (elements.statusTimeInfo) {
+          elements.statusTimeInfo.style.display = 'inline-flex';
+          if (elements.statusTimeText) {
+            elements.statusTimeText.textContent = `Duró: ${totalDurationFormatted}`;
+          }
+          elements.statusTimeInfo.title = `Tiempo total de sincronización y consolidación: ${totalDurationFormatted} (${mmss})`;
+        }
+        showToast(`¡Consolidación exitosa en ${totalDurationFormatted}! ${totalCons.toLocaleString()} trabajadores consolidados.`, 'success', 6000);
 
         // Cerrar automáticamente el monitor después de 1 segundo para mostrar directamente la tabla de resultados
         setTimeout(() => {
@@ -3054,7 +3092,9 @@
       showToast(`Error al consultar información: ${err.message}`, 'error');
     } finally {
       clearInterval(timerInterval);
-      if (monitorTimer) monitorTimer.textContent = `Tiempo total: ${formatElapsedTime(Date.now() - startTime)}`;
+      state.isSyncingAll = false;
+      const finalMs = Date.now() - startTime;
+      if (monitorTimer) monitorTimer.textContent = `Tiempo total: ${formatDurationDetailed(finalMs)} (${formatElapsedTime(finalMs)})`;
 
       if (btnHeader) {
         btnHeader.disabled = false;
@@ -4297,6 +4337,7 @@
     state.duplicatesSummary = { totalCases: 0, totalRows: 0, keptCount: 0, discardedCount: 0 };
     if (elements.btnShowDuplicates) elements.btnShowDuplicates.style.display = 'none';
     if (elements.statusDupInfo) elements.statusDupInfo.style.display = 'none';
+    if (elements.statusTimeInfo) elements.statusTimeInfo.style.display = 'none';
     if (elements.resultsSection) elements.resultsSection.classList.remove('active');
     if (elements.step1) {
       elements.step1.classList.add('active');
@@ -4338,6 +4379,7 @@
 
   // Core Consolidation Engine
   function handleProcessData() {
+    const procStart = performance.now();
     if (!state.file1.data || state.file1.data.length === 0) {
       showToast('Por favor sincronice con "Sincronizar SQL" o cargue datos primero', 'info');
       return;
@@ -4997,10 +5039,24 @@
     updateDesktopUIStatus();
     playSuccessSound('chime');
 
-    if (duplicateCasesCount > 0) {
-      showToast(`¡Consolidación exitosa! ${consolidated.length.toLocaleString()} trabajadores únicos. Se resolvieron ${duplicateCasesCount} duplicados por DNI (prevaleció la última fecha de inicio de periodo).`, 'success');
-    } else {
-      showToast(`¡Consolidación exitosa! ${consolidated.length.toLocaleString()} trabajadores procesados sin duplicados de DNI.`, 'success');
+    if (!state.isSyncingAll) {
+      const procDurationMs = performance.now() - procStart;
+      const procDurationStr = formatDurationDetailed(procDurationMs);
+      state.lastConsolidationDurationMs = procDurationMs;
+      state.lastConsolidationDurationText = procDurationStr;
+      if (elements.statusTimeInfo) {
+        elements.statusTimeInfo.style.display = 'inline-flex';
+        if (elements.statusTimeText) {
+          elements.statusTimeText.textContent = `Duró: ${procDurationStr}`;
+        }
+        elements.statusTimeInfo.title = `Tiempo de consolidación de datos: ${procDurationStr}`;
+      }
+
+      if (duplicateCasesCount > 0) {
+        showToast(`¡Consolidación exitosa en ${procDurationStr}! ${consolidated.length.toLocaleString()} trabajadores únicos. Se resolvieron ${duplicateCasesCount} duplicados por DNI (prevaleció la última fecha de inicio de periodo).`, 'success', 6000);
+      } else {
+        showToast(`¡Consolidación exitosa en ${procDurationStr}! ${consolidated.length.toLocaleString()} trabajadores procesados sin duplicados de DNI.`, 'success', 6000);
+      }
     }
   }
 

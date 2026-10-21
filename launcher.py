@@ -1124,8 +1124,6 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             self.send_json_response(500, {'success': False, 'error': 'pyodbc no está instalado.'})
             return
 
-        from concurrent.futures import ThreadPoolExecutor
-
         content_length = int(self.headers.get('Content-Length', 0))
         post_body = self.rfile.read(content_length) if content_length > 0 else b'{}'
         payload = json.loads(post_body.decode('utf-8')) if post_body else {}
@@ -1145,11 +1143,7 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
         if anio == today.year and mes == today.month:
             hasta_dt = today
 
-        # Rango rápido: últimos 35 días (cubre el 95%+ de tareos recientes a triple velocidad)
-        rapido_dt = hasta_dt - datetime.timedelta(days=35)
-        mes_rapido_str = rapido_dt.strftime('%d-%m-%Y')
-
-        # Rango extendido de respaldo: 2 meses (para licencias o descansos médicos prolongados)
+        # Rango extendido de respaldo: 2 meses (ISO YYYYMMDD para compatibilidad total con SQL Server)
         m_desde = mes - 2
         y_desde = anio
         while m_desde < 1:
@@ -1157,8 +1151,8 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             y_desde -= 1
         desde_dt = datetime.date(y_desde, m_desde, 1)
 
-        mes_desde_str = desde_dt.strftime('%d-%m-%Y')
-        mes_hasta_str = hasta_dt.strftime('%d-%m-%Y')
+        desde_str = f"{desde_dt.year:04d}{desde_dt.month:02d}{desde_dt.day:02d}"
+        hasta_str = f"{hasta_dt.year:04d}{hasta_dt.month:02d}{hasta_dt.day:02d} 23:59:59"
 
         inasistencias_keywords = [
             'PERMISO CON', 'PERMISO SIN', 'PERMISO', 'VACACIONES', 'VACACION',
@@ -1169,137 +1163,251 @@ class CustomHTTPHandler(SimpleHTTPRequestHandler):
             'INCAPACIDAD', 'SUBSIDIO', 'MATERNIDAD', 'PATERNIDAD'
         ]
 
-        # Precargar catálogo de zonas una sola vez para cada empresa involucrada
-        zonas_por_empresa = {}
-        unique_emp_ids = set(int(w.get('idEmpresa') or 14) for w in workers)
-        for emp_id in unique_emp_ids:
-            try:
-                c_zona = get_sql_connection(timeout=10)
-                cur_zona = c_zona.cursor()
-                cur_zona.execute("SELECT IdZona FROM [Zona] WHERE IdEmpresa = ?", (emp_id,))
-                zids = set(str(r[0]).strip() for r in cur_zona.fetchall())
-                for extra in range(0, 100):
-                    zids.add(str(extra))
-                for s_id in [121, 149, 153, 155, 156, 180, 181, 190, 241, 249, 253, 255, 280, 290, 755, 781, 790, 821, 840, 841, 848, 849, 850, 853, 854, 855, 858, 870, 880, 881, 953]:
-                    zids.add(str(s_id))
-                c_zona.close()
-                zonas_por_empresa[emp_id] = ','.join(sorted(zids, key=lambda x: int(x) if x.isdigit() else 9999))
-            except Exception:
-                zonas_por_empresa[emp_id] = '0,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,121,821,180,280,155,840,841,848,849,850,853,854,855,858,241,851,852,856,870,255,249,0'
-
-        def query_worker_on_cursor(cur, w):
-            rut = str(w.get('rut') or '').strip()
-            wid = str(w.get('idTrabajador') or '').strip()
-            id_emp = int(w.get('idEmpresa') or 14)
-            if not wid:
-                return rut, None
-
-            zona_str = zonas_por_empresa.get(id_emp, '0,10,11,12,14,54,58')
-            sql = """
-            EXEC SPC_ACTIVIDAD_TRABAJADOR_BUSES 
-                @IdEmpresa = ?, 
-                @MesDesde = ?, 
-                @MesHasta = ?, 
-                @Zona = ?,
-                @Idtrabajador = ?
-            """
-
-            def execute_range(f_desde):
-                cur.execute(sql, (id_emp, f_desde, mes_hasta_str, zona_str, wid))
-                while cur.description is None:
-                    if not cur.nextset():
-                        break
-                if not cur.description:
-                    return None
-                cols = [c[0] for c in cur.description]
-                fec_idx = cols.index('Fecha Actividad')
-                zona_idx = cols.index('Zona/Predio')
-                cuartel_idx = cols.index('Cuartel/Sector')
-                act_idx = cols.index('Actividad')
-                lab_idx = cols.index('Labor') if 'Labor' in cols else -1
-                rows = cur.fetchall()
-                if not rows:
-                    return None
-
-                valid_rows = []
-                for r in rows:
-                    z_val = str(r[zona_idx] or '').strip()
-                    if not z_val:
-                        continue
-                    act_val = str(r[act_idx] or '').strip().upper()
-                    lab_val = str(r[lab_idx] or '').strip().upper() if lab_idx >= 0 else ''
-                    is_inasist = any(kw in act_val or (lab_val and kw in lab_val) for kw in inasistencias_keywords)
-                    if not is_inasist:
-                        valid_rows.append(r)
-
-                if not valid_rows:
-                    return None
-
-                best = max(valid_rows, key=lambda r: r[fec_idx] if r[fec_idx] else datetime.datetime.min)
-                fec_str = best[fec_idx].strftime('%Y-%m-%d') if isinstance(best[fec_idx], (datetime.date, datetime.datetime)) else str(best[fec_idx])
-                return {
-                    'fecha': fec_str,
-                    'zona': str(best[zona_idx]).strip(),
-                    'cuartel': str(best[cuartel_idx] or '').strip(),
-                    'actividad': str(best[act_idx] or '').strip()
-                }
-
-            try:
-                # 1. Intentar primero con el rango rápido (últimos 35 días)
-                res = execute_range(mes_rapido_str)
-                # 2. Si no tuvo tareos en los últimos 35 días, ampliar a los 2 meses completos
-                if not res:
-                    res = execute_range(mes_desde_str)
-                return rut, res
-            except Exception:
-                return rut, None
-
-        # Procesar con chunks y conexión persistente por hilo
-        num_threads = min(len(workers), 12) if len(workers) > 0 else 1
-        chunks = [[] for _ in range(num_threads)]
-        for idx, w in enumerate(workers):
-            chunks[idx % num_threads].append(w)
-
-        def process_chunk(chunk):
-            chunk_results = []
-            conn = None
-            try:
-                conn = get_sql_connection(timeout=30)
-                cur = conn.cursor()
-                for w in chunk:
-                    try:
-                        r_rut, r_res = query_worker_on_cursor(cur, w)
-                        if r_rut and r_res:
-                            chunk_results.append((r_rut, r_res))
-                    except Exception:
-                        # Si una consulta falla por desconexión transitoria, intentar reconectar
-                        try:
-                            conn.close()
-                            conn = get_sql_connection(timeout=30)
-                            cur = conn.cursor()
-                        except Exception:
-                            pass
-            except Exception as e_th:
-                print(f"Warning en hilo de tareos: {e_th}")
-            finally:
-                if conn:
-                    try:
-                        conn.close()
-                    except Exception:
-                        pass
-            return chunk_results
+        # Agrupar trabajadores por empresa
+        emp_groups = {}
+        for w in workers:
+            emp_id = int(w.get('idEmpresa') or 14)
+            emp_groups.setdefault(emp_id, []).append(w)
 
         tareos_map = {}
-        with ThreadPoolExecutor(max_workers=num_threads) as executor:
-            for chunk_items in executor.map(process_chunk, [c for c in chunks if c]):
-                for r_rut, r_res in chunk_items:
-                    tareos_map[r_rut] = r_res
+
+        try:
+            conn = get_sql_connection(timeout=45)
+            cur = conn.cursor()
+
+            for emp_id, emp_workers in emp_groups.items():
+                id_to_rut = {}
+                rut_to_id = {}
+                missing_id_ruts = []
+
+                for w in emp_workers:
+                    wid = str(w.get('idTrabajador') or '').strip()
+                    rut = str(w.get('rut') or '').strip()
+                    if wid:
+                        id_to_rut[wid] = rut
+                        if rut:
+                            rut_to_id[rut] = wid
+                    elif rut:
+                        missing_id_ruts.append(rut)
+
+                # Si hay RUTs sin IdTrabajador, resolverlos en un solo query contra [Trabajador]
+                if missing_id_ruts:
+                    valid_int_ruts = [int(r) for r in missing_id_ruts if r.isdigit()]
+                    if valid_int_ruts:
+                        for i in range(0, len(valid_int_ruts), 200):
+                            sub_ruts = valid_int_ruts[i:i + 200]
+                            ph = ','.join('?' for _ in sub_ruts)
+                            cur.execute(
+                                f"SELECT RutTrabajador, IdTrabajador FROM Trabajador WITH (NOLOCK) WHERE IdEmpresa = ? AND RutTrabajador IN ({ph})",
+                                (emp_id, *sub_ruts)
+                            )
+                            for rr in cur.fetchall():
+                                r_str = str(rr[0]).strip()
+                                wid_str = str(rr[1]).strip()
+                                if wid_str:
+                                    id_to_rut[wid_str] = r_str
+                                    rut_to_id[r_str] = wid_str
+
+                # Consultar Catálogo de Cuarteles (SPC_CUADRO_PREDIO_CUARTEL) para enriquecer códigos con descripción
+                cuarteles_map = {}
+                try:
+                    cur.execute("EXEC SPC_CUADRO_PREDIO_CUARTEL @IDEMPRESA = ?", (str(emp_id),))
+                    while cur.description is None:
+                        if not cur.nextset():
+                            break
+                    if cur.description:
+                        c_cols = [c[0] for c in cur.description]
+                        for cr in cur.fetchall():
+                            cd = dict(zip(c_cols, cr))
+                            cod = str(cd.get('Cod.Cuartel') or '').strip().upper()
+                            cuartel_desc = str(cd.get('Cuartel') or '').strip()
+                            nombre_c = str(cd.get('Nombre Cuartel') or '').strip()
+                            if cod:
+                                cuarteles_map[cod] = cuartel_desc or f"{cod} {nombre_c}".strip()
+                except Exception as ce:
+                    print(f"Warning: No se pudo cargar SPC_CUADRO_PREDIO_CUARTEL para empresa {emp_id}: {ce}")
+
+                def resolve_cuartel_desc(raw_c):
+                    if not raw_c:
+                        return ''
+                    raw_str = str(raw_c).strip()
+                    c_upper = raw_str.upper()
+                    if c_upper in cuarteles_map and len(cuarteles_map[c_upper]) > len(raw_str):
+                        return cuarteles_map[c_upper]
+                    if cuarteles_map:
+                        import re
+                        m = re.match(r'^([A-Z]+)0*(\d+)([A-Z]*)$', c_upper)
+                        if m:
+                            prefix, num, suffix = m.groups()
+                            for cand in [f"{prefix}{int(num):04d}{suffix}", f"{prefix}{int(num):03d}{suffix}", f"{prefix}{int(num):02d}{suffix}", f"{prefix}{int(num)}{suffix}"]:
+                                if cand in cuarteles_map and len(cuarteles_map[cand]) > len(raw_str):
+                                    return cuarteles_map[cand]
+                    return raw_str
+
+                # Consultar ActividadTrabajador directamente por lotes de 100 IdTrabajador
+                all_wids = list(id_to_rut.keys())
+                batch_size = 100
+                for i in range(0, len(all_wids), batch_size):
+                    chunk_wids = all_wids[i:i + batch_size]
+                    ph = ','.join('?' for _ in chunk_wids)
+                    sql = f"""
+                        WITH RankedActividad AS (
+                            SELECT 
+                                a.IdTrabajador,
+                                a.RutTrabajador,
+                                a.FechaActividad,
+                                CASE 
+                                    WHEN z.Nombre IS NOT NULL AND LTRIM(RTRIM(z.Nombre)) <> '' 
+                                    THEN RTRIM(CONVERT(varchar(20), a.IdZona)) + ' ' + LTRIM(RTRIM(z.Nombre))
+                                    ELSE CONVERT(varchar(20), a.IdZona) 
+                                END as Zona,
+                                CASE 
+                                    WHEN c.Nombre IS NOT NULL AND LTRIM(RTRIM(c.Nombre)) <> '' 
+                                    THEN RTRIM(a.IdCuartel) + ' ' + LTRIM(RTRIM(c.Nombre))
+                                    ELSE a.IdCuartel 
+                                END as Cuartel,
+                                act.Nombre as Actividad,
+                                fam.Nombre as Labor,
+                                ROW_NUMBER() OVER(
+                                    PARTITION BY a.IdTrabajador 
+                                    ORDER BY a.FechaActividad DESC
+                                ) as rn
+                            FROM ActividadTrabajador a WITH (NOLOCK)
+                            LEFT JOIN [Zona] z WITH (NOLOCK) 
+                                ON z.IdZona = a.IdZona AND z.IdEmpresa = a.IdEmpresa
+                            LEFT JOIN [Cuartel] c WITH (NOLOCK)
+                                ON c.IdCuartel = a.IdCuartel AND c.IdEmpresa = a.IdEmpresa AND c.IdZona = a.IdZona
+                            LEFT JOIN [Actividades] act WITH (NOLOCK) 
+                                ON act.IdActividad = a.IdActividad AND act.IdEmpresa = a.IdEmpresa
+                            LEFT JOIN [FamiliaActividades] fam WITH (NOLOCK) 
+                                ON fam.IdFamilia = a.IdFamilia AND fam.IdEmpresa = a.IdEmpresa
+                            WHERE a.IdEmpresa = ?
+                              AND a.IdTrabajador IN ({ph})
+                              AND a.FechaActividad >= ?
+                              AND a.FechaActividad <= ?
+                              AND (act.SwVacaciones IS NULL OR act.SwVacaciones = 0)
+                              AND (act.SwLicencias IS NULL OR act.SwLicencias = 0)
+                              AND (act.SwPermiso IS NULL OR act.SwPermiso = 0)
+                              AND (act.SwPermisoConGose IS NULL OR act.SwPermisoConGose = 0)
+                              AND (act.SwFaltaJustificada IS NULL OR act.SwFaltaJustificada = 0)
+                              AND (act.SwDescanso IS NULL OR act.SwDescanso = 0)
+                              AND (act.SwConSpl IS NULL OR act.SwConSpl = 0)
+                              AND (act.SwConSus IS NULL OR act.SwConSus = 0)
+                        )
+                        SELECT IdTrabajador, RutTrabajador, FechaActividad, Zona, Cuartel, Actividad, Labor
+                        FROM RankedActividad
+                        WHERE rn = 1
+                    """
+                    cur.execute(sql, (emp_id, *chunk_wids, desde_str, hasta_str))
+                    for r in cur.fetchall():
+                        wid = str(r[0]).strip()
+                        rut = str(r[1]).strip() if r[1] else id_to_rut.get(wid, '')
+                        act_name = str(r[5] or '').strip().upper()
+                        lab_name = str(r[6] or '').strip().upper()
+
+                        # Filtro defensivo de palabras clave
+                        is_inasist = any(kw in act_name or (lab_name and kw in lab_name) for kw in inasistencias_keywords)
+                        if is_inasist:
+                            continue
+
+                        fec = r[2]
+                        fec_str = fec.strftime('%Y-%m-%d') if isinstance(fec, (datetime.date, datetime.datetime)) else str(fec)
+                        cuartel_val = resolve_cuartel_desc(r[4])
+                        info = {
+                            'fecha': fec_str,
+                            'zona': str(r[3] or '').strip(),
+                            'cuartel': cuartel_val,
+                            'actividad': str(r[5] or '').strip(),
+                            'labor': str(r[6] or '').strip()
+                        }
+                        if rut:
+                            tareos_map[rut] = info
+
+                # Si aún quedan trabajadores sin tareo y tienen RUT numérico, intentar búsqueda complementaria por RutTrabajador
+                unresolved_ruts = [
+                    int(w.get('rut')) for w in emp_workers 
+                    if str(w.get('rut') or '').strip() not in tareos_map and str(w.get('rut') or '').strip().isdigit()
+                ]
+                if unresolved_ruts:
+                    for i in range(0, len(unresolved_ruts), batch_size):
+                        chunk_ruts = unresolved_ruts[i:i + batch_size]
+                        ph = ','.join('?' for _ in chunk_ruts)
+                        sql_rut = f"""
+                            WITH RankedActividadRut AS (
+                                SELECT 
+                                    a.IdTrabajador,
+                                    a.RutTrabajador,
+                                    a.FechaActividad,
+                                    CASE 
+                                        WHEN z.Nombre IS NOT NULL AND LTRIM(RTRIM(z.Nombre)) <> '' 
+                                        THEN RTRIM(CONVERT(varchar(20), a.IdZona)) + ' ' + LTRIM(RTRIM(z.Nombre))
+                                        ELSE CONVERT(varchar(20), a.IdZona) 
+                                    END as Zona,
+                                    CASE 
+                                        WHEN c.Nombre IS NOT NULL AND LTRIM(RTRIM(c.Nombre)) <> '' 
+                                        THEN RTRIM(a.IdCuartel) + ' ' + LTRIM(RTRIM(c.Nombre))
+                                        ELSE a.IdCuartel 
+                                    END as Cuartel,
+                                    act.Nombre as Actividad,
+                                    fam.Nombre as Labor,
+                                    ROW_NUMBER() OVER(
+                                        PARTITION BY a.RutTrabajador 
+                                        ORDER BY a.FechaActividad DESC
+                                    ) as rn
+                                FROM ActividadTrabajador a WITH (NOLOCK)
+                                LEFT JOIN [Zona] z WITH (NOLOCK) 
+                                    ON z.IdZona = a.IdZona AND z.IdEmpresa = a.IdEmpresa
+                                LEFT JOIN [Cuartel] c WITH (NOLOCK)
+                                    ON c.IdCuartel = a.IdCuartel AND c.IdEmpresa = a.IdEmpresa AND c.IdZona = a.IdZona
+                                LEFT JOIN [Actividades] act WITH (NOLOCK) 
+                                    ON act.IdActividad = a.IdActividad AND act.IdEmpresa = a.IdEmpresa
+                                LEFT JOIN [FamiliaActividades] fam WITH (NOLOCK) 
+                                    ON fam.IdFamilia = a.IdFamilia AND fam.IdEmpresa = a.IdEmpresa
+                                WHERE a.IdEmpresa = ?
+                                  AND a.RutTrabajador IN ({ph})
+                                  AND a.FechaActividad >= ?
+                                  AND a.FechaActividad <= ?
+                                  AND (act.SwVacaciones IS NULL OR act.SwVacaciones = 0)
+                                  AND (act.SwLicencias IS NULL OR act.SwLicencias = 0)
+                                  AND (act.SwPermiso IS NULL OR act.SwPermiso = 0)
+                                  AND (act.SwPermisoConGose IS NULL OR act.SwPermisoConGose = 0)
+                                  AND (act.SwFaltaJustificada IS NULL OR act.SwFaltaJustificada = 0)
+                                  AND (act.SwDescanso IS NULL OR act.SwDescanso = 0)
+                                  AND (act.SwConSpl IS NULL OR act.SwConSpl = 0)
+                                  AND (act.SwConSus IS NULL OR act.SwConSus = 0)
+                            )
+                            SELECT IdTrabajador, RutTrabajador, FechaActividad, Zona, Cuartel, Actividad, Labor
+                            FROM RankedActividadRut
+                            WHERE rn = 1
+                        """
+                        cur.execute(sql_rut, (emp_id, *chunk_ruts, desde_str, hasta_str))
+                        for r in cur.fetchall():
+                            rut = str(r[1]).strip()
+                            act_name = str(r[5] or '').strip().upper()
+                            lab_name = str(r[6] or '').strip().upper()
+                            is_inasist = any(kw in act_name or (lab_name and kw in lab_name) for kw in inasistencias_keywords)
+                            if is_inasist:
+                                continue
+                            fec = r[2]
+                            fec_str = fec.strftime('%Y-%m-%d') if isinstance(fec, (datetime.date, datetime.datetime)) else str(fec)
+                            cuartel_val = resolve_cuartel_desc(r[4])
+                            if rut and rut not in tareos_map:
+                                tareos_map[rut] = {
+                                    'fecha': fec_str,
+                                    'zona': str(r[3] or '').strip(),
+                                    'cuartel': cuartel_val,
+                                    'actividad': str(r[5] or '').strip(),
+                                    'labor': str(r[6] or '').strip()
+                                }
+            conn.close()
+        except Exception as e_batch:
+            print(f"Advertencia en consulta por lotes de tareos: {e_batch}")
 
         self.send_json_response(200, {
             'success': True,
             'count': len(tareos_map),
             'tareos': tareos_map,
-            'range': f"{mes_desde_str} a {mes_hasta_str}"
+            'range': f"{desde_dt.strftime('%d-%m-%Y')} a {hasta_dt.strftime('%d-%m-%Y')}"
         })
 
     def _rows_to_dicts(self, columns, raw_rows):
@@ -1347,6 +1455,49 @@ def find_free_port(start_port=5500):
                 return port
         port += 1
     return 5500
+
+_single_instance_mutex = None
+
+def check_single_instance():
+    """Verifica si ya existe una instancia de ConsolidadorRRHH ejecutándose.
+    Si ya existe, enfoca su ventana existente y termina esta segunda instancia
+    para evitar que se abra doble programa."""
+    global _single_instance_mutex
+    if sys.platform != 'win32':
+        return None
+    try:
+        import ctypes
+        mutex_name = "Global\\ConsolidadorRRHH_SingleInstance_Mutex_v1"
+        mutex = ctypes.windll.kernel32.CreateMutexW(None, False, mutex_name)
+        last_error = ctypes.windll.kernel32.GetLastError()
+        ERROR_ALREADY_EXISTS = 183
+        if last_error == ERROR_ALREADY_EXISTS:
+            found_hwnd = None
+            def enum_cb(hwnd, lparam):
+                nonlocal found_hwnd
+                if ctypes.windll.user32.IsWindowVisible(hwnd):
+                    length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+                    if length > 0:
+                        buff = ctypes.create_unicode_buffer(length + 1)
+                        ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
+                        title = buff.value
+                        if 'Consolidador' in title or 'Unifrutti' in title:
+                            found_hwnd = hwnd
+                            return False
+                return True
+
+            WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_int, ctypes.c_int)
+            ctypes.windll.user32.EnumWindows(WNDENUMPROC(enum_cb), 0)
+
+            if found_hwnd:
+                SW_RESTORE = 9
+                ctypes.windll.user32.ShowWindow(found_hwnd, SW_RESTORE)
+                ctypes.windll.user32.SetForegroundWindow(found_hwnd)
+            os._exit(0)
+        _single_instance_mutex = mutex
+        return mutex
+    except Exception:
+        return None
 
 def main():
     if sys.platform == 'win32' and hasattr(sys.stdout, 'reconfigure'):
@@ -1441,8 +1592,11 @@ def main():
         )
         webview.start(gui='edgechromium', debug=False, storage_path=app_local_data)
         print("\nAplicación cerrada por el usuario.")
-        httpd.server_close()
-        sys.exit(0)
+        try:
+            httpd.server_close()
+        except Exception:
+            pass
+        os._exit(0)
     except Exception as e:
         print(f"Modo ventana alternativa ({e})...")
         use_webview = False
@@ -1482,9 +1636,18 @@ def main():
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
+            pass
+        finally:
             print("\nCerrando servidor...")
-            httpd.server_close()
-            sys.exit(0)
+            try:
+                httpd.server_close()
+            except Exception:
+                pass
+            os._exit(0)
 
 if __name__ == '__main__':
+    import multiprocessing
+    multiprocessing.freeze_support()
+    check_single_instance()
     main()
+

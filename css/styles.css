@@ -6217,6 +6217,32 @@ body.sidebar-collapsed .user-meta-info {
   color: #fbbf24;
 }
 
+.status-banner-time-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  color: #0369a1;
+  padding: 0.2rem 0.65rem;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: default;
+  transition: all 0.2s ease;
+}
+
+.status-banner-time-info:hover {
+  background: rgba(14, 165, 233, 0.2);
+  border-color: #0ea5e9;
+}
+
+[data-theme="dark"] .status-banner-time-info {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: rgba(14, 165, 233, 0.4);
+  color: #38bdf8;
+}
+
 .dup-badge-kept {
   display: inline-block;
   padding: 0.2rem 0.6rem;
